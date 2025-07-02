@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Grafik mit System (PC Underground, PC Magazin 7/98)</title>
+</head>
+<body class="article">
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;7/1998. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="#" style="visibility: hidden;"></a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199808.html">8/1998</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/NT</h2>
+		<h1>Grafik mit <span class="highlight">System</span></h1>
+		<p class="summary">Die Programmierung schneller Grafik&shy;effekte unter Windows ist keine Zauberei. Schaffen Sie mit einer <span class="highlight">Bibliothek die Grundlagen</span> dazu.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Multimedia ist seit vielen Jahren ein Schlagwort der Computer&shy;industrie. Aber nicht nur Konzerne, sondern auch Künstler haben das Zusammenspiel von Grafik- und Soundsystem für sich entdeckt. Das Ergebnis ihrer Arbeit sind selbst&shy;ablaufende Multimedia&shy;präsentationen, sogenannte Demos.</p>
+		<p>Eine Demo entsteht in einem kreativen Prozeß, bei dem Programmierer, Grafiker und Musiker ihre Erfahrungen und ihr Talent einbringen. In dieser neuen Rubrik zeigen wir Ihnen das nötige Handwerks&shy;zeug, um mitreißende Multimedia-Clips zu entwickeln.</p>
+		<p>Dabei will PC Magazin Ihrer kreativen Ader kräftig auf die Sprünge helfen: Wir bieten Ihnen als Grundlage lauffähige Listings an, die Sie persönlich weiter&shy;entwickeln können. Aus Platzgründen drucken wir nur die wichtigsten Routinen ab. Die kompletten Programme können Sie sich von der Heft-CD, von der Databox oder aus dem Internet-Angebot des PC Magazin unter <a rel="external nofollow noreferrer" href="https://www.pc-magazin.de">www.pc-magazin.de</a> auf Ihren Rechner laden.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199807.zip">💾 199807.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Step by Step</h2>
+		<p>Wie schreiben Sie nun eine professionelle Demo? Auf den ersten Blick könnten Sie versucht sein, eine komplette Animation zu berechnen, zu vertonen und das Ergebnis als Video zu speichern. Das mag zwar funktionieren, aber die Faszination von Demos liegt eigentlich darin, den Computer so weit wie möglich auszureizen, keine Ressourcen zu verschwenden und möglichst alles in Echtzeit zu berechnen.</p>
+		<figure class="floatright">
+			<img src="assets/199807_1.png" width="320" height="240" alt="DIE GRAFIK für unser Beispielprogramm enthält 256 Farben.">
+			<figcaption><span>DIE GRAFIK</span> für unser Beispiel&shy;programm enthält 256 Farben.</figcaption>
+		</figure>
+		<p>Das ist nicht immer ganz einfach, aber erlernbar. Mit PC Underground führen wir Sie jeden Monat ein Stück weiter in die Geheimnisse der Profis ein. Bereits nach kurzer Zeit haben Sie eine komplette Demo geschrieben. In dieser Ausgabe des PC Magazin legen Sie mit einem Grafiksystem für die Windows 95/NT-Plattform den Grundstein dazu. Außerdem lernen Sie anhand eines einfachen Effektes die ersten Tricks der Demo-Programmierer kennen.</p>
+		<p>Sie benötigen lediglich etwas C-Kenntnisse und für einige zukünftige Routinen eventuell – aber nicht unbedingt notwendig – Interesse an Assembler-Programmierung. Als Compiler eignen sich gleichermaßen die Produktte von Borland, Microsoft, Watcom oder Intel.</p>
+		<p>Sie können auf Assembler-Code sogar vollständig verzichten, da die heutigen C-Compiler durchweg gute Ergebnisse produzieren. Besonders erwähnenswert ist hier der Intel-C/C++-Compiler, dessen Code qualitativ oft an hand&shy;optimierten heranreicht. In den Beispiel&shy;programmen bietet Ihnen PC Magazin zu jeder Assembler-Routine auch das entsprechende C-Pendant an.</p>
+	</section>
+
+	<section>
+		<h2>32-Bit Protected Mode</h2>
+		<p>Als Entwicklungs&shy;plattform dient Win32, die Demo läuft also unter Windows 95 und NT. Im Hinblick auf die später in dieser Reihe verwendeten Assembler-Module ist es sinnvoll, die Eigenheiten des Protected Mode und des Windows-Speicher&shy;modells zu erläutern.</p>
+		<p>Als noch MS-DOS und Windows 3.1x die PC-Welt regierten, liefen Programme im 16-Bit-Real-Mode und Protected Mode. 16 Bit deshalb, weil alle Prozessor&shy;register 16 Bit breit waren.</p>
+		<p>Der Nachteil daran war, daß ein 16 Bit breites Register nur 64 KByte (= 65,536) Speicher&shy;blöcke adressieren konnte. Die Blöcke wurden daher mit einem Registerpaar angesprochen, nämlich mit einer Segment- und einer Offset-Adresse. Natürlich konnte ein Programm mehrere dieser Blöcke anfordern, aber bei großen Daten&shy;strukturen war dies sehr unpraktisch.</p>
+		<p>Mit der Einführung des 386-Prozessors von Intel wurden alle Register auf 32 Bit erweitert. Anfangs war es nicht einfach, diese wirklich effektiv zu nutzen: Weder MS-DOS noch Windows 3.1x waren darauf ausgelegt, Programme im 32-Bit-Protected-Mode auszuführen. Seit Win32s, Windows 95 und NT stellt dies kein Problem mehr dar. Auch unter DOS umgehen Sie dieses Problem mit dem Einsatz sogenannte DOS-Extender.</p>
+		<p>Mit 32 Bit breiten Registern adressieren Sie nun einen Adreßbereich von 4 GByte linear. Das bedeutet, daß Sie mehr als 64 KByte Speicher an einem Stück anfordern und ansprechen können. Programme werden dadurch einfacher und über&shy;sichtlicher.</p>
+	</section>
+
+	<section>
+		<h2>Windows-Programmierung</h2>
+		<p>Beim Schreiben einer Demo möchten Sie sich nicht jedesmal um die Initialisierung eines Fensters kümmern. Diese Aufgaben und häufig gebrauchte Funktionen fassen Sie deshalb in einer Bibliothek zusammen.</p>
+		<p>Ihre Aufgabe ist es nun, solch ein Basissystem auf der Grundlage der Windows-GDI (Graphics Device Interface) zu schreiben. Diese Schnittstelle kann Grafiken laden, Farb&shy;manipulationen an Bildern durchführen und berechnete Bilder entweder in einem Fenster oder im Vollbildmodus darstellen. Zudem kann sie den Ablauf einer Demo unabhängig von der Geschwindig&shy;keit des Rechners steuern.</p>
+		<p>Zunächst einmal sind Demos keine interaktiven Programme. Windows selbst ist aber darauf ausgelegt, nicht nur Inhalte in Fenstern darzustellen, sondern auch auf Eingaben des Benutzers zu reagieren. Da Sie in unserem Fall nicht auf spezielle Benutzer&shy;eingaben achten müssen, genügt ein einfacher Windows-Startup, der für die eigentliche Demo alles unsichtbar erledigt.</p>
+		<p>Dieser Startup ist so allgemein und unabhängig, daß man ihn durch einen anderen ersetzen könnte. Somit wäre ein und dieselbe Demo auf anderen Betriebs&shy;systemen lauffähig.</p>
+		<p>Eine normale Anwendung erzeugt prinzipiell ein Fenster mit einem Event Handler, also einer Prozedur, die auf Eingaben des Anwenders reagiert. Danach arbeitet die Anwendung bis zum Schließen des Fensters eine Haupt&shy;schleife ab.</p>
+		<p>Diese Schleife wartet auf Benutzer&shy;eingaben oder Nachrichten und leitet diese dann an das zuständige Fenster beziehungs&shy;weise dessen Event Handler weiter. Diese führen dann vom Programmierer bestimmte Routinen aus. Da die Interaktion des Benutzers bei einer Demo auf das vorzeitige Beenden des Programms beschränkt sein soll, ist der Event Handler sehr einfach.</p>
+		<p>Da Windows ein Multitasking-Betriebs&shy;system ist, können mehrere Programme gleichzeitig ablaufen. Die Verwaltung der einzelnen Programme und Programm&shy;abläufe (Threads) übernimmt dabei der Windows-Kernel (Betriebs&shy;systemkern). Sie brauchen sich also als Programmierer darüber keine Gedanken zu machen. Bei der Verwendung mehrerer Threads spricht man von Multi&shy;threading.</p>
+		<p>Für eine Demo ist Multi&shy;threading die ideale Lösung. Sie teilen das Programm einfach in zwei Threads auf: Der erste Thread ist für die Windows-Messages zuständig, während der zweite die eigentliche Demo und deren Ablauf darstellt.</p>
+	</section>
+
+	<aside>
+		<h2>DAS VERWENDETE FARBMODELL</h2>
+		<div>
+			<p>Das in diesem Projekt verwendete Farbmodell entspricht jenem, das die meisten Grafikkarten in HiColor-Modi verwenden.
+				Dazu steht für jedes Pixel ein 16 Bit breiter Wert zur Verfügung, in dem jeweils ein Bereich der Bits den Rot-, Grün- und Blauanteil (RGB) einer Farbe darstellt.<br>
+				Die Bereichs&shy;größen sind jeweils 5 Bit für Rot und Blau und 6 Bit für Grün. Der Aufbau sieht also folgender&shy;maßen aus: <span class="code">RRRRRGGGGGGBBBBB</span>
+				Drei Tabellen – für jede Primärfarbe eine – mit jeweils 256 Einträgen vereinfachen die Handhabung. Das sind natürlich mehr als notwendig: Mit 5 Bit lassen sich maximal 2<sup>5</sup> = 32 verschiedene Abstufungen erzeugen. Viele der 256 Einträge enthalten daher den gleichen Wert. Dennoch sind diese Tabellen sehr nützlich, sie vereinfachen und beschleunigen grafische Effekte mit Farb&shy;manipulationen.<br>
+				Den Farbwert eines satten Orangetons erhalten Sie etwa durch Auslesen der Einträge <i>230</i>, <i>100</i> und <i>20</i> aus den Tabellen und einer bitweisen Oder-Verknüpfung: <span class="code">unsigned short farbwert = Rtab[230] | Gtab[100] | Btab[20];</span>
+				Die Farben ergeben sich durch additive Farbmischung, das heißt größere Werte (bis ein&shy;schließlich <i>255</i>) ergeben einen helleren Anteil der Primärfarbe. Das Wertetripel <i>(255,255,255)</i> ergibt also Reinweiß, <i>(0,0,0)</i> die Farbe Schwarz.
+			</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Aufbau des Basissystems</h2>
+		<p>Das Basissystem der Demo sollte so unabhängig vom Betriebs&shy;system sein, daß Sie sich als Programmierer nicht mehr im geringsten mit der Windows-Programmierung beschäftigen müssen. Sie werden bei der Entwicklung Ihrer Demos nur noch zwei Funktionen implementieren:<br>
+		• Die Funktion <span class="code">BOOL demoinit(void)</span> enthält Initialisierungs-Routinen, zum Beispiel, um Grafiken zu laden oder Musik zu starten. Nach erfolgreicher Ausführung geben Sie in <i>demoinit</i> den Wert <i>1</i> (für <i>true</i>) zurück.<br>
+		• In die Funktion <span class="code">void demomain(void)</span> schreiben Sie den Ablauf der Demo, also den eigentlichen Programmcode. Dabei stehen Ihnen verschiedene Bibliotheks&shy;funktionen zur Verfügung:
+		<span class="code">unsigned long GetDemoTime(void)</span>
+		<i>GetDemoTime</i> gibt die seit dem Demostart verstrichene Zeit in Millisekunden wieder. Dies ist notwendig, wenn ein Effekt unabhängig von der Rechner&shy;geschwindig&shy;keit ablaufen soll. Im Beispiel dieser Ausgabe ist es die Lichtquelle, deren Position abhängig von der verstrichenen Zeit bestimmt wird.
+		<span class="code">unsigned short ColorCode(int r, int g, int b)</span>
+		<i>ColorCode</i> liefert für das Wertetripel (<i>r</i>,<i>g</i> und <i>b</i>) den Farbwert des in der Demo verwendeten Farbmodells.
+		<span class="code">void BlitGraphic(void *buf)</span>
+		Mit <i>BlitGraphic</i> übergeben sie einen Zeiger auf ein dar&shy;zustellendes Bild.
+		<span class="code">int bmp_load(char *name, bitmaptype &amp;bitmap)</span>
+		Mit <i>bmp_load</i> laden Sie <i>bmp</i>-Dateien für den Gebrauch in Ihre Demo. Der Typ <i>bitmaptype</i> ist selbst&shy;definiert und enthält Breite, Höhe und Zeiger auf die Bilddaten. Den genauen Aufbau entnehmen Sie dem Quelltext.
+		<span class="code">void bmp_make16bitpalette(bitmaptype &amp;bitmap)</span>
+		<i>bmp_make16bitpalette</i> konvertiert im Falle einer 256-Farben-Bitmap die Farbpalette in das in der Demo verwendete Farbmodell (siehe Textbox oben).
+		<span class="code">void bmp_free(bitmaptype &amp;bitmap)</span>
+		<i>bmp_free</i> gibt den Speicher einer geladenen Bitmap-Datei wieder frei.</p>
+		<p>Außerdem stellt die Bibliothek noch einige Tabellen und Konstanten bereit, deren Bedeutung Sie anhand des Beispiels erfahren.</p>
+	</section>
+
+	<section>
+		<h2>Implementierung des Basissystems</h2>
+		<p>Jedes Windows-Programm startet mit der Routine <i>WinMain</i>. Diese soll nun eine Bitmap-Info erzeugen, um eine Grafik mit einem bestimmten – vom Programmierer festgelegten – Aufbau in einem Fenster darzustellen. Außerdem soll sie ein Fenster öffnen, in dem die Demo angezeigt wird.</p>
+		<p>Die Prozedur <i>InitGraphic(void)</i> erzeugt diese Bitmap-Info. Sie fordert dazu eine Variable des Typs <i>BITMAPINFO</i> an und trägt Breite und Höhe des Fensters sowie das verwendete Farbmodell ein.</p>
+		<p>Das Erzeugen des Fensters ist Aufgabe der Prozedur <i>InitDemoWindow</i>. Dazu registriert sie eine neue Fensterklasse, legt mit <i>CreateWindowEx</i> eine Instanz davon an und stellt sie mit <i>ShowWindow</i> dar. Die Definition einer Fensterklasse enthält zum Beispiel das Erscheinungs&shy;bild eines Fensters mit den vorhandenen Buttons, dem Icon und dem Mauscursor. Zudem speichert sie einen Verweis auf die Funktion, die die Nachrichten dieses Fensters verarbeitet.</p>
+		<p>Wenn das Fenster sichtbar ist, wird noch der Device Context in einer Variable gesichert. Um Grafiken im Fenster darzustellen, beziehen Sie sich von nun an auf diesen Verweis.</p>
+		<p>Außerdem setzt <i>InitDemoWindow</i> die Priorität des ersten Threads, der die Nachrichten an das Fenster verarbeitet, auf den niedrigsten Wert. Dadurch können Sie dem zweiten Thread, der nach <i>InitDemoWindow</i> startet, eine hohe Priorität geben. Sie gewähren somit dem Programmcode für die Demo mehr Rechenzeit. Nach den Initialisierungs&shy;arbeiten geht <i>WinMain</i> in die Message-Schleife über, die die Nachrichten an die Message-Funktion weiterleitet und das Programmende abwartet.</p>
+		<p>Die Message-Funktion des Demofensters ist wie bereits erwähnt sehr einfach. Diese Funktion wird immer aufgerufen, wenn eine Nachricht an das Fenster gesandt wird. Die Nachrichten stammen entweder vom Windows-System selbst oder vom Benutzer.</p>
+		<p>Für das Demofenster sind nun zwei Nachrichten interessant: <i>WM_DESTROY</i> zeigt an, daß das Fenster geschlossen werden soll, <i>WM_KEYDOWN</i> signalisiert einen Tastendruck. In beiden Fällen soll die Demo beendet werden. Dazu geben Sie den Device Context wieder frei und teilen der Message-Schleife über <i>PostQuitMessage</i> mit, daß das Programm beendet werden soll.</p>
+		<p>Alle anderen Nachrichten, die nicht speziell behandelt werden müssen, übergeben Sie an <i>DefWindowProc</i>. Diese Prozedur verwaltet Nachrichten wie das Verschieben des Fensters oder das Öffnen des System-Menüs und enthält Standard&shy;behandlungs&shy;routinen für die meisten Nachrichten.</p>
+		<p>Der <i>BlitGraphic</i>-Funktion übergeben Sie einen Zeiger auf eine Bitmap, deren Farbwerte dem verwendeten Farbmodell entsprechen. Sie ruft die benötigten Windows-GDI-Funktionen auf, um eine Device Independent Bitmap in einem Fenster darzustellen. Dabei handelt es sich um eine Bitmap, die unabhängig vom Bildschirm&shy;modus ist, in dem sich die Grafikkarte befindet. Muß das Bild nicht skaliert werden, kommt dafür <i>SetDIBitsToDevice</i> in Frage, für alle anderen Fälle erledigt dies die Funktion <i>StretchDIBits</i>.</p>
+	</section>
+
+	<section>
+		<h2>Der erste Demoeffekt</h2>
+		<p>Bevor Sie den ersten Demoeffekt programmieren, zeigt Ihnen folgendes Beispiel den Umgang mit der Grafik&shy;bibliothek:</p>
+		<pre><code>
+#include "demo.h"
+
+bitmaptype bmp;
+
+BOOL demoinit(void)
+{
+	bmp_load("BACK256.BMP“, bmp);
+	bmp_make16bitpalette(bmp);
+	return 1;
+}
+
+void demomain(void)
+{
+	unsigned short screen[SCREEN_X*SCREEN_Y];
+
+	for (int i=0; i&lt;SCREEN_X*SCREEN_Y; i++)
+		screen[i]=bmp.sColors[bmp.cBitmap[i]];
+
+	BlitGraphic(screen);
+	while (DemoRunning);
+}
+		</code></pre>
+		<p>Die Funktion <i>demoinit</i> lädt eine 256-Farben-Bitmap in Fenstergröße und bereitet eine Palette fürs Farbmodell vor.</p>
+		<figure class="floatleft">
+			<img src="assets/199807_2.png" width="320" height="240" alt="DIESE LIGHTMAP erzeugt den Lichteffekt.">
+			<figcaption><span>DIESE LIGHTMAP</span> erzeugt den Lichteffekt.</figcaption>
+		</figure>
+		<p>Mit Hilfe dieser in <i>bmp.sColors</i> gespeicherten Palette setzt nun <i>demomain</i> jedes Pixel in den virtuellen Bildschirm <i>screen</i>. Die Funktion <i>BlitGraphic</i> stellt das fertige Bild im Fenster dar, die nachfolgende While-Schleife wartet, bis das Demosystem das Ende signalisiert. In diesem Fall enthält die Variable <i>DemoRunning</i> den Wert <i>0</i> (für <i>false</i>).</p>
+		<p>Als Beispiel für die Nutzung des Basissystems der Demo laden Sie eine <i>bmp</i>-Datei und stellen sie mit einer darüber schwebenden Lichtquelle dar. Die folgenden Schritte implemetieren Sie in der Funktion <i>demoinit</i>:</p>
+		<p>Zunächst laden Sie mit bmp_load eine Bitmap mit 320 x 240 Bildpunkten und 256 Farben in den Speicher. Nun soll eine Lichtquelle über das Bild wandern. Die Bitmap soll nahe der Lichtquelle hell sein und mit zunehmender Entfernung dunkler werden.</p>
+		<p>Sie arbeiten im folgenden mit 32 Helligkeits&shy;stufen, und für alle 256 Farben des Bildes berechnen Sie in einer sogenannten Shading-Tabelle die 32 Abstufungen vor. Dazu multi&shy;plizieren Sie die Rot-, Grün- und Blauwerte mit der Helligkeits&shy;stufe und teilen das Ergebnis durch 12. Ist die Helligkeits&shy;stufe größer als 24, so addieren Sie noch einen Wert hinzu. Durch eigene Versuche bestimmen Sie ähnlich geeignete Werte – diese bewirken dann ein leicht geändertes Erscheinung&shy;bild.</p>
+		<p>Nun berechnen Sie noch eine sogenannte Lightmap. Das ist eine Bitmap, die viermal so groß ist wie das Original, also 640 x 480 Bildpunkte. Jeder Bildpunkt der Lightmap enthält den Helligkeits&shy;wert, der von seiner Entfernung zum Mittelpunkt (320,240) der Lightmap abhängt. Diesen Wert bestimmen Sie durch den Sinus des Abstands. Auch diese Formel entstammt empirischen Versuchen und erlaubt leichte Modifi&shy;kationen.</p>
+		<figure class="floatright">
+			<img src="assets/199807_3.png" width="320" height="240" alt="DIE ÜBERLAGERUNG von Bitmap und Lightmap sieht so aus.">
+			<figcaption><span>DIE ÜBERLAGERUNG</span> von Bitmap und Lightmap sieht so aus.</figcaption>
+		</figure>
+		<p>Mit Hilfe dieser in <i>bmp.sColors</i> gespeicherten Palette setzt nun <i>demomain</i> jedes Pixel in den virtuellen Bildschirm <i>screen</i>. Die Funktion <i>BlitGraphic</i> stellt das fertige Bild im Fenster dar, die nachfolgende While-Schleife wartet, bis das Demosystem das Ende signalisiert. In diesem Fall enthält die Variable <i>DemoRunning</i> den Wert <i>0</i> (für <i>false</i>).
+		<p>Die Berechnung der Einzel&shy;bilder erfolgt nun in der <i>demomain</i>-Funktion: Ein neues Bild berechnen Sie, indem Sie die Lightmap über der Bitmap verschieben und dann beide überlagern.</p>
+		<p>Bei diesem Verfahren führen zu große Ver&shy;schiebungen der Lightmap zu Stellen, an denen sie nicht mehr mit der Bitmap überlappt. Diese Bereiche sind aber ohnehin sehr weit von der Lichtquelle entfernt, die sich ja in der Mitte der Lightmap befindet. Deswegen dürfen Sie dort getrost den gleichen Helligkeits&shy;wert wie am Rand der Lightmap annehmen.</p>
+		<p>Da die X-Koordinaten der Lightmap für alle Spalten des Endbildes gleich sind (dasselbe gilt für die Y-Koordinaten bezüglich der Zeilen), berechnen Sie sie vor dem eigentlichen Zeichnen vor und speichern sie in <i>pos_x[]</i> (bzw. <i>pos_y[]</i>). Für jedes Pixel des Endbildes lesen Sie den ent&shy;sprechenden Wert der Lightmap und den Pixel des Original&shy;bildes aus und bestimmen mit Hilfe der Shading-Tabelle den neuen Farbwert. Diese neuen Farbwerte stehen dann in screen und gelangen mit <i>BlitGraphic</i> zur Darstellung.</p>
+		<p>Sie sehen, wie die verschiedenen vor&shy;berechneten Tabellen (Lightmap, Shading-Tabelle und <i>pos_x[]</i> bzw. <i>pos_y[]</i>) dazu beitragen, die Animation flüssig laufen zu lassen. Natürlich könnten Sie auch in der Hauptschleife für jeden Pixel den Abstand zur Lichtquelle und damit den Helligkeits&shy;wert bestimmen, dann die Farbe des Pixels der Bitmap auslesen und anhand dieser RGB-Werte eine neue Farbe bestimmen. Nur würde das Ergebnis nicht mehr einer Bewegung, sondern mehr einer Slideshow ähnlich sehen.</p>
+	</section>
+
+	<section>
+		<h2>Ausblick</h2>
+		<p>Den ersten Teil mit der Vorstellung des Grafiksystems und den ersten Einblicken in die Demo&shy;programmierung haben Sie nun gemeistert. In den nächsten beiden Ausgaben des PC Magazin entwickeln Sie eine 3D-Engine, mit der Sie komplexe animierte Szenen in Echtzeit berechnen.</p>
+		<p>Fertige Demos der beiden Autoren können Sie im Internet unter <a rel="external nofollow noreferrer" href="https://www.cubic.org">www.cubic.org</a> herunterladen. Dort finden Sie im Abschnitt Gallery Demos für DOS und Windows.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein / Burkhard Müller</p>
+		<p>© 1998 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="#" style="visibility: hidden;"></a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199808.html">8/1998</a>
+	</nav>
+</body>

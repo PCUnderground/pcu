@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Mit Marmor oder Holz (PC Underground, PC Magazin 10/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;10/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200009.html">9/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200011.html">11/2000</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Texturen generieren</h2>
+		<h1>Mit <span class="highlight">Marmor</span> oder Holz</h1>
+		<p class="summary">Mit wenigen Zeilen Programmcode gestalten Sie die schönsten Oberflächen mit Texturen aller Art. Ihrer Fantasie sind <span class="highlight">keine Grenzen gesetzt</span>, um die Aufmerksamkeit des Betrachters zu erringen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Generieren Sie mit wenig Aufwand schrill bunte oder realistisch anmutende Texturen. Diese verwenden Sie für eigene Grafiken, Ihre Webpages oder 3D-Modelle. Diese Texturen sind dann garantiert frei von Rechten Dritter. Das ist bei Texturen von Modelling-Programmen oder CD-ROMs nicht immer der Fall.</p>
+		<p>Die Texturen in Ihren Programmen speichern Sie über die Parameter, mit denen Sie sie angelegt haben. Damit sparen Sie viel Platz im Gegensatz zur Datenmenge, die eine fertige Textur als Bild belegt. Textur-Parameter speichern Sie mit etwa 100 Byte oder weniger.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200010.zip">💾 200010.zip</a>.</div>
+	</aside>
+
+	<section>
+		<p>Wir zeigen Ihnen Schritt für Schritt, wie Sie Ihren eigenen Textur-Generator bauen. Dieser arbeitet mit Layers. Das ist ein Speicher&shy;bereich, der eine temporäre Textur oder andere für die Textur&shy;generierung notwendige Daten enthält. Ein Layer hat die Ausmaße der Textur, die Sie generieren wollen. Er besteht aus drei Kanälen, je einen für die Grundfarben Rot, Grün und Blau. Ein Textur-Generator, wie Sie ihn programmieren, arbeitet mit vier Arbeits&shy;schritten:<br>
+		• Er generiert einfache temporäre Basistexturen,<br>
+		• verzerrt Texturen,<br>
+		• Farb&shy;operationen<br>
+		• und Filter&shy;funktionen.</p>
+		<p>Notwendig ist nur der erste Schritt. Die drei anderen sorgen dafür, dass die Texturen interessant wirken. Sie generieren einfache Texturen auf einigen Layers. Dann verzerren Sie den ersten Layer mit den Daten des zweiten und verändern mit dem Resultat die Textur des dritten. Einfach generierte Texturen können Sie aneinander legen, ohne einen erkennbarer Rand zu lassen.</p>
+		<p>Zunächst definieren Sie die Daten&shy;strukturen für Ihre Layer. Diese bestehen aus einer Struktur für die Farbkanäle eines Pixels und einer Liste aus Bildern der gewünschten Größe. Der Wertebereich unserer Texturen bewegt sich zwischen <i>0</i> bis <i>255</i>, wie der verwendete <i>unsigned char</i>-Wert definiert ist:</p>
+		<pre><code>
+// Definitionen für die Layer
+typedef struct
+{
+	unsigned char r, g, b;
+} COLOR;
+
+COLOR layer[MAXLAYER][SIZE * SIZE];
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Basistexturen</h2>
+		<figure class="floatright">
+			<img src="assets/200010_1.png" width="256" height="256" alt="DIE SINUSFUNKTIONEN färbt die Textur.">
+			<figcaption><span>DIE SINUSFUNKTIONEN</span> färbt die Textur.</figcaption>
+		</figure>
+		<p>Um einfache Texturen zu erzeugen, setzen Sie Pixel auf den Layer. Am besten bestimmen Sie die Farbwerte durch zwei überlagerte Sinus&shy;funktionen über der Textur:</p>
+		<pre><code>
+// Sinusfunktion
+for (y = 0; y &lt; SIZE; y++)
+	for (x = 0; x &lt; SIZE; x++)
+	{
+		wert = 127 + 63.5 * sin(x * faktor) +
+			63.5 * sin(y * faktor);
+		layer[0][y * SIZE + x].r = wert;
+	}
+		</code></pre>
+		<p>Das Resultat überzeugt nicht. Sie können Layers dieser Art aber verwenden, um andere Layers zu verzerren. Verwenden Sie die zweite einfache Basistextur, um die Helligkeit anderer Layer zu ändern. Betrachten Sie jeden Pixel, und weisen Sie ihm eine Farbe entsprechend seinem Abstand zum Mittelpunkt zu. Es gilt dann der Satz: Je kleiner der Abstand, desto heller die Farbe.</p>
+		<p>Eine etwas komplexere Methode stellen Sub-Plasmas dar. Zuerst setzen Sie einige Pixel mit zufälliger Helligkeit an bestimmte Positionen im Layer. Beispielsweise wählen Sie einen Abstand von acht Pixeln zwischen zwei Zufallswerten. Mit diesen Zufallswerten interpolieren Sie die Farbwerte aller anderen Pixel.</p>
+		<p>Dabei setzen Sie im zwei&shy;dimensionalen Raum entsprechend alle Pixel an jeder durch acht teilbaren <i>x</i>- und <i>y</i>-Koordinate. Bei der Interpolation ist entscheidend, welches Verfahren Sie verwenden. Eine lineare Interpolation führt zu unschönen Ergebnissen. Das Bild markiert die gesetzten Zufallswerte durch rote Punkte.</p>
+		<figure class="floatright">
+			<img src="assets/200010_3.jpg" width="240" height="262" alt="DER VERGLEICH ZEIGT die Unterschiede zwischen Linear- und Kosinus-Interpolation.">
+			<figcaption><span>DER VERGLEICH ZEIGT</span> die Unterschiede zwischen Linear- und Kosinus-Interpolation.</figcaption>
+		</figure>
+		<p>Der Rest der Kurve ist gleichmäßig glatt und führt zu einem hervorragenden Sub-Plasma wie im vorigen Bild. Wer sich in die mathematische Welt der Splines wagt, verwendet für die Interpolation die Catmull-Rom-Splines. Mit deutlich weniger Rechenaufwand kommen Sie aus, wenn Sie die Kosinus-Interpolation verwenden.</p>
+		<p>Verwenden Sie das Verfahren von Ken Perlin, um Texturen zu synthetisieren. Die Homepage von Ken Perlin, auf der Sie auch seinen Artikel über prozedurale Texturen lesen, finden Sie unter <a href="https://mrl.nyu.edu/perlin" rel="external nofollow noreferrer">http://mrl.nyu.edu/perlin</a>.</p>
+		<p>Eine Perlin-Noise-Funktion liefert zu einem Parameter (in diesem Fall eine ganze Zahl) eine Zufallszahl zurück. Wenn Sie zweimal denselben Parameter übergeben, muss die Funktion auch zweimal dasselbe Resultat erzeugen. Anderenfalls erhalten Sie trotz gleicher Startparameter nie zweimal dieselbe Textur.</p>
+		<p>Perlin-Noise-Funktionen sind Erweiterungen der Sub-Plasmas: Mehrere Sub-Plasmas mit unter&shy;schiedlicher Amplitude und Frequenz werden addiert. Die Amplitude bezeichnet den höchsten vorkommenden Zufallswert eines Sub-Plasmas, und mit der Frequenz bestimmen Sie den Abstand der Zufallswerte. Sie können mehrere Noise-Funktionen unter&shy;schiedlicher Amplitude und Frequenz zu einer Perlin-Noise- Funktion summieren.</p>
+		<figure class="large">
+			<img src="assets/200010_4.png" width="916" height="461" alt="EINDIMENSIONALE NOISE-FUNKTIONEN addieren Sie zu einer Perlin-Noise-Funktion.">
+			<figcaption><span>EINDIMENSIONALE NOISE-FUNKTIONEN</span> addieren Sie zu einer Perlin-Noise-Funktion.</figcaption>
+		</figure>
+		<p>Analog können Sie auch im Zwei&shy;dimensionalen vorgehen. Verschiedene Sub-Plasmas ergeben zusammen eine Perlin-Noise-Textur. Das Beispiel interpoliert zwischen den Zufallswerten der Sub-Plasmas nur linear, was wegen der Überlagerung der Sub-Plasmas im Endbild nicht mehr auffällt.</p>
+		<p>Die Amplitude und die Frequenz, die Sie für die einzelnen Noise Funktionen verwenden, können Sie durch die <i>Persistence</i> festlegen. Sie legen nur noch eine Amplitude und eine Frequenz für die erste Funktion fest. Für die jeweils nächste Funktion, verdoppeln Sie die Frequenz und multiplizieren die Amplitude mit der Persistence. Der Wert der Persistence sollte zwischen <i>0</i> und <i>1</i> liegen. Größere Werte bedeuten höhere Frequenzen, also mehr Rauschen. Verdoppelte (überlagerte) Frequenzen nennt man Oktaven, da bei Klängen eine Verdoppelung der Frequenzen einem Sprung von einer Oktave entspricht. Wie viele Oktaven Sie wählen, ist Ihre Entscheidung. Berück&shy;sichtigen Sie nur, dass die Amplitude irgendwann so klein wird, dass die Funktion nicht mehr ins Gewicht fällt.</p>
+		<figure class="floatright">
+			<img src="assets/200010_2.png" width="254" height="143" alt="EINE NOISE-FUNKTION, die durch wenige Stützpunkte festgelegt ist">
+			<figcaption><span>EINE NOISE-FUNKTION</span>, die durch wenige Stützpunkte festgelegt ist</figcaption>
+		</figure>
+		<p>Wie erzeugen Sie Noise-Funktionen? Die herkömmlichen Zufallszahlen&shy;generatoren, die Ihnen C anbietet, liefern bei jedem Aufruf eine neue Zahl. Da das Ergebnis aber reproduzierbar sein muss (weil Sie eine Noise-Funktion eventuell mehrmals an derselben Stelle berechnen müssen), können Sie diese nicht verwenden.</p>
+		<p>Sie können eine Funktion wählen, die relativ zufällig Werte liefert – meistens sehr große Primzahlen. Folgende Funktion berechnet eine Zufallszahl zu <i>x</i> zwischen <i>-1</i> und <i>1</i>:</p>
+		<pre><code>
+x = (x &lt;&lt; 13) ^ x;
+return (1.0 - ((x * (x * x * 15731 + 789221) +
+	1376312589) &amp; 7fffffff) / 1073741824.0);
+		</code></pre>
+		<p>Eine andere Methode legt beim Start des Programms eine Tabelle mit Zufallszahlen mit dem Generator an. Es genügen zum Beispiel 4096 verschiedene Zahlen. Als Funktion dient dann</p>
+		<pre><code>return randomTable[x &amp; 4095];</code></pre>
+	</section>
+
+	<aside>
+		<h2>INTERPOLATIONSVERFAHREN</h2>
+		<div>
+			<p>Bei der Bild&shy;bearbeitung und der Generierung von Texturen entscheidet die Methode der Interpolation über die Bildqualität. Meist genügt die lineare Interpolation. Diese können Sie bedenkenlos anwenden, wenn Sie nur über wenige Pixel interpolieren oder der interpolierte Bereich noch weiter überdeckt wird (bei Perlin Noise).</p>
+			<p>Angenommen, Sie wollen Werte wie bei einer Noise-Funktion an der Stelle x auslesen. Dann muss x nicht ganzzahlig sein, die Werte sollen aber für ganzzahlige x bekannt sein. Sie interpolieren zwischen den Werten, die an der Stelle des auf- und des abgerundeten x liegen:</p>
+			<pre><code>
+wert1 = abgerundet(x);
+wert2 = aufgerundet(x);
+			</code></pre>
+			<p>Es bleibt zu entscheiden, wie Sie die beiden Werte gewichten. Bei der linearen Interpolation verwenden Sie den Nachkomma&shy;anteil von x. Je kleiner dieser ist, desto näher liegt der unbekannte Wert an der Stelle x am Wert 1. Die Gewichtungs&shy;faktoren berechnen Sie wie folgt, wobei die Summe 1 ergibt:</p>
+			<pre><code>
+faktor1 = 1.0 - nachkomma(x);
+faktor2 = nachkomma(x);
+			</code></pre>
+			<p>Den interpolierten Wert erhalten Sie mit</p>
+			<pre><code>
+wert = wert1 * faktor1 + wert2 * faktor2
+			</code></pre>
+			<p>Wenn Sie mehr Rechenaufwand investieren, erzielen Sie mit der Kosinus&shy;interpolation abgerundete Ergebnisse:</p>
+			<pre><code>
+// Kosinusgewichtung
+ft = nachkomma(x) * PI;
+f = (1 - cos(ft)) * 0.5
+faktor1 = 1.0 - f;
+faktor2 = f;
+wert = wert1 * faktor1 + wert2 * faktor2;
+			</code></pre>
+			<p>Bei der Kosinus&shy;interpolation steigt der Gewichtungs&shy;faktor f an den Rändern langsamer. Dadurch erhalten Sie in der Nähe der Zufallswerte abgerundete Verläufe.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Verzerrte Texturen</h2>
+		<p>Aus Basistexturen können Sie interessante Texturen machen. Sie verzerren das Bild, indem Sie jeden Pixel des Bildes betrachten und ihm den Wert eines anderen Pixels zuweisen. Dieser Pixel liegt zum Beispiel drei Pixel tiefer und vier Pixel rechts.</p>
+		<p>Schwieriger ist es, einen Wert mit einer Verschiebung von <i>2.7</i> Pixel tiefer und <i>4.2</i> Pixel rechts auszulesen. Wenn Sie die Werte auf <i>3</i> und <i>4</i> aufrunden, erhalten Sie eine sehr körnige Textur mit ungewünschten Aliasing-Effekten.</p>
+		<p>Sie lösen die Aufgabe mit der bilineare Interpolation. Dazu nehmen Sie den Pixel, den Sie auslesen wollen. Sie ordnen ihm <i>x</i> und <i>y</i>-Koordinaten zu, denen Sie die gerundeten Werten von <i>2</i> und <i>4</i> zuweisen. Dann betrachten Sie die vier umliegenden Punkte:</p>
+		<pre><code>
+(x, y),
+(x + 1, y),
+(x, y + 1)
+(x + 1, y + 1)
+		</code></pre>
+		<p>Die Farbwerte dieser Pixel gewichten Sie abhängig vom Nachkomma-Anteil der Verschiebung. Für den ersten bis zum vierten Fall ergeben sich folgende Punktwerte:</p>
+		<pre><code>
+0.7 * 0.2 = 0.14
+0.3 * 0.2 = 0.06
+0.7 * 0.8 = 0.56
+0.3 * 0.8 = 0.24
+		</code></pre>
+		<p>Die vier Gewichte ergeben in der Summe den Wert <i>1</i>. Mit diesen Gewichten multiplizieren Sie die Rot-, Grün- und Blau-Farbanteile der umliegenden Pixel und addieren diese. Damit erhalten Sie einen gefilterten Farbwert ohne hässliche Verzerrungen.</p>
+		<p>Texturen lassen sich nach verschiedenen Methoden verzerren:<br>
+		• Bei der ersten verwenden Sie eine Funktion, die Ihnen abhängig von der Position Ihres Pixels einen Verschiebungs&shy;vektor liefert.<br>
+		• Die zweite Variante verwendet den Inhalt eines oder zweier Layers, um die Verschiebung eines Pixels zu bestimmen (Map-Distortion, siehe nächsten Abschnitt).</p>
+		<figure class="floatright">
+			<img src="assets/200010_5.png" width="659" height="256" alt="DIE TWIRL-FUNKTION, wie Sie sie aus Bildbearbeitungsprogrammen kennen.">
+			<figcaption><span>DIE TWIRL-FUNKTION</span>, wie Sie sie aus Bildbearbeitungs&shy;programmen kennen.</figcaption>
+		</figure>
+		<p>• Sie können eine Textur auch verzerren, indem Sie die Verschiebung an einer Pixelposition durch zwei Sinus&shy;funktionen berechnen:</p>
+		<pre><code>
+x_move = sin(x * 0.03) * 4.0;
+y_move = sin(x * 0.04) * 4.0;
+		</code></pre>
+		<p>Damit setzen Sie an der Pixelposition <i>(x,</i> <i>y)</i> den Wert, den Sie bei <i>(x+x_move,</i> <i>y+y_move)</i> auslesen.<br>
+		• Eine andere Verzerrung (in Adobe Photoshop gebräuchlich) nutzt den Twirl-Effekt. Dieser dreht das Bild. Den Drehwinkel eines Pixels bestimmen Sie über seinen Abstand zum Mittelpunkt der Textur.</p>
+	</section>
+
+	<section>
+		<h2>Map-Distortion</h2>
+		<p>Bei der Map-Distortion berechnen Sie den Verschiebungs&shy;vektor eines Pixels durch die Helligkeits&shy;werte der entsprechenden Pixel in den anderen Layern. Die Helligkeits&shy;werte multiplizieren Sie am besten mit einem Wert zwischen <i>0</i> und <i>1</i>. Sie können diese Werte auch als Parameter einer Sinusfunktion auffassen und so eine Marmortextur erreichen, die zum Beispiel auf das 3D-Modell einer Vase passt.</p>
+		<p>Der Pseudocode für eine Map-Distortion sieht wie folgt aus. Hierbei verzerren Sie den roten Farbkanal von Layer <i>3</i> mit den Layern <i>1</i> und <i>2</i> und schreiben das Ergebnis in Layer <i>4</i>:</p>
+		<pre><code>
+for (y = 0; y &lt; SIZE; y++)
+	for (x = 0; x &lt; SIZE; x++)
+	{
+		x_move = layer[0].r * 0.1;
+		y_move = sin(layer[1].r * 0.1);
+		layer[4 ][x + y * SIZE] =
+			interpolatePixel(3, x + x_move, y + y_move);
+	}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Farboperationen</h2>
+		<p>Mit den Farb&shy;operationen können Sie Ihren Texturen den letzen Schliff verpassen. Dabei verändern Sie die Helligkeit, den Kontrast oder den Farbton.</p>
+		<p>Am einfachsten ändern Sie die Farben in Ihrer Textur, indem Sie die Farbkanäle invertieren. Dabei erhalten Sie interessante Farb&shy;kombinationen. Sie müssen lediglich für jeden Pixel die Rot-, Grün- und Blau-Werte wie folgt ändern:</p>
+		<pre><code>
+layer[0][x + y * SIZE].r =
+	255 - layer[0][x + y * SIZE].r;
+		</code></pre>
+		<p>Wenn Sie Finetuning an Ihren Texturen vornehmen wollen, sollten Sie das Farbmodell wechseln. Für Farb&shy;korrekturen eignet sich das HSV-Farbmodell. Das RGB-Modell können Sie sich als einen Würfel vorstellen, dessen Kanten die Achsen der drei Farbwerte darstellen.</p>
+		<p>Beim HSV-Modell wird der Farbraum durch einen Kegel aufgespannt. Dabei geben Sie die Farben mit drei Werten an:<br>
+		• Mit dem Hue-Wert bestimmen Sie den Farbton. Dieser Wert ist der Drehwinkel um die Achse des Kegels.<br>
+		• Der zweite Wert, <i>S</i>, steht für die Sättigung (Saturation). Im Kegel interpretieren Sie ihn als Abstand zur Achse. Kleine Werte ergeben blassere Farben bis hin zu Graustufen. Mit großen Werten erzielen Sie leuchtende Farben.<br>
+		• Der verbleibende dritte Parameter, <i>V</i>, steht für Value (Helligkeit).</p>
+		<p>Wenn Sie den Hue-Wert ändern, modifizieren Sie bei einer Farbe im HSV-Modell nur den Farbton. Helligkeit und Sättigung bleiben unverändert. So können Sie aus einer blauen Textur zum Beispiel eine rote oder eine blasse blaue Textur erzeugen, ohne den umständlichen Weg über die RGB-Farbwerte zu gehen. Dazu wandeln Sie die RGB- in HSV-Werte um, verändern diese und konvertieren sie zurück. Die Routine zu dieser Konvertierung finden Sie im Sourcecode zu dieser Ausgabe.</p>
+	</section>
+
+	<section>
+		<h2>Filterfunktionen</h2>
+		<figure class="floatright">
+			<img src="assets/200010_7.png" width="256" height="256" alt="EINE HOLZTEXTUR ERZEUGEN Sie durch eine einfache Bit-Operation.">
+			<figcaption><span>EINE HOLZTEXTUR ERZEUGEN</span> Sie durch eine einfache Bit-Operation.</figcaption>
+		</figure>
+		<p>Texturen bearbeiten Sie vielfältig: So können Sie aus einer Fraktalplasma-Textur eine mit Holzmaserung erzeugen. Schieben Sie die Bits der Farbwerte um drei bis fünf Bits nach links. Wenn Sie diese Bits wieder unten einmaskieren, haben Sie eine Holzmaserung:</p>
+		<pre><code>
+f = layer[0][x + y * SIZE].r;
+f = (f &lt;&lt; 3) | ((f &gt; 5) &amp; 7);
+layer[1][x + y * SIZE].r =f;
+		</code></pre>
+		<p>Besonders schöne Holztexturen erhalten Sie durch Perlin-Noise-Texturen. Wenn Sie zusätzlich eine andere Startfrequenz für die <i>x</i>- oder <i>y</i>-Achse wählen, erhalten Sie noch bessere Ergebnisse.</p>
+		<p>Eine klassische Filterfunktion besteht aus einer Matrix, die für einen Pixel angibt, wie Sie seinen Farbwert und die seiner Nachbarn gewichten müssen, um einen neuen Farbwert zu erhalten. Dies ist ein Filter für Bildglättung:</p>
+		<pre><code>
+1 2 1
+2 4 2
+1 2 1
+		</code></pre>
+		<p>Den Farbwert an der aktuellen Position multiplizieren Sie mit 4, die der direkten Nachbarn mit 2 und die der diagonalen Nachbarn mit 1. Nachdem Sie die Farbwerte aufaddiert haben, multiplizieren Sie sie mit <i>1/16</i>, um die Gesamt&shy;helligkeit des Bildes zu erhalten. Dies ist der Emboss-Filter:</p>
+		<pre><code>
+-1 0 1
+-1 0 1
+-1 0 1
+		</code></pre>
+		<p>Mit dem Emboss-Filter entsteht ein Beleuchtung&shy;seffekt. Mit diesem Beleuchtungs&shy;information können Sie die Ausgangstextur multiplizieren. Wenden Sie den Emboss-Filter auf jeden Pixel an, und addieren Sie <i>128</i>, um das graue Bild zu erhalten. Mit diesem Wert skalieren Sie den Original&shy;farbwert. Achten Sie bei den Filtern darauf, dass Sie die Pixel nicht gleich mit Ihren neuen Farbwerten überschreiben. Diese Werte benötigen Sie noch zum Filtern des Nachbarpixels. Sie müssen das Resultat immer in einen temporären Layer schreiben.</p>
+		<p>Sie können die Bildglättung auch so modifizieren, dass Sie das Bild in eine bestimmte Richtung verwischen. Wenn Sie diese Richtung von der Position des Pixels abhängig machen, erhalten Sie wieder neue interessante Effekte.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200009.html">9/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200011.html">11/2000</a>
+	</nav>
+</body>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Klänge für den Weltraum (PC Underground, PC Magazin 5/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;5/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199904.html">4/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199906.html">6/1999</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Spiele-Programmierung unter Windows 95/98/NT</h2>
+		<h1>Klänge für den <span class="highlight">Weltraum</span></h1>
+		<p class="summary">Für ein Weltraum-Ballerspiel kapseln Sie <span class="highlight">DirectSound-Aufrufe</span> in einer eigenen Klasse und synthetisieren Soundeffekte.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Das Interesse vieler Computerfreaks an Science Fiction erklärt die Existenz unzähliger Weltraumspiele für den PC. Sie müssen weder ein Freak sein noch jede Folge Raumschiff Enterprise auswendig kennen, um mit uns in den nächsten drei Ausgaben des <i>PC Magazin</i> ein kleines Weltraumspiel für Windows zu schreiben. Als Vorlage dient der Klassiker <i>Gravity Wars</i>, wie es ihn früher auf Videospiel&shy;automaten oder für PCs mit Hercules- und CGA-Karte gab.</p>
+		<p>Bei diesem Spiel steuern zwei Spieler je einen Raumgleiter über ein zwei&shy;dimensionales Spielfeld, das den Weltraum darstellt. Die Gleiter lassen sich drehen, beschleunigen und wieder abbremsen. Außerdem stehen jedem Spieler eine Laserkanone sowie Raketen zur Verfügung, mit denen er versucht, den Gegner abzuschießen (das alles ist natürlich nur ein Spiel, und die Raketen sind mit harmlosem Joghurt gefüllt).</p>
+		<p>Jeder Raumgleiter verfügt über Energie, die der Spieler auf die Waffen- und Schildsysteme verteilt. Optional können Sie in der Mitte des Spielfelds noch einen Planeten plazieren, der alle Objekte wie Raumgleiter und Raketen anzieht (daher der Name <i>Gravity Wars</i>). Je nach Lust und Laune sind zusätzliche Erweiterungen denkbar – einige werden Sie in den nächsten Ausgaben von PC Underground realisieren.</p>
+		<p>In diesem ersten Teil legen Sie den Grundstein für Ihr eigenes Spiel. Damit es die richtige Atmosphäre bietet, brauchen Sie schnelle, flüssige Grafikroutinen, ansprechende Soundeffekte und eine vernünftige Steuerung.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199905.zip">💾 199905.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Die Grafik&shy;bibliothek</h2>
+		<p>Als Grafik&shy;bibliothek verwenden Sie am besten eine modifizierte Version der Demobibliothek, die bereits allen früheren Programmen in dieser Rubrik als Grundlage diente. Doch keine Angst: Sie müssen jetzt keine alten Ausgaben des <i>PC Magazin</i> durchstöbern, um sich die Routinen des Grafiksystems wieder in Erinnerung zu rufen:</p>
+		<p>In der Textbox „Funktionen der Grafik&shy;bibliothek“ auf S. 229 stellen wir Ihnen alle Funktionen der Bibliothek noch einmal vor. Dieses leicht erneuerte Basissystem finden Sie komplett mit allen Quellcodes auf der Heft-CD in der selbst&shy;entpackenden Archiv-Datei <i>Basissystem.exe</i> und auf der Homepage des <i>PC Magazin</i></p>
+		<p>Der Einsatz in einem Spiel verlangte einige Änderungen an den bisherigen Routinen: Um Zugriff auf die Tastatur zu erhalten, fängt die Hauptschleife des Programms jetzt die Window-Messages der Tastatur ab. Der aktuelle Zustand der Tasten wird im Array <i>KeyState</i> gespeichert. In Ihren Anwendungen lesen Sie damit die Zustände der einzelnen Tasten aus.</p>
+		<p>Bitte beachten Sie, daß Ihr Programm nicht mehr automatisch bei jedem Tastendruck beendet wird. Ob die <i>[Esc]</i> oder Leertaste gedrückt wurde, überprüfen Sie jetzt selbst. Die Hauptschleife Ihrer Demo bzw. Ihres Spiels sieht damit wie folgt aus:</p>
+		<pre><code>
+void demomain (void)
+{
+	short* bild = new short[SCREEN_X * SCREEN_Y];
+
+	while((DemoRunning) &amp;&amp;
+		(!KeyState[VK_ESCAPE]))
+	{
+		/* hier zeichnen Sie was */
+		...
+
+		BlitGraphic(bild);
+	}
+
+	delete bild;
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Grundlagen von DirectSound</h2>
+		<p>Mit DirectSound wählen Sie einen modernen Weg, um einfach Soundeffekte unter Windows abzuspielen. Die DirectSound-API ist ein Bestandteil von DirectX. Haben Sie noch keine Erfahrung mit DirectX, ist dies gar kein Problem: Im Gegensatz zu DirectDraw ist die Sound&shy;programmierung erfreulich einfach.</p>
+		<figure class="floatright">
+			<img src="assets/199905_2.png" width="302" height="509" alt="WAV-DATEIEN ENTHALTEN je einen Format- und einen Daten-Chunk.">
+			<figcaption><span>WAV-DATEIEN ENTHALTEN</span> je einen Format- und einen Daten-Chunk.</figcaption>
+		</figure>
+		<p>Um das Abspielen von Soundeffekten so einfach und angenehm wie möglich zu gestalten, bauen Sie keine spezifischen Aufrufe von DirectSound in das Hauptprogramm ein. Statt dessen schreiben Sie eine C++-Klasse, die die genaue Implemen&shy;tierung versteckt.</p>
+		<p>Diese Technik bietet einige Vorteile: Zum einen müssen Sie sich bei der Spiele&shy;programmierung nicht mit den Systemaufrufen von DirectSound herumschlagen. Zum anderen können Sie eine gut durchdachte C++-Klasse auch in anderen Programmen wieder&shy;verwenden.</p>
+		<p>Mit DirectSound können Sie – im Gegensatz zum alten Multimedia-System – mehrere Soundeffekte gleichzeitig abspielen. Außerdem besitzen Sie auch während des Abspielens die volle Kontrolle über Lautstärke, Frequenz und Position im Stereoraum des Samples. Um das zu verwirklichen, gingen die Programmierer von DirectSound einen ungewöhnlichen Weg.</p>
+		<p>Nahezu alle herkömmlichen Sound&shy;bibliotheken unter Windows benutzen das Konzept der Soundkanäle. Bei der Initial&shy;isierung legen Sie fest, wie viele Kanäle für das gleichzeitige Abspielen von Samples bereitstehen. Dabei ist es egal, ob alle Kanäle einen Soundeffekt wiedergeben oder jeder Kanal einen anderen abspielt. Bei DirectSound sind Samples und Kanäle direkt miteinander verbunden. Wenn Sie einen Kanal (im DirectSound-Jargon heißen diese <i>DirectSoundBuffer</i>) anlegen, kann dieser immer nur einen einzigen Soundeffekt abspielen.</p>
+		<p>Das hat einige Folgen für Sie: Sie müssen schon während der Initial&shy;isierung des Soundsystems festlegen, wie viele Kanäle Sie zum Beispiel für Schußgeräusche verwenden möchten. Glücklicher&shy;weise ist DirectSound relativ intelligent. Soundeffekte, die nicht zu hören sind, brauchen zwar etwas Speicher, aber kaum Rechenzeit.</p>
+		<p>DirectSound ist ein sehr mächtiges Werkzeug. Deshalb kann dieser Artikel auch nur die Oberfläche dessen betrachten, was alles mit DirectSound machbar ist. Bitte beachten Sie, daß wir aus Platzgründen die Abfrage von Fehlern in den Beispielcodes weggelassen haben.</p>
+	</section>
+
+	<section>
+		<h2>DirectSound im Detail</h2>
+		<p>Zunächst legen Sie ein <i>IDirectSound</i>-Objekt an. Damit steuern Sie später die Soundkarte des PC:</p>
+		<pre><code>
+IDirectSound* DSound;
+HWND FensterHandle;
+
+DirectSoundCreate(NULL, &amp;DSound, 0);
+DSound->SetCooperativeLevel(FensterHandle, DSSCL_EXCLUSIVE)
+		</code></pre>
+		<p><i>DirectSoundCreate</i> erzeugt das <i>IDirectSound</i>-Objekt. Durch den Aufruf von <i>SetCooperativeLevel</i> teilen Sie Windows mit, daß Sie von nun an direkten Zugriff auf die Soundkarte haben möchten. Das ist zwar nicht unbedingt nötig, aber Sie vermeiden so eine Menge Ärger. Programme, die im Hintergrund laufen und auch auf die Soundkarte zugreifen möchten, werden nun allerdings blockiert und können nicht mehr auf Ressourcen der Soundkarte zugreifen.</p>
+		<p>Fordern Sie einen Soundpuffer vom System an. Dafür füllen Sie – wie es allgemein bei DirectX üblich ist – einige Strukturen aus und definieren dabei genau, in welchem Format der Soundeffekt vorliegt. In diesem Beispiel erzeugen Sie ein zwei Sekunden langes 8-Bit Mono-Sample mit einer Sampling-Frequenz von 22050 Hertz:</p>
+		<pre><code>
+WAVEFORMATEX Format;
+DSBUFFERDESC bd;
+IDirectSoundBuffer Buffer;
+
+// Strukturen löschen
+memset(&amp;Format, 0, sizeof (WAVEFORMATEX));
+memset(&amp;bd, 0, sizeof (bd));
+
+// Benötigte Felder ausfüllen
+Format.wFormatTag = WAVE_FORMAT_PCM;
+Format.nChannels = 1;
+Format.nSamplesPerSec = 22050;
+Format.nAvgBytesPerSec = 22050;
+Format.nBlockAlign = 1;
+Format.wBitsPerSample = 8;
+bd.dwSize = sizeof (bd);
+bd.dwFlags =
+	DSBCAPS_CTRLDEFAULT |
+	DSBCAPS_STATIC;
+bd.dwBufferBytes = 44100;
+bd.lpwfxFormat = &amp;Format;
+
+// und den Buffer erstellen.
+DSound->CreateSoundBuffer(&amp;bd, &amp;Buffer, NULL);
+		</code></pre>
+		<p>Interessant sind hier die Flags, die Sie im Feld <i>bd.dwFlags</i> übergeben. Dort bestimmen Sie, welche Fähigkeiten von DirectSound Sie benutzen. In diesem Beispiel setzen Sie die Flags <i>CTRLDEFAULT</i> und <i>STATIC</i>.</p>
+		<p><i>STATIC</i> sagt DirectSound, daß Sie den Soundeffekt nicht ständig ändern möchten. Dadurch kann DirectSound bei einigen Modellen die Sample-Daten direkt auf die Soundkarte übertragen und dort von der Hardware abspielen lassen. Dies entlastet den Prozessor erheblich.</p>
+		<p>Das <i>CTRLDEFAULT</i>-Flag besagt nur, daß Sie Frequenz, Lautstärke und die Stereoposition des Samples kontrollieren möchten.</p>
+		<p>Jetzt füllen Sie den Puffer mit Sample-Daten. Dazu rufen Sie die Funktion <i>Lock</i> auf, die Ihnen einen Pointer auf den internen Speicher des Puffers zurückgibt. Die Funktion <i>Lock</i> ist so programmiert, daß Sie auch Zugriff auf die Samples bekommen, wenn der Sound gerade abgespielt wird. Das ist ein nützliches Feature, aber für unsere Zwecke gar nicht nötig.</p>
+		<pre><code>
+void *Ptr1;
+void *Ptr2;
+unsigned long Size1;
+unsigned long Size2;
+
+Buffer->Lock(0, 44100, &amp;Ptr1,
+	&amp;Size1, &amp;Ptr2, &amp;Size2,0);
+		</code></pre>
+		<p>Die ersten beiden Parameter bezeichnen die Startposition und die Anzahl der Samples, auf die Sie Zugriff wünschen. Oben fordern Sie also Zugriff auf das gesamte Sample an.</p>
+		<p>Nachdem Sie die Funktion <i>Lock</i> aufgerufen haben, kopieren Sie Ihre Daten in den Speicher&shy;bereich, auf den <i>Ptr1</i> zeigt. Die beiden Variablen <i>Ptr2</i> und <i>Size2</i> brauchen Sie nur, wenn Sie einen Teil des Samples ändern möchten. Für unser Spiel ist dies aber nicht nötig. Jetzt beginnen Sie bereits mit der Ausgabe:</p>
+		<pre><code>
+Buffer->Unlock(Ptr1, Size1, Ptr2, Size2);
+Buffer->Play(0, 0, 0);
+		</code></pre>
+		<p>Über den Aufruf von <i>Unlock</i> teilen Sie DirectSound mit, daß Sie mit dem Schreiben fertig sind. <i>Play</i> startet das Abspielen des Samples. Wenn alles geklappt hat, hören Sie jetzt Ihren Soundeffekt.</p>
+	</section>
+
+	<aside>
+		<h2>FUNKTIONEN DER GRAFIKBIBLIOTHEK</h2>
+		<div>
+			<p>Um die Grafik&shy;bibliothek zu nutzen, implementieren Sie folgende drei Funktionen in Ihrem Programm:<br>
+			• In der Funktion <i>BOOL demoinit() { ... }</i> erledigen Sie alle nur einmal benötigten Initial&shy;isierungen. Sind diese alle geglückt, gibt die Funktion den Wert <i>true</i> zurück. Hier belegen Sie auch die Variable <i>Fenster_Modus</i> mit dem gewünschten Bildschirm&shy;modus (siehe Quellcode von <i>demosys.h</i>).<br>
+			• Innerhalb von <i>void demomain() { ... }</i> läuft Ihr Hauptprogramm wie in einer gewöhnlichen <i>main</i>-Funktion.<br>
+			• In der Funktion <i>void demoquit() { ... }</i> kann Ihr Programm die zum Programmende notwendigen Einzelschritte durchführen. Sodann nutzen Sie folgende Funktionen:<br>
+			• <i>void BlitGraphic(void *)</i> stellt den Inhalt des als Zeiger übergebenen HighColor-Bildschirm&shy;puffers im Fenster oder im DirectX-Vollbildmodus dar. Im HighColor-Modus beansprucht jedes Pixel 16 Bit (5 für Rot, 6 für Grün und 5 für Blau).<br>
+			• <i>unsigned short ColorCode(r,g,b)</i> übernimmt für Sie die Berechnung des HighColor-Farbwerts aus den RGB-Angaben. Liegen Rot, Grün und Blau jeweils im Bereich von <i>0</i> bis <i>255</i>, berechnen Sie aus Geschwindig&shy;keitsgründen den Farbwert wie folgt:</p>
+			<pre><code>color = Rtab[R]|Gtab[G]|Btab[B];</code></pre>
+			<p>• <i>unsigned long GetDemoTime(void)</i> liefert Ihnen die seit dem Programmstart abgelaufene Zeit in Millisekunden.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Die Klasse SoundSystem</h2>
+		<p>DirectSound ist zwar eine übersichtliche API, bereitet dem Programmierer aber trotzdem viel Arbeit. Deshalb haben wir Ihnen – wie bereits angekündigt – eine einfache Schnittstelle programmiert, mit der alles einfacher wird. Dieses sehr einfache Soundsystem finden Sie in den Dateien <i>soundsys.cpp</i> und <i>soundsys.h</i>. Ein kleines Beispiel zeigt die Anwendung:</p>
+		<pre><code>
+SoundSystem Sound;
+int Sample1, int Sample2;
+
+Sound.initialize
+	(Program_Fenster);
+
+// Boing.WAV + Peng!.WAV laden
+// jeweils 10 Soundkanäle für Samples vorbereiten
+Sample1 = Sound.LoadSound(“Boing.WAV“, 10);
+Sample2 = Sound.LoadSound(“Peng!.WAV“, 10);
+
+// Zum Test Samples abspielen
+Sound.PlaySound(Sample1);
+Sound.PlaySound(Sample2);
+		</code></pre>
+		<p>Die Klasse <i>SoundSystem</i> kümmert sich um die interne Verwaltung von Soundpuffern, das Laden von Samples und die Fehler&shy;behandlung von DirectSound.</p>
+		<p>Bevor Sie jetzt loslegen und Ihre Nachbarn mit komischen Geräuschen unterhalten, noch ein Hinweis: Falls Sie einen anderen Compiler als Watcom C++ benutzen, fügen Sie Ihrem Projekt bzw. Makefile unbedingt die Bibliotheks&shy;datei <i>dsound.lib</i> hinzu – sonst klappt’s nicht mit dem Nachbarn. Das selbst&shy;entpackende <i>zip</i>-Archiv <i>SoundBeispiel.exe</i> enthält ein kleines Demoprogramm, das ein Donnergrollen und ein kurzes Ploppen zeitgleich abspielt.</p>
+	</section>
+
+	<aside>
+		<h2>GLOSSAR ZUR KLANGSYNTHESE</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Begriff</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>ADSR</td><td>Abschnitte der Hüllkurve<br>
+						• <i>Attack</i> = Anschlag<br>
+						• <i>Decay</i> = Verzögerung nach dem Anschlag<br>
+						• <i>Sustain</i> = Haltezeit der Lautstärke nach dem Decay<br>
+						• <i>Release</i> = Abfallzeit der (Rest-)Lautstärke</td></tr>
+					<tr><td>Filter</td><td>schwächt oder verstärkt bestimmte Frequenz&shy;anteile in einem Klang</td></tr>
+					<tr><td>Hüllkurve</td><td>Lautstärke&shy;verlauf für einen Oszillator</td></tr>
+					<tr><td>Oszillator</td><td>Schwingkreis, der durch Spannungswerte eine bestimmte Wellenform erzeugt</td></tr>
+					<tr><td>Phase</td><td>Position innerhalb einer Schwingungs&shy;periode eines Oszillators</td></tr>
+					<tr><td>Wellenform</td><td>Art der Schwingung (zum Beispiel Sinus-, Rechteck- oder Sägezahn&shy;schwingung)</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Aufbau einer <i>wav</i>-Datei</h2>
+		<p>In der Windows-Welt sind <i>wav</i>-Dateien das Standardformat für Sounds. Deshalb ist es sinnvoll, dieses Format für das Soundsystem zu benutzen, auch wenn es nicht ganz einfach zu lesen ist. Das <i>wav</i> Format ist eine Unterform des <i>Resource Interchange File Format</i> (RIFF), welches Windows für die meisten Multimedia-Daten verwendet (neben Samples auch Bilder und Animationen).</p>
+		<p>Eine RIFF-Datei setzt sich aus mehreren kleinen Datenblöcken (sogenannten Chunks) zusammen. Den genauen Aufbau stellen Sie sich am besten wie eine Verzeichnis&shy;struktur vor: Jeder Chunk kann mehrere Unter-Chunks besitzen (vergleichbar mit Unter&shy;verzeichnissen) und auch Daten enthalten.</p>
+		<p>Zur eindeutigen Identifikation tragen alle Chunks eine aus vier Buchstaben bestehende Kennung. Diese nutzen Sie, um Windows gezielt nach benötigten Daten-Chunks suchen zu lassen oder sich die Struktur eines unbekannten Dateityps anzusehen. Jede RIFF-Datei beginnt mit einem Chunk namens <i>RIFF</i>. Dieser Chunk enthält keine Daten, sondern nur Unter-Chunks. Er ist sozusagen das Haupt&shy;verzeichnis der RIFF-Datei. Für das <i>wav</i> Format sind die Unter-Chunks genau definiert (siehe Bild S. 228).</p>
+		<p>Der erste ist der Format-Chunk mit der Kennung <i>fmt</i>. Dort gibt eine <i>WAVEFORMATEX</i>-Struktur genaue Auskunft über das Sample-Format. Sie informiert unter anderem über die Anzahl der verwendeten Kanäle (Mono oder Stereo), die Abtastrate und Bit-Tiefe:</p>
+		<pre><code>
+struct WAVEFORMATEX
+{
+	WORD wFormatTag;
+	WORD nChannels;
+	DWORD nSamplesPerSec;
+	DWORD nAvgBytesPerSec;
+	WORD nBlockAlign;
+	WORD wBitsPerSample;
+	WORD cbSize;
+};
+		</code></pre>
+		<p>Die Felder <i>nAvgBytesPerSec</i> und <i>nBlockAlign</i> benutzt Windows, um komprimierte Dateien abzuspielen. Da Sie unter DirectSound lediglich unkomprimierte Samples verwenden, können Sie diese Felder getrost ignorieren.</p>
+		<p>Direkt auf den Format-Chunk folgt der Daten-Chunk namens <i>data</i>. Er enthält die rohen Sample-Daten. Eine hervorragende Übersicht über den Aufbau ver&shy;schiedenster Dateiformate erhalten Sie – wenn auch in englischer Sprache – auf der Web-Seite <a href="https://www.wotsit.org" rel="external nofollow noreferrer">www.wotsit.org</a></p>
+	</section>
+
+	<section>
+		<h2>Die Multimedia IO-Funktionen</h2>
+		<p>Die Ein- und Ausgabe (IO = Input/Output) bei Multimedia-Dateien entspricht weitestgehend dem Umgang mit gewöhnlichen Dateien. Nachdem Sie eine Multimedia-Datei geöffnet haben, lassen Sie Windows den RIFF-Chunk suchen. Zwar steht dieser Chunk in der Regel am Anfang der Datei, aber es gibt auch einige wenige RIFF-Dateien, die davor noch zusätzliche Informationen bereithalten.</p>
+		<p>Rufen Sie zum Suchen die Funktion <i>mmioDescend</i> auf, die dem Wechseln in ein Unter&shy;verzeichnis entspricht. Nun sind Sie im Haupt-Chunk der <i>wav</i>-Datei. Von hier aus können Sie durch erneuten Einsatz von <i>mmioDescend</i> den Format- und Daten-Chunk suchen und lesen.</p>
+		<p>Um in den übergeordneten Chunk zurück&shy;zuwechseln, rufen Sie die Funktion <i>mmioAscend</i> auf. Im DOS-Dateisystem entspräche dieser Befehl dem Kommando</p>
+		<pre><code>cd..</code></pre>
+		<p>Das folgende Beispiel-Listing enthält aus Platzgründen keine Fehlerabfragen. Für einen sauberen Programmier&shy;stil sollten Sie dies aber auf keinen Fall versäumen. Eine leicht zu benutzende C++-Klasse zu <i>wav</i>-Dateien finden Sie in den Dateien <i>LoadWav.cpp</i> und <i>LoadWav.h</i>. Dort haben wir für Sie die Multimedia-IO-Funktionen soweit gekapselt, daß Sie sich keine Gedanken um Details machen müssen.</p>
+		<pre><code>
+HMMIO ioHandle;
+MMCKINFO ckInRIFF;
+MMCKINFO fmtChunk;
+MMCKINFO dataChunk;
+WAVEFORMATEX format;
+
+IoHandle = mmioOpen(“test.wav“,0,MMIO_READ);
+fmtChunk.ckid = mmioFOURCC(’f’,’m’,’t’,’ ’);
+dataChunk.ckid = mmioFOURCC(’D’,’A’,’T’,’A’);
+// In den RIFF-Chunk wechseln
+mmioDescend(ioHandle, &amp;ckInRIFF, NULL, 0);
+// in den Format-Chunk wechseln
+mmioDescend(ioHandle, &amp;fmtChunk, &amp;ckInRIFF,
+	MMIO_FINDCHUNK);
+// Wave-Format lesen
+mmioRead(ioHandle, &amp;format, sizeof (format));
+// zurück in den RIFF-Chunk
+mmioAscend(ioHandle, fmtChunk, 0);
+
+// In den Daten-Chunk wechseln
+mmioDescend(ioHandle, &amp;dataChunk, &amp;ckInRIFF,
+	MMIO_FINDCHUNK);
+// Daten lesen
+mmioRead(ioHandle, samples, dataChunk.cksize);
+// und Datei wieder schließen
+mmioClose (ioHandle, 0);
+		</code></pre>
+		<p>Wenn Sie sich intensiver mit der Idee der auf Chunks basierenden Dateien auseinander&shy;setzen, werden Sie sicher viele Vorteile finden. RIFF-Dateien können Sie selbst&shy;verständlich nicht nur für die Windows-eigenen Datentypen benutzen. Entwerfen Sie Ihren eigenen Dateityp und schreiben Sie hinein, was immer Sie möchten.</p>
+	</section>
+
+	<section>
+		<h2>Klangsynthese</h2>
+		<p>Jetzt, wo Sie wissen, wie Sie <i>wav</i>-Dateien abspielen, möchten Sie sicherlich Ihre eigenen Soundeffekte für Ihr Spiel generieren und speichern. Falls Sie nicht mit einem Mikrofon losziehen und echte Geräusche aufnehmen (samplen), erzeugen Sie die Klänge künstlich. Diese synthe&shy;tisierten Klänge können das Ergebnis einer elektronischen Schaltung sein oder aber von einem PC berechnet werden. Die wichtigsten hier verwendeten Begriffe zur Klangsynthese finden Sie im Glossar auf S. 230.</p>
+		<p>Wenn Sie einer etwas älteren Soundkarte lauschen, die noch nicht über Wavetable-Klänge verfügt, stammen die Töne wahrscheinlich von OPL2- bzw. OPL3-Chips. Diese Chips arbeiten nach der FM-Synthese und sind noch immer sehr verbreitet, etwa auf den Sound-Blaster-Karten und allen mehr oder weniger kompatiblen Konkurrenten.</p>
+		<p>Die Töne, die physikalisch nichts anderes sind als Schwingungen, entstehen in diesen Chips durch mehrere Schwingkreise, auch Oszillatoren genannt. Diese arbeiten entweder unabhängig voneinander oder so gekoppelt, daß beim OPL2-Chip jeweils zwei (beim OPL3Chips sogar vier) Oszillatoren ihre aktuelle Phasenposition in Wechselwirkung beeinflussen. Eine ADSR-Hüllkurve – die Abkürzung ADSR finden Sie im „Glossar zur Klangsynthese“, S. 230 – modifiziert dabei die Ausgabe&shy;lautstärke der Schwingkreise (siehe Bild S. 229)</p>
+		<figure class="floatright">
+			<img src="assets/199905_4.png" width="302" height="114" alt="IN DIESER SCHEMATISCHEN Beispiel&shy;zeichnung verwendet jeder Operator das darüber&shy;liegende Signal als Eingang.">
+			<figcaption><span>IN DIESER SCHEMATISCHEN</span> Beispiel&shy;zeichnung verwendet jeder Operator das darüber&shy;liegende Signal als Eingang.</figcaption>
+		</figure>
+		<p>Im Gegensatz zur FM-Synthese mischt die Wavetable-Synthese zuvor aufgenommene Samples von echten Instrumenten, die entweder im ROM oder RAM der Soundkarte gespeichert sind, zu einem Klang zusammen. Damit Sie auch ohne Programmier&shy;aufwand Ihre individuellen Geräusche zusammen&shy;stellen können, haben wir außer den Routinen zum Laden und Berechnen der Klänge noch einen komfortablen Soundeditor geschrieben (siehe Bild S. 230).</p>
+		<p>Ein Beispiel&shy;programm zur Berechnung der Sounds finden Sie in der Archivdatei <i>MakeSound.exe</i>, den Soundeditor in der Datei <i>FSSEditor.exe</i>.</p>
+		<p>Die Klangsynthese, die dieser Editor verwendet, arbeitet mit einer ganzen Reihe von (zeitweise) abhängigen Oszillatoren und Filtern. Um die Ausgabe der Oszillatoren zu beeinflussen, stehen Ihnen die Parameter aus der Tabelle „Parameter der Oszillatoren“ auf S. 233 zur Verfügung.</p>
+		<figure class="floatleft">
+			<img src="assets/199905_3.png" width="399" height="276" alt="DIE ADSR-HÜLLKURVE bestimmt mit ihren vier Parametern die Lautstärke des generierten Tons.">
+			<figcaption><span>DIE ADSR-HÜLLKURVE</span> bestimmt mit ihren vier Parametern die Lautstärke des generierten Tons.</figcaption>
+		</figure>
+		<p>Filtern Sie die durch die Oszillatoren erzeugte Schwingung. Dieses Verfahren verwendet einen relativ einfachen Filter&shy;algorithmus, dessen mathematische bzw. physikalische Funktionsweise uns hier nicht weiter beschäftigen soll. Die damit modellierten Filter besitzen zwei Parameter:<br>
+		• Die sogenannte Cut-off-Frequenz gibt an, welche Frequenz verstärkt wird. Die Verstärkung betrifft allerdings nicht nur genau die eingestellte Frequenz, sondern einen Frequenz&shy;bereich.<br>
+		• Der zweite Parameter ist die Resonanz, die gewissermaßen die Hervorhebung des gewählten Frequenz&shy;bereichs angibt. Die Werte der Resonanz bewegen sich sehr häufig im Bereich zwischen 0,99 und 1,0.</p>
+		<p>In unserem Soundeditor ist der linke, untere Kasten der Frequenz zugeordnet, der Kasten in der Mitte der Resonanz. Zusätzlich können Sie jeden der Operatoren, also Oszillator oder Filter, einzeln an- und ausschalten und Oszillatoren auch allein spielen lassen.</p>
+		<figure class="floatright">
+			<img src="assets/199905_1.png" width="640" height="500" alt="MIT UNSEREM SOUNDEDITOR mischen Sie per Mausklick tolle Effekte zusammen.">
+			<figcaption><span>MIT UNSEREM SOUNDEDITOR</span> mischen Sie per Mausklick tolle Effekte zusammen.</figcaption>
+		</figure>
+		<p>Den Editor bedienen Sie vollständig über die Maus. Die einzelnen Werte modifizieren Sie, indem Sie mit der Maus darauf klicken, den Knopf gedrückt halten und die Maus nach links oder rechts bewegen. Genauso ändern Sie auch die Frequenz-, Amplituden- und Resonanzkurven in den Kästen unten im Editorfenster. Sie wechseln bequem zwischen Oszillator und Filter, indem Sie einfach den entsprechenden Typ anwählen. Einstellungen gehen dadurch nicht verloren. Durch einfaches Anklicken legen Sie auch eine Wellenform fest und (de-)aktivieren Operatoren.</p>
+		<p>Wie bereits erwähnt, sind die Operatoren bedingt voneinander abhängig. Ein Filter beeinflußt die Ausgabe aller Operatoren mit einer niedrigeren Operatornummer als die eigene, sofern sich die Zeitbereiche überlappen. Ein Operator addiert seinen Ausgang einfach auf das (Zwischen-) Ergebnis aller Operatoren mit niedrigerer Nummer hinzu.</p>
+		<p>Am besten sehen Sie das an einem kleinen Beispiel (siehe Bild S. 233): Oszillator 2 addiert seinen Ausgang auf Oszillator 1, er mischt ihn also hinzu. Filter 1 filtert das Ergebnis der beiden Oszillatoren. Filter 2 filtert zuerst den Ausgang von Filter 1, und nachdem dieser nicht mehr aktiv ist, direkt den Ausgang der beiden Oszillatoren. Sie lernen die genaue Funktionsweise dieser Verfahren kennen, indem Sie die beigelegten Beispiel&shy;effekte durch Herumprobieren verändern. Mit dem Soundeditor generieren Sie statt Spieleffekte auch problemlos Instrument- und Schlagzeug&shy;samples.</p>
+	</section>
+
+	<aside>
+		<h2>PARAMETER DER OSZILLATOREN BEI DER KLANGSYNTHESE</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Parameter</th><th>Bedeutung</th><th>Bemerkung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>Start- und Endzeit</td><td>Zeitintervall, in dem der Oszillator einen Klang erzeugt</td><td>Angabe in Millisekunden</td></tr>
+					<tr><td>Start- und Endfrequenz</td><td>Frequenz, mit der der Oszillator am Beginn bzw. am Ende seiner Spielzeit schwingt</td><td>Graph im linken unteren Eck des Editorfensters zeigt Verlauf an</td></tr>
+					<tr><td>Start- und Endamplitude</td><td>Anfangs- und Endlautstärke des Oszillators</td><td>Graph unten in der Mitte zeigt Verlauf an</td></tr>
+					<tr><td>Noise Factor</td><td>Maß für die zufällige Änderung der Oszillator&shy;phase</td><td><i>0</i> = keine Phasenänderung,<br><i>1</i> = maximale Phasenänderung (mit dieser Einstellung können Sie Rauschen erzeugen)</td></tr>
+					<tr><td>Curve Tone</td><td>Exponentielle Umrechnung des Oszillator&shy;ausgangs</td><td>Bei einer Sägezahn&shy;schwingung sehen Sie die Auswirkungen am besten.</td></tr>
+					<tr><td>Waveform</td><td>Sinus-, Sägezahn- oder Rechteck&shy;schwingung</td><td>Im Graphen rechts unten im Editorfenster erkennen Sie auch die Auswirkungen des Noise-Faktors.</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Blick hinter die Kulissen</h2>
+		<p>Um aus den eingestellten Parametern ein Sample zu berechnen, gehen Sie folgenden Weg: Legen Sie für jeden Operator zusätzliche Variablen für die aktuelle Phasenposition und das Zwischen&shy;ergebnis der Berechnung an. Diese setzen Sie natürlich vor jeder Berechnung eines Sample-Werts auf 0.</p>
+		<p>Nun behandeln Sie für jeden Sample-Wert alle Operatoren nacheinander, die zum aktuellen Zeitpunkt aktiv sind. Handelt es sich um einen Oszillator, dann berechnen Sie anhand der aktuellen Frequenz die Phasen&shy;veränderung seit dem letzten Sample-Wert und die aktuelle Amplitude. Diese beiden Werte ergeben sich aus der Start- und Endfrequenz sowie der exponentiellen Funktion des Frequenz&shy;graphen.</p>
+		<p>Addieren Sie das Phasendelta auf die Phasenposition, und zählen Sie noch einen Zufallswert hinzu, den Sie vorher mit dem <i>Noise Factor</i> multiplizieren. Schließlich bestimmen Sie aus der Phasenposition den aktuellen Wert der Schwingung und modifizieren ihn mit dem Wert von <i>Curve Tone</i>.</p>
+		<p>Hier noch einmal das Prinzip des Oszillators in Pseudo&shy;quellcode:</p>
+		<pre><code>
+Berechne Amplitude und Frequenzdelta
+Phase += Frequenzdelta + Zufallswert * Noise Factor
+Ausgangswert= (Schwingfunktion(Phase) ^ Curve Tone) * Amplitude
+Zwischenergebnis += Ausgangswert
+		</code></pre>
+		<p>Handelt es sich beim aktuellen Operator hingegen um einen Filter, so schreiben Sie diesen Wert in den Filter und lesen das Ergebnis nach dem Filtern wieder aus. Das Ergebnis erhalten Sie durch in der Filterstruktur gespeicherte Werte sowie den neu hinzu&shy;gekommenen Wert. Der Pseudocode sieht dann folgendermaßen aus:</p>
+		<pre><code>
+Berechne Cutoff-Frequenz und Resonanz und setze diese Werte
+Schreibe Zwischenergebnis in den Filter
+Zwischenergebnis=Filterergebnis
+		</code></pre>
+		<p>Die genaue Implemen&shy;tierung sehen Sie in den Quelltexten ein. Aber auch ohne dieses Hintergrund&shy;wissen zur Klangsynthese können Sie sich nun die gewünschten Klänge für Ihr Spiel zurechtbasteln. In der nächsten Ausgabe legen Sie dann mit der Programmierung von Sprites und einem Partikel- und Effektsystem den Grundstein für Ihre Spielegrafik. Im übernächsten und letzten Teil fügen Sie daraus ein vollwertiges Arcade-Game zusammen.</p>
+	</section>
+
+	<aside>
+		<h2>ENTWICKLUNGSSTUFEN DES SPIELEPROJEKTS</h2>
+		<div>
+			<p><b>Teil 1:</b><br>
+			• Entwicklung des Basissystems<br>
+			• DirectSound-Programmierung <br>
+			• Soundeffekt-Programmierung/Klangsynthese</p>
+			<p><br><b>Teil 2:</b><br>
+			• Sprite-Programmierung<br>
+			• Partikel- und Effektsystem</p>
+			<p><br><b>Teil 3:</b><br>
+			• Algorithmen zur Kollisionsabfrage<br>
+			• Spielelogik<br>
+			• Spielegrafik und Highscore-Routinen<br>
+			• Musik</p>
+		</div>
+	</aside>
+
+	<footer>
+		<p>Rüdiger Pein / Burkhard Müller</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199904.html">4/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199906.html">6/1999</a>
+	</nav>
+</body>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Schrill und bunt (PC Underground, PC Magazin 6/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;6/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200005.html">5/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200007.html">7/2000</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>DirectX 7 – Direct3DX Utility Library</h2>
+		<h1>Schrill und <span class="highlight">bunt</span></h1>
+		<p class="summary"><span class="highlight">DirectX 7 macht Ihre Demos schneller, schöner und lauter.</span> Spielabläufe bewegen sich flüssiger bei geringerem Programmieraufwand. Der Benutzer Ihres Programms kann multimediale Ereignisse steuern.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Oliver Käferstein</h3>
+		<figure class="floatright">
+			<img src="assets/200006_1.png" width="269" height="246" alt="DAS SCHICHTENMODELL zeigt, wie Direct 3D, DirectDraw und Direct3DX miteinander zusammenhängen.">
+			<figcaption><span>DAS SCHICHTENMODELL</span> zeigt, wie Direct 3D, DirectDraw und Direct3DX miteinander zusammenhängen.</figcaption>
+		</figure>
+		<p>Die Direct3DX Utility Library bietet Funktionen, die viele Aufgaben des 3D-Programmierers vereinfachen und sogar übernehmen. Diese Hilfsschicht setzt direkt auf den Direct3D- und DirectDraw-Komponenten von DirectX 7 auf.</p>
+		<p>Direct3DX wählt das 3D-Gerät für Setup und Ausgabe. In älteren Versionen von DirectX mussten Sie Vollbild- und Fenstermodus unter&shy;schiedlich programmieren.</p>
+		<p>Die neue DirectX-Technik erleichtert es Ihnen, Bildaufbau und -bewegung zu codieren. Sie nimmt Ihnen viel Arbeit ab, wenn Sie Dateien mit den Formaten <i>bmp, tga</i> und <i>dds</i> laden wollen. Diese Dateien entstammen von Vektor- und Matrix-Operationen sowie von Bild- und Textur-Laderoutinen. DirectX erleichtert zudem die schnellen Konver&shy;tierungen von Texturen und Farbformaten unabhängig von der verwendeten Grafikkarte.</p>
+		<p>Zunächst installieren Sie DirectX 7 und das DirectX 7-SDK. Letzteres laden Sie unter www.microsoft.com im Developer-Bereich.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200006.zip">💾 200006.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Direct3DX initialisieren</h2>
+		<p>Rufen Sie die Direct3DX-Befehle <i>D3DXInitialize()</i> und <i>D3DXUninitialize()</i> auf, bevor Sie Direct3DX verwenden und Ihr Programm beenden.</p>
+		<p>Nach der Initiali&shy;sierung legen Sie ein <i>D3DXContext</i>-Objekt an. Mit diesem Schnittstellen&shy;objekt zeichnen Sie auf einem D3DX-Device. Dieses Objekt repräsentiert eine Grafikkarte, die Direct-Draw und Hardware-beschleunigte 3D-Grafik unterstützt. Einen D3DXContext rufen Sie mit der Funktion</p>
+		<pre><code>
+HRESULT D3DXCreateContext(
+	DWORD deviceIndex,
+	DWORD flags,
+	HWND hwnd,
+	DWORD width,
+	DWORD height,
+	LPD3DXCONTEXT* ppCtx
+);
+		</code></pre>
+		<p>auf. Als Parameter verwenden Sie für <i>deviceIndex</i> die Konstante <i>D3DX_DEFAULT</i>, die das Gerät mit der besten Hardware-Beschleunigung auswählt. Bei <i>flags</i> bestimmen Sie, ob Sie eine Vollbild-, Fenster- oder Offscreen- (also im nicht sichtbaren Bildschirm&shy;speicher) Ausgabe wünschen. Mit der Technik des Offscreen-Rendering berechnen Sie Spezialeffekte wie Spiegelungen:<br>
+		• <i>hwnd</i> ist das Handle Ihres Windows-Fensters,<br>
+		• <i>width</i> und <i>height</i> bestimmen die Breite und Höhe der Ausgabe, die Sie auch per <i>D3DX_DEFAULT</i> definieren können.<br>
+		• <i>ppCtx</i> gibt die Adresse eines Zeigers auf ein <i>D3DXContext</i>-Objekt an. Der einfachste Aufruf für eine Vollbild&shy;ausgabe lautet:</p>
+		<pre><code>
+ID3DXContext *pD3DX = NULL;
+D3DXInitialize();
+D3DXCreateContext(D3DX_DEFAULT, D3DX_CONTEXT_FULLSCREEN, my_hwnd, 640, 480, &amp;pD3DX);
+		</code></pre>
+		<p>Die Quellcode-Fragmente in diesem Artikel vernach&shy;lässigen Fehlerabfragen. Aber bei der DirectX-Programmierung ist es notwendig, auftretende Fehler peinlichst genau zu überprüfen. Das gilt auch, wenn Sie einen Hardware-Beschleuniger verwenden. Stellen Sie fest, ob dieser unterstützt wird.</p>
+		<p>Wenn Sie einen D3DXContext erzeugt haben, lassen Sie sich einen Zeiger auf das darin enthaltene D3D-Ausgabegerät (D3DDevice) geben:</p>
+		<pre><code>
+LPDIRECT3DDEVICE7 pD3DDevice = NULL;
+pD3DDevice = pD3DX-&gt;GetD3DDevice();
+		</code></pre>
+		<p>Als nächstes prüft Ihr Programm, ob das D3DDevice die nötigen Fähigkeiten hat. <i>DeviceCaps</i> geben Ihnen Auskunft darüber, was eine 3D-Hardware ausführen kann. <i>DeviceCaps</i> sind Windows-Strukturen, mit denen Sie die Funktionalität von Windows-Geräten (Treibern und Hardware) abfragen. Sie erfragen diese Werte mit der Syntax:</p>
+		<pre><code>
+D3DDEVICEDESC7 D3DCaps;
+memset(&amp;D3DCaps, 0x00, sizeof(D3DDEVICEDESC7));
+pD3DDevice-&gt;GetCaps(&amp;D3DCaps);
+		</code></pre>
+		<p>Der Befehl liefert Daten als Bits und Flags zurück. Um deren Bedeutung herauszufinden, nutzen Sie definierte Konstanten. Zum Beispiel gibt die <i>D3DPBLENDCAPS_ONE</i>-Konstante Auskunft darüber, ob das Device Alpha-Blending beherrscht, also transparente Texturen darstellen kann:</p>
+		<pre><code>
+BOOL Caps;
+Caps = (D3DCaps.dpcTriCaps.dwSrcBlendCaps &amp; D3DPBLENDCAPS_ONE) &amp;&amp;
+	(D3DCaps.dpcTriCaps.dwDestBlendCaps &amp; D3DPBLENDCAPS_ONE) &amp;&amp;
+	(D3DCaps.dpcTriCaps.dwShadeCaps &amp; D3DPSHADECAPS_ALPHAFLATBLEND);
+if(!Caps) return NICHTUNTERSTUETZT;
+		</code></pre>
+		<p>Die DirectX-Dokumentation beschreibt alle Caps-Konstanten.</p>
+	</section>
+
+	<aside>
+		<h2>KOMPONENTEN VON DIRECTX 7</h2>
+		<div>
+			<p>• Mit Direct3D programmieren Sie einfach und Hardware-unabhängig 3D-Grafiken in zwei verschiedenen Modi:</p>
+			<p>— zum einen mit dem <i>Retained Mode</i>-Interface, einer High-Level Schnittstelle mit abstrakter Sichtweise,</p>
+			<p>— und mit dem <i>Low-Level Immediate Mode</i>, der die gesamte Rendering-Pipeline kontrolliert.</p>
+			<p>• Direct3D umfasst seit der Version 7 mit der Direct3DX-Utility-Library eine zusätzliche Schicht. Diese übernimmt die wieder&shy;kehrenden Aufgaben des Immediate Mode.</p>
+			<p>• Mit DirectDraw greifen Sie direkt auf den Grafikkarten&shy;speicher zu, wobei Sie zusätzliche Bitmaps im Hintergrund halten.</p>
+			<p>• DirectInput steuert Eingabe- und Force-Feedback-Geräte aller Art an.</p>
+			<p>• DirectMusic spielt als Komplettsystem Musik und Soundeffekte ab. • Mit DirectPlay programmieren Sie Spiele für das Netz per Modem-, LAN- oder WAN-Übertragung.</p>
+			<p>• Die DirectSetup-API installiert Komponenten in einem Windows-DirectX-System.</p>
+			<p>• DirectSound gibt Wave-Sounds wieder und unterstützt dabei Hardware- and Software-Mixing der Klangdaten mitsamt einer 3D-Positionierung und vielem mehr.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Direct3D initialisieren</h2>
+		<p>Setzen Sie den <i>Renderstates</i> (Begriff aus der DirextX-Welt), welcher das Aussehen der Grafikausgabe festlegt. Dieses beginnt mit der Hintergrund&shy;farbe, geht über Textur-Mapping-Optionen und Effekte wie Nebel bis hin zu geometrischen Trans&shy;formationen für die 3D-Daten. Die Hintergrund&shy;farbe setzen Sie mit</p>
+		<pre><code>
+D3DXCOLOR colorClear(1.0f, 0.0f, 0.0f, 1.0f);
+pD3DX-&gt;SetClearColor(g_colorClear);
+		</code></pre>
+		<p>Die 3D-Daten, die Sie Direct3DX übergeben wollen, wandeln Sie auf zwei Arten für die Bildschirm&shy;ausgabe um:<br>
+		• Die sogenannte View-Matrix enthält die Information über Position und Blickrichtung des Betrachters.<br>
+		• Die Projektions&shy;matrix bildet den drei&shy;dimensionalen Raum auf dem Bildschirm ab. Hierbei helfen Direct3DX-Matrixroutinen. Diese sind Bestandteil des Direct3X-Systems.</p>
+		<p>Definieren Sie eine Perspektiv-Transformation mit einem Kamera&shy;öffnungwinkel von 45 Grad:</p>
+		<pre><code>
+D3DXMATRIX matProjection;
+D3DXMatrixPerspectiveFov(&amp;matProjection, D3DXToRadian(45.0f), 3.0f / 4.0f, 0.1f, 100.0f);
+pD3DDevice-&gt;SetTransform(D3DTRANSFORMSTATE_PROJECTION, matProjection);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200006_2.jpg" width="473" height="543" alt="MD2-DATEIEN in bewegter Animation, die Sie dazu noch selber steuern, bezaubern nicht nur Kinder, sondern auch Erwachsene.">
+			<figcaption><span>MD2-DATEIEN</span> in bewegter Animation, die Sie dazu noch selber steuern, bezaubern nicht nur Kinder, sondern auch Erwachsene.</figcaption>
+		</figure>
+		<p>Der Wert <i>3.0f/4.0f</i> gibt das Höhen-Breiten-Verhältnis des Monitors an. Die Werte <i>0.1f, 100.0f</i> markieren die minimale und maximale Distanz des sichtbaren Raums.</p>
+		<p>Für eine View-Matrix verwenden Sie eine affine Abbildung: eine Drehung und eine anschließende Verschiebung (Translation) im Raum. Direct3DX definiert Drehungen durch Quaternionen. Dabei wird eine Drehung nicht durch die Rotations&shy;winkel um die Koordinaten&shy;achsen oder eine Rotations&shy;matrix beschrieben, sondern durch eine Achse, um die gedreht wird, und einen Drehwinkel. Da sich Quaternionen im Gegensatz zu Rotations&shy;matrizen interpolieren lassen, eignen sich erstere besser für Animationen.</p>
+		<p>Ein Quaternion können Sie sich automatisch aus Rotations&shy;winkeln anlegen lassen. Für eine Drehung um die Achsen <i>X, Y, Z</i> mit den Winkeln <i>aX, aY</i> und <i>aZ</i> schreiben Sie so:</p>
+		<pre><code>
+D3DXQUATERNION qR;
+D3DXQuaternionRotation YawPitchRoll(&amp;qR, aY, aX, aZ);
+		</code></pre>
+		<p>Diese Reihenfolge stammt von dem englischen Begriffs-Tripel <i>Yaw, Pitch, Roll</i>. Damit stellen Sie die View-Matrix auf:</p>
+		<pre><code>
+D3DXVECTOR3 Verschiebung(0.0f, 0.0f, 0.0f);
+float Skalierung = 1.25f;
+D3DXMatrixAffineTransformation(&amp;matView, Skalierung, NULL, &amp;qR, &amp;Verschiebung);
+D3DXMatrixInverse(&amp;matView, NULL, &amp;matView);
+pD3DDevice-&gt;SetTransform(D3DTRANSFORMSTATE_VIEW, matView);
+		</code></pre>
+		<p>Übergeben Sie die Transformations-Matrizen mit</p>
+		<pre><code>
+pD3DDevice-&gt;SetTransform(D3DTRANSFORMSTATE_???, NULL);
+		</code></pre>
+		<p>Ob Sie Polygone von vorne, hinten oder von beiden Seiten sehen wollen, und wie Sie die Polygone schattieren wollen, bestimmen folgende Zeilen:</p>
+		<pre><code>
+// Polygone nur von vorne
+pD3DDevice-&gt;SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_CCW);
+// Flatshading(Schatten/Polygon)
+pD3DDevice-&gt;SetRenderState(D3DRENDERSTATE_SHADEMODE, D3DSHADE_FLAT);
+		</code></pre>
+		<p>All diese Zustände (States) erklärt die DirectX-7-SDK-Hilfe. Moderne 3D-Beschleuniger führen Ihnen zudem ein Texture Mapping vor, das eine Besonderheit aufweist: Multi-Texturing. Dabei legen sich mehrere Texturen übereinander auf ein 3D-Objekt und verknüpfen diese durch spezielle Operationen wie Überblenden oder Farb-Addition. Das legt der Befehl</p>
+		<pre><code>
+IDirect3DDevice7::SetTextureStageStage(...)
+		</code></pre>
+		<p>fest. Der erste Parameter gibt die Textur-Stage (Tiefe) an, deren Werte von <i>0</i> bis <i>7</i> reichen.</p>
+		<p>Die Optionen für die Textur-Stages unterteilen sich in Farb-, Alpha- und Textur-States mit zahlreichen Optionen. Für 24 Textur-Stage-States sind bis zu 24 weitere Werte zulässig.</p>
+		<p>Das folgende Beispiel verpasst Ihrem 3D-Objekt eine Textur ohne Extras. Die Textur wird nur beim Vergrößern und Verkleinern gefiltert</p>
+		<pre><code>
+pD3DDevice-&gt;SetTextureStageState(0, D3DTSS_MINFILTER, D3DTFN_LINEAR);
+pD3DDevice-&gt;SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTFG_LINEAR);
+pD3DDevice-&gt;SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTFP_POINT);
+pD3DDevice-&gt;SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+pD3DDevice-&gt;SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+		</code></pre>
+		<p>Da Sie nicht immer alle acht Stages verwenden (was die meisten 3D-Grafikkarten ohnehin nicht können), schalten Sie einige Stages ab. Um alle Stages ab dem Wert <i>1</i> zu deaktivieren, schreiben Sie:</p>
+		<pre><code>
+pD3DDevice-&gt;SetTextureStageState(1, D3DTSS_COLOROP, 3DTOP_DISABLE);
+pD3DDevice-&gt;SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+		</code></pre>
+		<p>Die dazugehörige Textur, laden Sie einfach aus einer <i>bmp</i>-Datei:</p>
+		<pre><code>
+LPDIRECTDRAWSURFACE7 ppTex;
+D3DX_SURFACEFORMAT sf = D3DX_SF_UNKNOWN;
+D3DXCreateTextureFromFile(pD3DDevice, 0, 0, 0, &amp;sf,NULL,
+	&amp;ppTex, NULL, "texture.bmp", D3DX_FT_LINEAR);
+		</code></pre>
+		<p>Wenn Sie diesen Setup-Code eingegeben haben, können Sie sofort mit dem Zeichnen loslegen. Bei früheren Direct-X-Versionen mussten Sie zuerst ein Direct3D-Device zum Zeichnen suchen und dabei die Texturen in ein Format bringen, das Ihnen der 3D-Beschleuniger vorgab. Jetzt nimmt Ihnen Direct3DX diese Arbeit ab.</p>
+	</section>
+
+	<aside>
+		<h2>LINKS ZU MD2-MODELS</h2>
+		<div>
+			<p>Unter folgenden URLs finden Sie weitere Informationen zu <i>MD2</i>-Dateien und Texturen:</p>
+			<p><a href="https://home.earthlink.net/~benhroop/tutbuild.html" rel="external nofollow noreferrer">https://home.earthlink.net/~benhroop/tutbuild.html</a></p>
+			<p><a href="https://www.ozemail.com.au/~darma/qhelp/hqmods.html" rel="external nofollow noreferrer">www.ozemail.com.au/~darma/qhelp/hqmods.html</a></p>
+			<p>Beschreibungen von vielen Dateiformaten finden Sie unter <a href="https://www.wotsit.com" rel="external nofollow noreferrer">www.wotsit.com</a></p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Rendering mit Direct3D</h2>
+		<p>Zum Zeichnen eines Bildes beginnen Sie in Direct3D mit der Syntax:</p>
+		<pre><code>pD3DDevice-&gt;BeginScene()</code></pre>
+		<p>Im nächsten Schritt löschen Sie Bildschirm und Z-Buffer:</p>
+		<pre><code>pD3DX-&gt;Clear(D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER);</code></pre>
+		<p>Der Z-Buffer speichert für jeden Bildschirm&shy;pixel die Entfernung zum Betrachter. Daher sehen Sie Polygone korrekt im Vordergrund, die sich näher am Standpunkt des Betrachters befinden. Den Z-Buffer aktivieren Sie folgendermaßen:</p>
+		<pre><code>pD3DDevice-&gt;SetRenderState(D3DRENDERSTATE_ZWRITEENABLE, TRUE);</code></pre>
+		<p>Dann selektieren Sie die vorher geladene Textur, wobei der erste Parameter die Textur-Stage und der zweite den Zeiger auf die Textur bezeichnet:</p>
+		<pre><code>pD3DDevice-&gt;SetTexture(0,ppTex);</code></pre>
+		<p>Nun schicken Sie Direct3D die Polygone, die Ihre 3D-Grafikkarte zeichnen soll. Es gibt verschiedene Varianten:<br>
+		• Die erste schickt die vorliegenden Daten unverändert mit folgendem Befehl an Direct3D</p>
+		<pre><code>pD3DDevice-&gt;DrawPrimitive(...)</code></pre>
+		<figure class="floatright">
+			<img src="assets/200006_3.png" width="583" height="178" alt="FEINARBEIT: So übergeben Sie die Polygonnetze.">
+			<figcaption><span>FEINARBEIT</span>: So übergeben Sie die Polygonnetze.</figcaption>
+		</figure>
+		<p>Dieser Funktion teilen Sie mit, was zu zeichnen ist: zum Beispiel Punkte, Linien, Dreiecke oder Dreiecks&shy;streifen. Dazu geben Sie an, wie Ihre <i>Vertex</i>-Daten (Daten der 3D-Punkte) vorliegen. Wollen Sie zwei Dreiecke zeichnen, ohne sich um Texturen und Beleuchtung zu kümmern, schreiben Sie:</p>
+		<pre><code>
+D3DLVERTEX data[6];
+// Koordinaten setzen
+for(i = 0; i &lt; 6; i++ ) {
+	data[i].x = ...;
+	data[i].y = ...;
+	data[i].z = ...;
+}
+
+pD3DDevice-&gt;DrawPrimitive(D3DPT_TRIANGLELIST, D3DFVF_LVERTEX,
+	(LPVOID)&amp;data, 6, 0);
+		</code></pre>
+		<p>Die Vertex-Daten, die Sie dabei übergeben, werden mit den vorgegebenen Matrizen transformiert, projiziert und schließlich dargestellt. Um 3D-Objekte schneller auszugeben, verwenden Sie</p>
+		<pre><code>DrawIndexedPrimitive(...)</code></pre>
+		<p>Dieser Befehl verwendet eine Liste mit Vertices und definiert die Dreiecke mit jeweils drei Indizes dieser Liste. Diese Form der Daten heißt <i>Shared Vertex</i>-Struktur. Der Vorteil ist, dass fast immer weniger Daten transportiert werden müssen. Bei größeren 3D-Objekten gilt:</p>
+		<pre><code>
+DrawPrimitiveDraw IndexedPrimitive
+Anzahl Dreieckenn
+Anzahl Verticesn*3n/2
+		</code></pre>
+		<p>• Noch effizienter verschicken Sie die Polygon-Daten mit dem <i>Vertex-Buffer</i>. Sie definieren, wie Ihre Daten aussehen, packen diese in ein Paket und übergeben es Direct3D. Die Technik dahinter organisiert und erledigt den Rest. Einen Vertex-Buffer legen Sie während der Initialisierungs&shy;phase an.</p>
+		<p>Beschreiben Sie darin zuerst die Vertex-Daten. Füllen Sie einen Vertex-Buffer mit noch untrans&shy;formierten Vertices, Textur-Koordinaten und einem Farbwert pro Vertex, mit dem Sie dann Dreiecke zeichnen. Die Struktur dieser Beschreibung füllen Sie folgendermaßen:</p>
+		<pre><code>
+D3DVERTEXBUFFERDESC vbdesc;
+vbdesc.dwSize = sizeof(vbdesc);
+vbdesc.dwCaps = 0;
+vbdesc.dwFVF = D3DFVF_XYZ | D3DFVF_DIFFUSE |
+	D3DFVF_TEX1 | D3DFVF_TEXCOORDSIZE2(0);
+vbdesc.dwNumVertices = nVertices;
+		</code></pre>
+		<p>Dabei müssen Sie die maximale Anzahl der Vertices, die Sie in diesem Buffer speichern wollen, vorher wissen. Der Eintrag <i>dwFVF</i> bedeutet <i>flexible vertexformat</i>. Damit legen Sie einen Vertex-Buffer nach dieser Beschreibung an:</p>
+		<pre><code>
+LPDIRECT3DVERTEXBUFFER7 pvbVertices;
+pD3D-&gt;CreateVertexBuffer(&amp;vbdesc, &amp;pvbVertices, 0);
+		</code></pre>
+		<p>Als erste Sicherheits&shy;maßnahme beantragen Sie den Zugriff auf den Vertex-Buffer. Damit gewährleisten Sie, dass Sie keine Daten überschreiben, die eventuell noch gar nicht verarbeitet wurden. Sie müssen den Vertex-Buffer deshalb also gegen andere Zugriffe wie zum Beispiel von Grafikkarten&shy;treibern sperren. Gleichzeitig erhalten Sie einen Zeiger auf den Speicher, in dem die Vertex-Daten stehen.</p>
+		<p>Während des Zeichnens füllen Sie den Buffer zwischen <i>BeginScene()</i> und <i>EndScene()</i> mit Ihren Vertex-Daten. Die Struktur des Buffers definieren Sie so, dass sie Ihrem Vertex-Format entspricht. Dies haben Sie mit dem Vertex-Buffer angegeben:</p>
+		<pre><code>
+typedef struct MY_VERTEX
+{
+	D3DXVECTOR3 pos;
+	D3DCOLOR color;
+	D3DXVECTOR2 texcoord;
+} MY_VERTEX;
+
+MY_VERTEX *pVertices;
+pvbVertices-&gt;Lock(DDLOCK_WAIT | DDLOCK_WRITEONLY, (void **)&amp;pVertices, NULL);
+		</code></pre>
+		<p>Greifen Sie auf den Speicher so zu, dass Sie Ihre Vertex-Daten schreiben können. Achten Sie darauf, dass Sie nicht mehr Daten schreiben, als der Vertex-Buffer aufnimmt. Dafür haben Sie eine maximale Anzahl von Vertices angegeben. Füllen Sie den Vertex-Buffer so:</p>
+		<pre><code>
+for(i = 0; i < 6; i++)
+{
+	pVertices-&gt;pos.x = ...;
+	pVertices-&gt;pos.y = ...;
+	pVertices-&gt;pos.z = ...;
+	pVertices-&gt;color = D3DCOLOR(1.0f, 0.0f, 1.0f);
+	pVertices-&gt;texcoord = D3DXVECTOR2(0.0f, 1.0f);
+	pVertices++;
+}
+		</code></pre>
+		<p>Ein <i>Unlock</i>-Befehl gibt den Vertex-Buffer wieder frei:</p>
+		<pre><code>pvbVertices-&gt;Unlock();</code></pre>
+		<p>Verschicken Sie den Inhalt des Vertex-Buffers zum Zeichnen an Direct3D:</p>
+		<pre><code>
+pD3DDevice-&gt;DrawPrimitiveVB(D3DPT_TRIANGLELIST, pvbVertices, 0, 6, 0 );
+		</code></pre>
+		<p>Ein weiterer Vorteil der Vertex-Buffer: Wenn Sie Direct3D die Trans&shy;formationen übernehmen lassen und ein nicht animiertes 3D-Objekt (nur Vertices) im drei&shy;dimensionalen Raum übergeben, können Sie einen Vertex-Buffer einmalig anlegen und immer wieder&shy;verwenden. Sie können das Objekt aber noch frei mit Matrizen bewegen und drehen. Direct3D passt häufig verwendete Vertex-Buffer automatisch und optimiert für das verwendete Direct3D-Device an. Dazu dient die Funktion</p>
+		<pre><code>pvbVertices-&gt;Optimize(pD3DDevice, 0);</code></pre>
+		<p>Wenn Sie Ihre Vertex-Daten auf Performance optimieren, sollten Sie Vertex-Buffer mit dem <i>DrawIndexedVB(...)</i>-Befehl verwenden. Alle Polygon-Daten lassen sich in indizierte Polygonnetze umwandeln. Unser Artikel bietet dazu mit <i>poly2ver.cpp</i> den Pseudocode. Als Feinarbeit übergeben Sie die Polygonnetze nicht lose, sondern in sogenannten <i>Triangle-Strips</i> oder <i>Triangle-Fans</i>.</p>
+		<p>Der Vorteil der Übergabe von <i>Triangle-Strips</i> oder <i>Triangle-Fans</i> : Der 3D-Beschleuniger hat es mit weniger unterschied&shy;lichen Kanten zu tun. Er kann bei Triangle-Lists nicht erkennen, dass sich zwei Dreiecke eine Kante teilen, wenn sie die gleichen Indizes verwenden. Bei Triangle-Strips/Fans ist das per Definition gegeben. Weniger Kanten teilen sich Polygone, die nicht vollständig auf dem Bildschirm liegen, bei denen also ein Teil abgeschnitten (geclipped) wird. Dann braucht der 3D-Beschleuniger eine Kante nur einmal zu clippen.</p>
+		<p>Wenn Sie alles mit oder ohne Vertex-Buffer gezeichnet haben, beenden Sie den Vorgang mit</p>
+		<pre><code>pD3DDevice-&gt;EndScene();</code></pre>
+		<p>und stellen das Bild dar:</p>
+		<pre><code>pD3DX-&gt;UpdateFrame(0);</code></pre>
+		<p>Der Vergleich älterer Direct3D-Versionen mit Direct3DX zeigt, dass sich Direct3D OpenGL mit seiner GLUtility-Library (GLUT) annähert, was das Handling der Trans&shy;formationen und Texturen angeht. Außer den bereits erwähnten Features erlaubt Ihnen Direct3DX wie GLUT, mit einem Matrix-Stack zu arbeiten und einfache geometrische Primitive wie Kugel, Kegel oder Torus, zu zeichnen.</p>
+		<p>Auf einem Matrix-Stack können Sie Matrizen mit <i>Push</i>- und <i>Pop</i>-Operationen speichern. Matrix-Operationen verändern nur die oberste Matrix auf dem Stack. Matrix-Stacks sind vor allem praktisch, wenn Sie mit einem hierarchisch aufgebauten, animierten 3D-Objekt arbeiten.</p>
+		<p>Das funktioniert ähnlich wie bei dem Bewegungs&shy;ablauf von Körper-Oberarm-Unterarm-Hand. Wenn sich der Körper bewegt, bewegen sich alle drei anderen Teile auch. Bewegt sich der Unterarm, ist nur noch die Hand betroffen.</p>
+		<p>Geometrische Primitive erzeugen Sie mit dem <i>ID3DXSimpleShade</i>-Interface von Direct3DX. Die Funktionen dieses Interfaces liefern Ihnen die Daten in Form eines Vertex-Buffers mit den Vertices und Texture-Mapping-Koordinaten und einer Indexliste für die Polygone.</p>
+	</section>
+
+	<section>
+		<h2>Beispielprogramm: Direct3D</h2>
+		<p>Das Beispiel&shy;programm liest <i>MD2</i>-Dateien ein, welche Vertex-, Textur- und Animations&shy;daten speichern, und stellt diese dar. In der Datei <i>MD2model.cpp</i> (auf der Heft-CD) finden Sie die Routinen, um <i>MD2</i>-Dateien zu lesen und die darin enthaltenen Daten für die Ausgabe mit Direct3D aufzubereiten. <i>app.cpp</i> initialisiert und steuert dabei den Ablauf des Beispiel&shy;programms.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200005.html">5/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200007.html">7/2000</a>
+	</nav>
+</body>

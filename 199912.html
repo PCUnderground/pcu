@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Mit Kegel und Zylinder (PC Underground, PC Magazin 12/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;12/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+	<nav class="pagenav">
+		<a rel="prev" href="199910.html">10/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200001.html">1/2000</a>
+	</nav>
+	<article>
+
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/98</h2>
+		<h1>Mit <span class="highlight">Kegel</span> und Zylinder</h1>
+		<p class="summary">Virtuelle Welten sehen oft künstlich aus. Das muß nicht sein: Dieser Beitrag <span class="highlight">erweitert Ihren Raytracer</span>, damit sich die künstliche Welt der wirklichen nähert.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Mit den Erweiterungen in diesem zweiten Teil unserer Raytracer-Serie zaubern Sie weitaus realistischere Landschaften auf Ihren Bildschirm. Doch bevor Sie die vielen Neuerungen in Ihren Raytracer einbauen und sehen, machen Sie sich an die mathematische Herleitung der Zylinder- und Kegelprimitive. Mit mathematischer Kleinarbeit verfolgen Sie die Lichtstrahlen und ihre verschieden&shy;artigen Spiegelungen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<figure class="floatright">
+			<img src="assets/199912_6.png" width="387" height="317" alt="DIESER KEGEL hat seine Basis im Ursprung des Koordinatensystems und seine Spitze auf der positiven z-Achse.">
+			<figcaption><span>DIESER KEGEL</span> hat seine Basis im Ursprung des Koordinaten&shy;systems und seine Spitze auf der positiven z-Achse.</figcaption>
+		</figure>
+		<p>Als erstes untersuchen Sie einen Kegel, wie ihn der Sourcecode zum Raytracing-Artikel (Heft 10, ab S. 226, auch auf der aktuellen Heft-CD) vorweggenommen hat. Es handelt sich hierbei um einen Spezialfall eines Kegels, bei dem die Basis, also der Mittelpunkt der unteren Kreisfläche, im Ursprung des Koordinaten&shy;systems liegt, und die Spitze sich auf der positiven <i>z</i>-Achse befindet. Sie können die Schnittpunkt&shy;berechnungen aller Kegel auf Schnittpunkte mit solch einem Kegel zurückführen. Und so berechnen Sie diesen Kegel:</p>
+		<p>Wie bisher beschreiben Sie den verfolgten Lichtstrahl durch eine Halbgerade, hier gegeben durch ihren Startpunkt <i>g⃗</i> und ihren Richtungs&shy;vektor ∂ <i>g⃗</i>, wobei <i>t > 0</i> gilt:
+		<span class="code">x⃗ = g⃗+ t* ∂ g⃗</span>
+		Stellen Sie sich nun den Kegel als einen Stapel von Kreisscheiben vor, deren Radius von der Höhe abhängt (Ihrer <i>z</i>-Koordinate), in der Sie liegen. So hätte die unterste Kreisscheibe den Radius des Basiskreises und die oberste den Radius <i>0</i>.</p>
+		<p>Da sich der Radius linear ändert, stellen Sie eine Formel auf, die den Radius abhängig von <i>z</i> beschreibt. In dieser Formel lassen Sie für die Spitze auch ein Radius ungleich Null zu, was einen Kegelstumpf beschreiben würde:</p>
+		<pre><code>
+Radius(z) = Radius(Basis) + (Radius(Spitze) - Radius(Basis)) * z / z1
+		</code></pre>
+		<p>oder:
+		<span class="code">Radius(z) = Radius(0) + dr * z</span>
+		mit
+		<span class="code">dr = (Radius(z1) - Radius(z0)) / z1</span>
+		Den Schnittpunkt mit einer Kreisscheibe bestimmen Sie – fast analog zur Berechnung der Schnittpunkte mit Kugeln – über die Abstands&shy;berechnung. Auf einem Kreis liegen alle Punkte <i>x-></i>, deren Abstand vom Mittelpunkt gleich dem Radius des Kreises ist, also:
+		<span class="code">|m⃗ - x⃗| = d⃗ = radius</span>
+		Da Sie sich bei einem Kreis im Zwei&shy;dimensionalen befinden, sind nur die <i>x</i> und <i>y</i>-Komponenten von <i>m⃗</i>, <i>x⃗</i> und <i>d⃗</i> von Interesse:</p>
+		<pre><code>
+d⃗ * d⃗ = radius<sup>2</sup>
+d⃗x * d⃗x + d⃗y * d⃗y = radius<sup>2</sup>
+		</code></pre>
+		<p>Bei unserem Kegel ist der Radius jedoch nicht fest, sondern abhängig von <i>z</i>. Daraus ergibt sich:</p>
+		<pre><code>
+d⃗x * d⃗x + d⃗y * d⃗y = Radius(z)<sup>2</sup>
+d⃗x * d⃗x + d⃗y * d⃗y = (Radius(0) + dr * x⃗z)<sup>2</sup>
+(m⃗x - x⃗x) * (m⃗x - x⃗x) + (m⃗y - x⃗y) * (m⃗y - x⃗y) = (Radius(0) + dr * x⃗z)<sup>2</sup>
+		</code></pre>
+		<p>Nun ersetzen Sie wieder alle <i>x⃗</i> durch die Gleichung der Halbgeraden:</p>
+		<pre><code>
+(m⃗x - (g⃗x + t * dg⃗x)) * (m⃗x -(g⃗x + t * dg⃗x)) +
+	(m⃗y - (g⃗y + t * dg⃗y)) * (m⃗y - (g⃗y + t * dg⃗y)) =
+	(Radius(0) + dr * (g⃗z + t * dg⃗z))<sup>2</sup>
+		</code></pre>
+		<p>Durch Ausmulti&shy;plizieren erhalten Sie dann:</p>
+		<pre><code>
+(m⃗x - g⃗x)<sup>2</sup> - 2 * (m⃗x - g⃗x) * t * dg⃗x + t2 *
+	(dg⃗x)<sup>2</sup> + (m⃗y - g⃗y)<sup>2</sup> -
+	2 * (m⃗y - g⃗y) * t * dg⃗y + t2 * (dg⃗y)<sup>2</sup> =
+	(Radius(0) + dr * g⃗z)<sup>2</sup> + t<sup>2</sup> *
+	(dr * dg⃗z)<sup>2</sup> + 2 * t *
+	(dr * dg⃗z) * (Radius(0) + dr * g⃗z)
+		</code></pre>
+		<p>Nun fassen Sie alle Terme so zusammen, damit Sie wieder eine quadratische Gleichung erhalten – wie bei der Schnittpunkt&shy;berechnung mit Kugeln:
+		<span class="code">a * t<sup>2</sup> + b * t + c = 0</span>
+		mit</p>
+		<pre><code>
+a = (dg⃗x)<sup>2</sup> + (dg⃗y)<sup>2</sup> - (dr * dg⃗z)<sup>2</sup> - (dr * dg⃗z)<sup>2</sup>
+b = -2 * (m⃗x - g⃗x) * dg⃗x - 2 * (m⃗y - g⃗y) * dg⃗y -
+	2 * (dr * dg⃗z) * (Radius(0) + dr * g⃗z)
+c = (m⃗x - g⃗x)<sup>2</sup> + (m⃗y - g⃗y)<sup>2</sup> -
+	(Radius(0) + dr * g⃗z)<sup>2</sup>
+		</code></pre>
+		<p><i>a, b</i> und <i>c</i> sind reelle Zahlen. Die möglichen Lösungen sind:</p>
+		<pre><code>
+t1 = (-b + sqrt(b<sup>2</sup> - 4 * a * c)) / (2 * a);
+t2 = (-b - sqrt(b<sup>2</sup> - 4 * a * c)) / (2 * a);
+		</code></pre>
+		<p>Die Zahl der Lösungen läßt sich durch die Diskriminante <span class="code">D = b<sup>2</sup> - 4 * a * c</span> bestimmen: Für <i>D < 0</i> gibt es keine Lösung, <i>D = 0</i> bringt eine Lösung, und <i>D > 0</i> führt zu zwei Lösungen.</p>
+		<p>Setzen Sie <i>t1</i> und <i>t2</i> in die Halbgeraden&shy;gleichung ein. Denken Sie daran, nur die Position <i>t1</i> und <i>t2</i> sind interessant. Sie erhalten dann die Schnittpunkte.</p>
+		<figure class="floatright">
+			<img src="assets/199912_7.png" width="400" height="318" alt="UM DIE OBERFLÄCHENNORMALE im Kegel zu berechnen, brauchen Sie weitaus mehr Formeln als bei einer Kugel.">
+			<figcaption><span>UM DIE OBERFLÄCHENNORMALE</span> im Kegel zu berechnen, brauchen Sie weitaus mehr Formeln als bei einer Kugel.</figcaption>
+		</figure>
+		<p>Die Berechnung der Oberflächen&shy;normalen gestaltet sich komplizierter als bei einer Kugel. Hier berechnen Sie zuerst den Differenz&shy;vektor des Schnittpunkts (rot eingezeichnet) mit dem Punkt auf der Mittelachse des Kegels, der auf gleicher Höhe liegt, d.h. den gleichen <i>z</i>-Wert besitzt:
+		<span class="code">d⃗ = s⃗ - (0, 0, s⃗z)</span>
+		Normalisieren Sie diesen Vektor, und skalieren Sie ihn mit folgendem Term:</p>
+		<pre><code>
+Skalierungsfaktor = (z1 - z0) / (Radius(0) - Radius(z1))
+		</code></pre>
+		<p>Der Skalierungs&shy;faktor beschreibt, wie steil der Kegelmantel ist, also das Verhältnis seiner Höhe zu seiner Breite.</p>
+		<p>Da eine Normale immer senkrecht zu einer Oberfläche steht, muß die Normale des Kegels flacher sein, wenn der Kegel steiler wird. Das erreichen Sie, indem Sie den Vektor skalieren und die <i>z</i>-Komponente des resultierenden Vektors, die an dieser Stelle der Berechnung immer <i>0</i> ist, auf <i>1</i> setzen.</p>
+		<pre><code>
+d⃗ = d⃗ * Skalierungsfaktor
+d⃗z = 1
+		</code></pre>
+		<p>Der resultierende Vektor <i>d⃗</i> ist die gesuchte Normale.</p>
+		<p>Am besten ist, Sie versuchen sich die Berechnung der Normalen anhand kleiner Skizzen verschiedener Kegel vorzustellen. Dabei bleibt die Frage, wie Sie alle möglichen Kegel auf den hier hergeleiteten Spezialfall zurückführen. Die Antwort liefert die Matrizen&shy;rechnung.</p>
+		<p>Dazu berechnen Sie eine Matrix, die die Transformation einer anderen Matrix rückgängig macht. Mathematiker bezeichnen dies als eine inverse Matrix.</p>
+		<p>In <i>PC Underground, Heft 10/99,</i> wurden alle Transformationen eines Objekts und die durch die Kamera resultierenden Transformationen in einer Matrix eines jeden Objekts zusammengefaßt (ab S. 212). Diese Matrix benutzen Sie, um zum Beispiel Koordinaten eines Objekts in den Raum der Kamera zu transformieren.</p>
+		<p>Umgekehrt können Sie eine Matrix zu einem Kegel konstruieren, die einen Punkt im Raum so abbildet, daß Sie den Spezialfall erhalten. Multiplizieren Sie zum Beispiel die Kegelspitze, die Sie frei im Raum plazieren können, mit dieser Matrix, erhalten Sie einen Punkt auf der positiven <i>z</i>-Achse; transformieren Sie die Basis des Kegels, erhalten Sie den Ursprung. Man spricht hierbei von einem Wechsel des Koordinaten&shy;systems.</p>
+		<p>Der große Vorteil von Matrizen ist, daß Sie solche Matrizen invertieren können. Sie berechnen also eine Matrix, die genau die umgekehrte Abbildung zur Folge hat. Haben Sie also einen Schnittpunkt im Koordinaten&shy;system des Kegels – wie zuvor beschrieben – berechnet, können Sie ihn mit der invertierten Matrix in seine richtige Position im Raum zurücktrans&shy;formieren.</p>
+		<p>Ohne Sie mit den Details der Matrixrechnung zu belasten, lernen Sie hier die Lösungsidee für das Aufstellen der Kegelmatrix kennen.</p>
+		<p>Die Matrix für die Abbildung in das gewünschte Koordinaten&shy;system des Kegels erhalten Sie, indem Sie drei senkrecht aufeinander stehende Vektoren finden, bei denen im Kreuzungspunkt der Basismittel&shy;punkt des Kegels und dessen Spitze auf der <i>z</i>-Achse liegt. Den ersten Vektor erhalten Sie durch Subtraktion des Ortsvektors der Spitze vom Ortsvektor des Basismittel&shy;punkts.</p>
+		<p>Nun benötigen Sie einen Vektor, der senkrecht zu diesen steht. Eine einfache Methode besteht darin, zwei Komponenten des ersten Vektors zu vertauschen und eine der vertauschten zu negieren. Den dritten Vektor, der senkrecht auf den ersten beiden steht, erhalten Sie durch das Kreuzprodukt dieser Vektoren.</p>
+		<p>Damit haben Sie eine Matrix, die den Kegel so rotiert, daß er die richtige Orientierung für den Spezialfall besitzt. Jetzt fehlt noch eine Verschiebungs&shy;matrix zur Lösung. Diese verschiebt alle Punkte um das Negative des Ortsvektors des Basismittel&shy;punkts. Die Matrix für den Kegel erhalten Sie also aus der Matrixmulti&shy;plikation (Hintereinander&shy;ausführung) der Verschiebungs- und Rotations&shy;matrix.</p>
+		<p>Mit der Berechnung von Schnittpunkten mit Kegeln haben Sie den allgemeineren Fall kennengelernt. Ein Spezialfall des Kegels ist der Zylinder. Bei einem Zylinder ist der Radius unabhängig von der <i>z</i>-Komponente, das heißt die Formeln für die Schnittpunkt&shy;berechnung vereinfachen sich deutlich. Sie finden das Resultat im Sourcecode. Eine weitere Herleitung ergibt keinerlei Neuerung gegenüber dem Kegel.</p>
+		<p>Die Implementation des Kegel- und Zylinder&shy;primitivs finden Sie in im Quellcode von <i>RTCone.cpp</i> und <i>RTCylinder.cpp</i>.</p>
+	</section>
+
+	<section>
+		<h2>Licht aus endlichen Quellen</h2>
+		<p>In <i>PC Magazin 10/99</i> haben Sie ab S. 212 den einfachsten Fall von Lichtquellen beim Raytracing kennengelernt. Dabei handelte es sich um Lichtquellen, die von einem Punkt aus Licht in alle Richtungen aussenden, ohne selbst eine licht&shy;emittierende Fläche zu besitzen.</p>
+		<p>Doch diese Vorstellung entspricht nicht den real vorhandenen Lichtquellen. Der deutlichste Unterschied, den punktförmige und sich ausdehnende Lichtquellen besitzen, ist, daß punktförmige immer einen harten Schatten werfen, während Sie in der Realität fast immer weiche Schatten vorfinden.</p>
+		<p>Wie Sie eine solche Lichtquelle in einen Raytracer implementieren, zeigt Ihnen dieser Teil. Dabei ändern Sie die rekursive Raytracing-Prozedur nur an zwei Stellen.</p>
+		<p>Die erste Stelle ist die Schatten&shy;berechnung. Es genügt nun nicht mehr, einen Schattenstrahl auszusenden, sondern Sie benötigen mehrere – besser gesagt viele.</p>
+		<p>Bei einem Schattentest prüfen Sie die Sichtbarkeit der Lichtquelle mit verschiedenen, möglichst gleichmäßig auf der Lichtquelle verteilten Punkten. Der Schattentest eines einzelnen Punkts funktioniert genauso wie bei punktförmigen Lichtquellen. Die resultierende Farbe ergibt sich durch Mittelung der Schattenfarben aller Schatten&shy;strahlen.</p>
+		<p>Im Pseudocode sieht die Vorgehensweise wie folgt aus:</p>
+		<pre><code>
+for (viele Schattenstrahlen)
+{
+	Wähle Punkt auf der Lichtquelle
+	Berechne Schattenfarbe für diesen Punkt per Schattentest
+	Kumuliere Schattenfarbe
+}
+
+Resultierende Schattenfarbe = Kumulierte Schattenfarbe / Anzahl Schattenstrahlen
+		</code></pre>
+		<p>Die Auswahl der Zielpunkte auf der Lichtquelle erledigen Sie mit einem Zufalls&shy;generator, wobei die Punkte möglichst gut verteilt liegen sollten. Das erreichen Sie, indem Sie jeden bereits berechneten Punkt speichern.</p>
+		<figure class="floatright">
+			<img src="assets/199912_1.png" width="317" height="238" alt="DIESE SZENE beleuchtet eine rechteckige Lichtquelle mit schön ausgedehntem Halbschatten.">
+			<figcaption><span>DIESE SZENE</span> beleuchtet eine rechteckige Lichtquelle mit schön ausgedehntem Halbschatten.</figcaption>
+		</figure>
+		<p>Benötigen Sie dann einen neuen Zufallspunkt, generieren Sie mit einem Zufallszahlen&shy;generator mehrere neue Kandidaten, nehmen aber nur denjenigen, der von allen Zufallspunkten den größten Abstand besitzt. Je mehr Kandidaten Sie zulassen, desto besser wird die zufällige Verteilung.</p>
+		<p>Da Sie aber nur im Halbschatten viele Schatten&shy;strahlen benötigen, um ein gutes visuelles Ergebnis zu erhalten, definieren Sie ein Abbruch&shy;kriterium. Dieses stellt sicher, daß weitere Schatten&shy;strahlen getestet werden, wenn die Helligkeit der bisherigen zu stark variiert. Umgekehrt lassen Sie zu, daß der Schattentest endet, wenn die Schatten&shy;strahlen alle ähnliche Helligkeit besitzen.</p>
+		<p>Aus diesen Überlegungen ergibt sich als mögliche Formel:</p>
+		<pre><code>
+max = Max. aller Helligkeiten
+min = Min. aller Helligkeiten
+if((max - min) / (max + min) > Toleranzschwelle) mehr Strahlen;
+else Ende;
+		</code></pre>
+		<p>Die Funktionen dazu, die von den Schattenfarben auch die Rot-, Grün- und Blau&shy;komponenten separat behandeln, finden Sie in der Datei <i>RTFunctions.h</i>. Zusätzlich zu diesem Abbruch&shy;kriterium legen Sie noch eine mindeste und eine maximale Anzahl von Schatten&shy;strahlen fest.</p>
+		<p>Bedenken Sie, daß eine gute Darstellung von solchen Lichtquellen gewaltigen Rechenaufwand erfordern kann. Die Werte für die minimale Zahl von Schatten&shy;strahlen liegen zwischen <i>4</i> und <i>8</i>, die der maximalen Zahl bei <i>100</i> oder mehr.</p>
+		<p>Der zweite Punkt, an dem Sie in der Raytracing-Prozedur Hand anlegen, ist die Berechnung der Glanzlichter. Bei punktförmigen Lichtquellen haben Sie das einfallende Licht an der Oberfläche eines Körpers gespiegelt. Die Intensität des Glanzlichts hing dann davon ab, wie genau der Betrachter von diesem gespiegelten Strahl getroffen wurde.</p>
+		<p>Nun gehen Sie den umgekehrten Weg. Sie spiegeln den einfallenden Lichtstrahl und testen, ob dieser Lichtstrahl einen Schnittpunkt mit der Lichtquelle besitzt. Wenn ja, ist die Intensität des Glanzlichts maximal und seine Farbe die der Lichtquelle. Gibt es keinen Schnittpunkt, existiert für den betrachteten Oberflächen&shy;punkt kein Glanzlicht.</p>
+		<p>An dieser Stelle ist interessant, welche Form die neue Lichtquelle besitzt. Als Beispiel für diesen Raytracer haben wir eine rechteckige Lichtquelle verwendet. Die Schnittpunkt&shy;berechnung, die Sie für die Glanzlichter verwenden, heißt <i>BOOL IntersectTriangle(...)</i> und befindet sich in <i>RTFunctions.h</i>. Eine entsprechende Herleitung nimmt die nächste Ausgabe in Angriff, die auch polygonale Primitive und aus Polygonen zusammen&shy;gesetzte Objekte behandelt.</p>
+	</section>
+
+	<section>
+		<h2>Texturen &amp; Bumpmapping</h2>
+		<p>Nachdem Sie sich mit einer Reihe von geometrischen Primitiven beschäftigt und auch einiges an Aufwand mit den Lichtquellen getrieben haben, widmen Sie sich nun den Oberflächen der Objekte. Bisher haben Sie Oberflächen durch ihre physikalischen Parameter, wie den Reflektions&shy;koeffizienten oder die Transparenz, und durch ihre Eigenfarbe definiert.</p>
+		<p>Damit konnten Sie nur die Eigenschaften für die ganze Oberfläche bestimmen. Viel interessanter gestaltet sich eine Szene, wenn Sie die Objekte mit Texturen belegen oder ihren Oberflächen eine aufgerauhte Struktur oder Beulen verpassen.</p>
+		<p>Prinzipiell können Sie Objekte mit zwei Arten von Texturen belegen:<br>
+		• Das eine Verfahren projeziert eine zwei&shy;dimensionale Bitmap auf einen Körper. So arbeiten 3D-Beschleuniger sowie die auf Polygonen basierenden 3D-Engines.<br>
+		• Bei Raytracern verwenden Sie hingegen fast immer sogenannte prozedurale Texturen. Hierbei setzen Sie keine Bitmaps ein, sondern berechnen die Farbe von Punkten im Raum.</p>
+		<p>Im Zusammenhang mit prozeduralen Texturen und Raytracern fällt immer der Begriff Perlin Noise. Dieses Verfahren, das Ken Perlin entwickelt hat, setzen Experten häufig ein, um Texturen zu synthetisieren. Besuchen Sie Ken Perlin auf seiner Homepage: <a href="https://mrl.nyu.edu/perlin" rel="external nofollow noreferrer">mrl.nyu.edu/perlin</a></p>
+	</section>
+
+	<section>
+		<h2>Perlin Noise</h2>
+		<p>Wenn Sie sich Dinge in der Natur ansehen, stellen Sie fest, daß es verschiedene Detailstufen gibt, ähnlich wie bei Fraktalen. Ein anschauliches Beispiel ist ein Gebirge. Es enthält große Höhen&shy;unterschiede wie Berge, mittlere wie Hügel, kleine wie Felsbrocken und winzige Details wie Steine.</p>
+		<p>Noise bedeutet so viel wie Lärm oder Rauschen. Eine Noise-Funktion ist eine Funktion, die zu einem Parameter – in diesem Fall eine ganze Zahl – eine zufällige Zahl zurückliefert. Wenn Sie zweimal denselben Parameter übergeben, muß sie auch zweimal dasselbe Resultat erzeugen, sonst funktioniert das Perlin-Noise-Verfahren nicht.</p>
+		<figure class="floatright">
+			<img src="assets/199912_8.png" width="400" height="220" alt="BEI DER NOISE-FUNKTION sind die roten Punkte durch Zufallszahlen, die Zwischenwerte durch Interpolation entstanden.">
+			<figcaption><span>BEI DER NOISE-FUNKTION</span> sind die roten Punkte durch Zufallszahlen, die Zwischenwerte durch Interpolation entstanden.</figcaption>
+		</figure>
+		<p>Perlin Noise ahmt die in der Natur vorkommenden Detailstufen nach, indem es unterschied&shy;lich skalierte Noise-Funktionen nach einem System addiert. Beachten Sie bei der im Bild unten dargestellten Noise-Funktion, daß nur die roten Punkte generierte Zufallszahlen sind. Alle Zwischenwerte sind durch Interpolation entstanden. Die Wellenlänge bezeichnet den Abstand zweier Zufallszahlen. Die Frequenz berechnet sich – analog zu Wellen in der Physik – als Kehrwert der Wellenlänge.</p>
+		<p>Addieren Sie mehrere Noise-Funktionen, wie im Bild unten zu sehen, erhalten Sie die Perlin-Noise-Funktion. Dasgleiche können Sie auch im zwei&shy;dimensionalen Raum tun. Dazu benötigen Sie nur eine Noise-Funktion, die zu einem Zahlenpaar einen Zufallswert liefert. Das Ergebnis sehen Sie im Bild, das schattierte Grünflächen zeigt.</p>
+		<figure class="large">
+			<img src="assets/199912_2.jpg" width="845" height="325" alt="DIE PERLIN-NOISE-FUNKTION im zweidimensionalen Raum erinnert hier an Flora.">
+			<figcaption><span>DIE PERLIN-NOISE-FUNKTION</span> im zweidimensionalen Raum erinnert hier an Flora.</figcaption>
+		</figure>
+		<p>Die Amplitude und die Frequenz, die Sie für die einzelnen Noise-Funktionen verwenden, legen Sie durch die sogenannte Persistence fest. Sie bestimmen noch eine Amplitude und eine Frequenz für die erste Funktion. Für die jeweils nächste Funktion verdoppeln Sie die Frequenz und multiplizieren die Amplitude mit der Persistence.</p>
+		<p>Der Wert der Persistence sollte zwischen <i>0</i> und <i>1</i> liegen. Größere Werte bedeuten stärkere hohe Frequenzen, also mehr Rauschen. Bei der Anzahl der Funktionen, die überlagert werden, spricht man auch von Oktaven. Der Begriff wurde aus der Musik entliehen, da bei Klängen eine Verdopplung der Frequenz einem Sprung von einer Oktave entspricht.</p>
+		<figure class="large">
+			<img src="assets/199912_3.png" width="928" height="467" alt="DIE SUMME aus diesen vier Noise-Funktionen ergibt im letzten Bild unten rechts die Perlin-Noise-Funktion">
+			<figcaption><span>DIE SUMME</span> aus diesen vier Noise-Funktionen ergibt im letzten Bild unten rechts die Perlin-Noise-Funktion</figcaption>
+		</figure>
+		<p>Wieviel Oktaven Sie wählen, ist Ihre Entscheidung. Berück&shy;sichtigen Sie nur, daß die Amplitude irgendwann so klein wird, daß die Funktion nicht mehr ins Gewicht fällt. In unserem Fall empfehlen sich etwa zwei bis acht Oktaven.</p>
+		<p>Wie erzeugen Sie Noise-Funktionen? Die herkömmlichen Zufallszahlen&shy;generatoren, die Ihnen in C zur Verfügung stehen, liefern bei jedem Aufruf eine neue Zahl. Da das Ergebnis jedoch reproduzierbar sein muß, weil Sie eine Noise-Funktion eventuell mehrmals an derselben Stelle berechnen müssen, können Sie diese nicht verwenden.</p>
+		<p>Eine Möglichkeit besteht darin, eine Funktion zu finden, die relativ zufällig Werte liefert. Solche Funktionen enthalten meist sehr große Primzahlen. Ein Beispiel mit Zufallszahl zwischen <i>-1</i> und <i>1</i> zu <i>x</i> sieht so aus:</p>
+		<pre><code>
+x = (x &lt; 13) ^ x;
+return (1.0 - ((x * (x * x * 15731 + 789221) + 1376312589) &amp; 7fffffff) / 1073741824.0);
+		</code></pre>
+		<p>Ein anderer Lösungsweg: Legen Sie beim Start des Programms eine Tabelle mit Zufallszahlen mit Hilfe Ihres herkömmlichen Generators an. Es genügen 4096 verschiedene Zahlen. Als Funktion dient dann</p>
+		<pre><code>
+return Zufallstabelle[x % Größe der Tabelle ];
+		</code></pre>
+		<p>Wenn Sie nun einen Zufallswert zu nicht ganzzahligen <i>x</i>-Werten benötigen, erledigen Sie dies durch Interpolation.</p>
+		<p>Dazu werten Sie die Noise-Funktion an der von <i>x</i> aus gesehen nächst&shy;kleineren und nächstgrößeren ganzen Zahl aus. Mit dem Nachkomma&shy;anteil von <i>x</i> berechnen Sie den interpolierten Wert. Die einfachste Methode ist es, linear zu interpolieren:</p>
+		<pre><code>
+return Wert1 * (1 - NachkommaX) + Wert1 * NachkommaX
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199912_9.png" width="269" height="299" alt="DIE KOSINUSINTERPOLATION liefert realistischere Bilder als die lineare.">
+			<figcaption><span>DIE KOSINUSINTERPOLATION</span> liefert realistischere Bilder als die lineare.</figcaption>
+		</figure>
+		<p>Bei der linearen Interpolation erhalten Sie jedoch keine sehr schönen Ergebnisse. Mit ein wenig mehr Rechenaufwand erzielen Sie mit der Kosinus&shy;interpolation abgerundetere Ergebnisse:</p>
+		<pre><code>
+ft = NachkommaX * PI
+f = (1 - cos(ft)) * 0.5
+return a * (1 - f) + b * f
+		</code></pre>
+		<p>Der Unterschied ist, daß der Gewichtungs&shy;faktor (hier <i>f</i> ) bei der Kosinus&shy;interpolation – durch die Kosinus&shy;funktion an den Rändern (sprich bei Nachkomma&shy;anteilen nahe bei <i>0</i> oder <i>1</i> – langsamer steigt. Dadurch erhalten Sie in der Nähe der Zufallswerte abgerundete Verläufe.</p>
+		<p>Nehmen Sie nun alles zusammen, erhalten Sie eine Perlin-Noise-Routine wie im folgenden Pseudocode für eine Dimension:</p>
+		<pre><code>
+int Noise(int x)
+{
+		return Zufallstabelle[x % Größe der Tabelle];
+}
+
+float Interpolate(float a, float b, float x)
+{
+	return a * (1 - x) + b * x;
+}
+
+float InterpolatedNoise(float x)
+{
+	GanzzahlX = (int)x;
+	NachkommaX = x - GanzzahlX;
+	v1 = Noise(x);
+	v2 = Noise(x + 1);
+	return Interpolate(v1,v2,NachkommaX);
+}
+
+float PerlinNoise(float x)
+{
+	floattotal = (float)0;
+	floatPersistence = material.p;
+	int Octaves = material.o;
+	floatFrequenz = material.f;
+	floatAmplitude = material.a * Persistence;
+	for(int i = 0; i &lt; Octaves; i++)
+	{
+		total += InterpolatedNoise3D(x * Frequenz) * Amplitude;
+		Frequenz *= 2.0;
+		Amplitude *= Persistence;
+	}
+}....
+
+		</code></pre>
+		<figure class="floatleft">
+			<img src="assets/199912_4.jpg" width="317" height="475" alt="MIT EINER 3D-NOISE-FUNKTION sehen diese Kugeln zum Greifen echt aus.">
+			<figcaption><span>MIT EINER 3D-NOISE-FUNKTION</span> sehen diese Kugeln zum Greifen echt aus.</figcaption>
+		</figure>
+		<p>Für drei&shy;dimensionale Noise-Funktionen berechnen Sie nicht zwei Punkte und interpolieren, sondern Sie berechnen acht Werte. Ein Punkt liegt im Drei&shy;dimensionalen innerhalb eines Würfels, dessen Kanten durch die jeweiligen nächst&shy;kleineren bzw. -größeren ganzzahligen Koordinaten bestimmt sind. Berechnen Sie die Werte für die Eckpunkte des Würfels, und interpolieren Sie anschließend.</p>
+		<p>Was haben Sie von einer 3D-Noise-Funktion? Sie können zu jedem Punkt im Raum einen Farb- oder Helligkeits&shy;wert bestimmen. Wollen Sie ein Objekt mit einer prozeduralen Textur versehen, speichern Sie in der Material&shy;struktur des Raytracers die Werte für die Noise-Funktionen und berechnen für jeden Schnittpunkt den Noise-Wert. Damit erzeugen Sie Texturen wie auf den unten abgebildeten Kugeln.</p>
+		<p>Mit den Noise-Werten berechnen Sie auch andere Texturen, zum Beispiel eine marmorähnliche Struktur. Hierzu berechnen Sie für jeden Raumpunkt zwei Noise-Werte: einen an seiner Original&shy;position und einen an einem Punkt, den Sie durch eine beliebig große Verschiebung erreichen.</p>
+		<p>Dann nehmen Sie die <i>x</i>-Komponente des Original&shy;vektors und addieren den ersten Noise-Wert dazu. Genauso verfahren Sie mit der <i>y</i>-Komponente und dem zweiten Wert.</p>
+		<p>Die Nachkomma&shy;stellen der resultierenden Werte bilden Sie mit der Funktion <i>cycloidal( ... )</i> auf eine Sinusfunktion ab und multiplizieren das Ergebnis mit dem Turbulenz&shy;parameter, den Sie noch in der Material&shy;beschreibung einführen. Der Rückgabewert der Noise-Funktion entspricht jetzt nur der Länge des Ergebnis&shy;vektors, auf eine Dreiecks&shy;funktion umgelegt:</p>
+		<pre><code>
+{...}
+
+floatcycloidal(float x)
+{
+	float temp = fmod(x, 1);
+	if(temp &lt; 0) temp += 1;
+	return sin(temp * 2 * PI);
+}
+
+floattriangle_wave(float x)
+{
+	float offset = fmod(x, 1);
+	if(offset &lt; 0) offset += 1;
+	if(offset &gt; 0.5) offset = 1 - offset;
+	return offset + offset;
+}
+
+{...}
+
+// Marmor Wert am Punkt p
+r = Noise(p.x, p.y, p.z);
+r2 = Noise(p.x+1000, p.y, p.z);
+p.x += cycloidal(p.x + r) * PTexture.Turbulenz;
+p.y += cycloidal(p.y + r2) * PTexture.Turbulenz;
+
+return triangle_wave(VLength(p));
+
+{...}
+		</code></pre>
+		<p>Es gibt noch unzählige Wege, um die Noise-Werte zu anderen prozeduralen Texturen zu verknüpfen. Im Sourcecode (<i>RTNoise.cpp</i>) finden Sie eine Variante für holzähnliche Muster.</p>
+		<figure class="floatright">
+			<img src="assets/199912_5.png" width="308" height="416" alt="DAS ANTI-ALIASING-VERFAHREN beseitigt unschöne Treppcheneffekte.">
+			<figcaption><span>DAS ANTI-ALIASING-VERFAHREN</span> beseitigt unschöne Treppcheneffekte.</figcaption>
+		</figure>
+		<p>Wie Sie die Helligkeit der Farbe an einem Schnittpunkt mit prozeduralen Texturen verändern können, so modifizieren Sie auch die Oberflächen&shy;normale an einem Schnittpunkt, um die Beleuchtung, Spiegelung und Lichtbrechung zu beeinflussen. Hierzu berechnen Sie für einen Schnittpunkt drei Noise-Werte, einen an der Original&shy;position und zwei an verschobenen Stellen. Interpretieren Sie diese Werte als Vektor, skalieren Sie ihn, und addieren Sie den Vektor auf die Normale, die Sie im Zuge der Schnittpunkt&shy;berechnungen erhalten haben. Als Ergebnis erhalten Sie die Kugeln rechts im Bild.</p>
+	</section>
+
+	<section>
+		<h2>Anti-Aliasing</h2>
+		<p>Ein Problem sind die Aliasing-Effekte – auch als Treppenstufen bezeichnet. Als Aliasing wird das irrtümliche Erscheinen von nieder&shy;frequenten Signalen bezeichnet, das aus fehlerhaftem Messen von hochfrequenten Signalen resultiert.</p>
+		<p>Anders ausgedrückt: Wenn Sie sich den Bildschirm als Fläche vorstellen, repräsentiert jeder Pixel einen kleinen Teil der Gesamtfläche. Verfolgen Sie nur einen Lichtstrahl pro Pixel zurück, können Sie durch zu geringes Abtasten Treppchen&shy;effekte bekommen.</p>
+		<figure class="floatleft">
+			<img src="assets/199912_10.png" width="324" height="242" alt="SIE BEHANDELN einen Pixel als Fläche und verfolgen mehrere Strahlen durch diesen Pixel.">
+			<figcaption><span>SIE BEHANDELN</span> einen Pixel als Fläche und verfolgen mehrere Strahlen durch diesen Pixel.</figcaption>
+		</figure>
+		<p>Sie lösen das Problem, indem Sie einen Pixel als Fläche behandeln und mehrere Strahlen durch diesen Pixel verfolgen. Ein Ansatz für das Anti-Aliasing ist das <i>statistische Super-Sampling.</i> Hierbei verfolgen Sie Strahlen, die vom Betrachter aus durch Punkte verlaufen, die zufällig auf der Fläche des Pixels verteilt sind.</p>
+		<p>Achten Sie dabei darauf, daß diese Punkte, wie schon bei den Schatten&shy;strahlen der Halbschatten, möglichst gleich verteilt sind. Auch die Abbruch&shy;kriterien sind dieselben wie die bereits vorgestellten. Da das Verfolgen der Stahlen der rechen&shy;intensive Teil des Raytracing ist, ist der Preis für das Anti-Aliasing hoch, aber die deutlich bessere Darstellungs&shy;qualität rechtfertigt dies.</p>
+		<p>Die vorgestellten Neuerungen bei den Texturen und dem Bump Mapping im Raytracing-Programm sind auch in den Parser integriert. Die Parameter für das Abtasten der Lichtquellen und das Anti-Aliasing finden Sie in den Quelldateien <i>RTPolylight.cpp</i> und <i>RTCamera.c</i>.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199910.html">10/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200001.html">1/2000</a>
+	</nav>
+</body>

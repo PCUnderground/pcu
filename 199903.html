@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Auf direktem Wege (PC Underground, PC Magazin 3/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;3/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199902.html">2/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199904.html">4/1999</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/NT</h2>
+		<h1>Auf <span class="highlight">direktem</span> Wege</h1>
+		<p class="summary">Programmieren Sie <span class="highlight">schnelle Grafik mit DirectX</span>, und nutzen Sie Ihre Demos als Bildschirmschoner.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Windows-Anwendungen stellen Grafiken meist über das Graphics Device Interface (GDI) dar. Diese Schnittstelle enthält ein sehr aufwendiges System zur Fenster&shy;verwaltung. Außerdem bietet sie viele Funktionen, um einfache grafische Objekte wie Linien und Rechtecke zu zeichnen.</p>
+		<p>Bei der Demo-Programmierung liegt Ihr Interesse aber weniger in der Fenster&shy;verwaltung als vielmehr in maximaler Geschwindig&shy;keit.</p>
+		<p>Um dem allgemeinen Wunsch nach mehr Grafik-Power gerecht zu werden, hat Microsoft mit dem Erscheinen von Windows 95 eine zweite Schnittstelle für schnellere Grafik geschaffen: Sie heißt DirectX und erfreut sich vor allem bei Spielen großer Beliebtheit.</p>
+		<p>Die Struktur von DirectX wollen wir uns genauer ansehen. Als Anwendungs&shy;beispiel schreiben Sie eine Grafik&shy;bibliothek, die einen echten Vollbildmodus unter DirectDraw – einem Bestandteil von DirectX – bietet. Sie verwenden dabei relativ einfache Aufrufe, die mit DirectX ab Version 3.0 zusammen&shy;arbeiten (neuere Versionen sind abwärts&shy;kompatibel).</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199903.zip">💾 199903.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Das Besondere an DirectX</h2>
+		<p>Mit DirectX begann Microsoft, ein neues Modell für Programmier&shy;schnittstellen zu verwenden. Es ist das Component Object Model (COM). Die alte, auf Funktionen basierende Schnittstelle sollte durch eine objekt&shy;orientierte ersetzt werden. Dabei traten zwei technische Probleme auf: Zum einen booten nicht alle Windows-Programmier&shy;sprachen objekt&shy;orientierte Funktionen, zum anderen lassen sich mit DLL-Bibliotheken keine Objekte exportieren.</p>
+		<p>Für den C++-Programmierer sieht der DirectX-Quelltext objekt&shy;orientiert aus. In Wirklichkeit täuschen Makros nur die Objekt&shy;orientierung vor. Bereiten Sie sich daher auf außer&shy;gewöhnliche Fehler&shy;meldungen Ihres C-Compilers vor, denn dieser sieht den Code anders, als Sie ihn eingeben.</p>
+		<p>DirectX ist die der Hardware am nächsten stehende Schnittstelle, die die Windows-API zu bieten hat. Daher ist sie besonders fehleranfällig. Sie sollten stets den Rückgabewert von DirectX-Funktionen überprüfen: Wenn Sie einen Fehler ignorieren, kann nicht nur Ihr Programm, sondern das gesamte Windows-System abstürzen.</p>
+		<p>Im Gegensatz zu gewöhnlichen C++Objekten gibt es bei DirectX keine Konstruktoren und Destruktoren. Für jedes Objekt existiert statt dessen eine Initialisierungs-Funktion. Zusätzlich besitzt jedes DirectX-Objekt eine Release-Funktion als Ersatz für einen Objekt&shy;destruktor. Diese Funktionen müssen Sie selbst aufrufen.</p>
+		<figure class="floatright">
+			<img src="assets/199903_2.png" width="256" height="256" alt="UNSER BILDSCHIRMSCHONER greift für den Tunnel-Effekt auf diese externe Bitmap-Datei zu.">
+			<figcaption><span>UNSER BILDSCHIRM&shy;SCHONER</span> greift für den Tunnel-Effekt auf diese externe Bitmap-Datei zu.</figcaption>
+		</figure>
+		<p>Von Version zu Version hat Microsoft einige Änderungen und Verbesserungen an den DirectX-Objekten vorgenommen. Um zu alten Programmen und verschiedenen installierten Versionen von DirectX kompatibel zu bleiben, gibt es einen interessanten Versions-Mechanismus: Wenn Sie von DirectX ein Objekt anfordern, bekommen Sie zunächst ein Objekt der Version 1.0, das Sie nach einer neueren Version von DirectX fragen können.</p>
+		<p>Eine zentrale Rolle spielen die sogenannten GUIDs (Globally Unique Identifiers). Das sind eindeutige Zahlencodes, die Windows jedem Objekt zuordnet. So kann Windows die Objekte voneinander unterscheiden. Wenn Sie ein DirectDraw-Objekt der Version 3.0 wünschen, sollten Sie die entsprechende GUID für dieses Objekt kennen.</p>
+		<p>Laut Microsoft soll der zugrunde&shy;liegende Algorithmus erst um das Jahr 3400 herum bereits verwendete Identifikations&shy;nummern doppelt vergeben. Diese Weit&shy;sichtigkeit erspart der Computerwelt ein ähnliches Chaos wie beim Jahr-2000-Problem.</p>
+	</section>
+
+	<section>
+		<h2>DirectDraw und dessen Objekte</h2>
+		<p>In den abgedruckten Listingzeilen haben wir der Übersicht&shy;lichkeit zuliebe auf die Fehler&shy;behandlung verzichtet. Dieser Code soll Ihnen das Prinzip und die Schnittstelle nahebringen; guten Programmier&shy;stil bietet dagegen der Code der neuen Demobibliothek auf der Heft-CD.</p>
+		<p>Den Zugriff auf eine Grafikkarte liefert Ihnen das Objekt <i>IDirectDraw</i>:</p>
+		<pre><code>
+IDirectDraw* dd = NULL;
+GUID* ddGUID = NULL;
+DirectDrawCreate(ddGUID, &amp;dd, NULL);
+		</code></pre>
+		<p>Dieser Code erzeugt ein <i>IDirectDraw</i>-Objekt und speichert den Pointer darauf in <i>dd.ddGUID</i> dient dazu, mehrere im System installierte Grafikkarten zu unterscheiden. Falls Sie – wie hier im Beispiel – <i>ddGUID</i> auf 0 setzen, kommt die Standard-Grafikkarte zum Einsatz.</p>
+		<p>Im nächsten Schritt teilen Sie Windows mit, daß Ihr Programm von nun an der alleinige Besitzer der Grafikkarte sein soll. Dies erreichen Sie mit</p>
+		<pre><code>
+dd->SetCooperativeLevel(ParentWindow,
+	DDSCL_EXCLUSIVE |
+	DDSCL_FULLSCREEN |
+	DDSCL_ALLOWREBOOT);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199903_3.png" width="410" height="460" alt="DEN AKTIVEN BILDSCHIRMSCHONER legen Sie in der Systemsteuerung im Menüpunkt Anzeige fest.">
+			<figcaption><span>DEN AKTIVEN BILDSCHIRM&shy;SCHONER</span> legen Sie in der System&shy;steuerung im Menüpunkt Anzeige fest.</figcaption>
+		</figure>
+		<p>Das erste Argument, das Sie übergeben, ist der Handle eines Fensters. Wie Sie die Fensterklasse definiert haben, ist egal – sie muß allerdings vom aktuell laufenden Programm erzeugt worden sein. Die drei durch ein logisches Oder verknüpften Flags im zweiten Parameter geben Ihnen vollen Zugriff auf die Grafik-Hardware.</p>
+		<p>Ist obiger Befehl ausgeführt, wirkt sich jeder Absturz fatal auf Windows aus. Sollte Ihr Programm abstürzen, können Sie den Fehlerdialog weder sehen noch bedienen, sondern müssen den Rechner neu starten. Jetzt brauchen Sie eine neuere Version des DirectDraw-Objekts:</p>
+		<pre><code>
+IDirectDraw2* dd2 = NULL;
+dd->QueryInterface(
+	IID_IDirectDraw2,
+	(void **) &amp;dd2);
+		</code></pre>
+		<p><i>IDD_IDirectDraw2</i> ist die GUID der zweiten Version von DirectDraw. Die Variable <i>dd2</i> ist nach Aufruf dieser Funktion ein Objekt vom Typ <i>DirectDraw2</i>. Damit können Sie den Videomodus wechseln:</p>
+		<pre><code>
+dd2->SetDisplayMode(320, 240, 16, 0, 0);
+	</code></pre>
+		<p>Die ersten drei Parameter stehen für die Breite, Höhe und Farbtiefe des Videomodus. Mit dem vierten Parameter ändern Sie die Bildwieder&shy;holfrequenz. Eine 0 setzt die Wiederhol&shy;frequenz auf Standardwerte. Das letzte Argument hat noch keine Bedeutung und ist für spätere Erweiterungen von DirectX gedacht.</p>
+		<p>Die erste Hürde ist genommen: Sie haben einen Videomodus Ihrer Wahl und sind im Exclusive-Modus von DirectDraw. Aber wie schreiben Sie jetzt Daten in den Grafikspeicher? Dafür brauchen Sie weitere Objekte.</p>
+	</section>
+
+	<aside>
+		<h2>DEMOS ALS BILDSCHIRM&shy;SCHONER</h2>
+		<div>
+			<p>Sie möchten Ihrem Windows-System eine persönliche Note geben? Dann verwenden Sie Ihre bisher geschriebenen Demos als Bildschirm&shy;schoner.</p>
+			<p>Ein Windows-Bildschirm&shy;schoner mit der Dateiendung .scr ist vom Aufbau her identisch mit einer exe-Datei. Wie sich das jeweilige Programm verhält, entscheidet sich beim Aufruf:<br>
+			• Mit dem Kommandozeilen&shy;parameter /c starten Sie einen Konfigurations&shy;dialog,<br>
+			• mit /s einen Schoner.<br>
+			• Ein Aufruf ohne Parameter – etwa wenn Sie selbst eine scr-Datei ausführen – wird wie ein Start mit dem Argument /s behandelt.</p>
+			<p>Um die Programmierung eigener Bildschirm&shy;schoner zu erleichtern, stellt Microsoft über die Win32-API die Bibliothek scrnsave.lib bereit, die alle Windows-spezifischen Aufgaben erledigt. Sie legt automatisch ein Vollbild&shy;fenster an, deaktiviert den Mauszeiger und setzt die registrierte Fensterklasse auf <i>WS_EX_TOPMOST</i>, damit sich das Fenster immer im Vordergrund befindet. So können Sie sich ganz auf die Gestaltung der Dialoge und des Bildschirm&shy;schoners konzentrieren.</p>
+			<p>Ebenfalls in dieser Bibliothek befinden sich die Funktion WinMain und der Message-Handler. Letzterer steuert alle für Bildschirm&shy;schoner typischen Verhaltens&shy;weisen: So wird der Bildschirm&shy;schoner beim Bewegen der Maus oder durch einen Tastendruck beendet.</p>
+			<p>In unserer neuen Grafik&shy;bibliothek demosys.cpp wählen Sie mit <span class="code">#define SCREENSAVER</span> die Kompilierung zum Bildschirm&shy;schoner.</p>
+			<p>In diesem Fall werden die von <i>scrnsave.lib</i> geforderten Schnittstellen-Prozeduren definiert und die Header-Datei <i>scrnsave.h</i> eingebunden. Die Prozedur <span class="code">LONG WINAPI ScreenSaverProc(...)</span> enthält Ihren Message-Handler für den Bildschirm&shy;schoner. Alle Nachrichten, die Sie nicht bearbeiten wollen, übergeben Sie an den von <i>scrnsave.lib</i> bereit&shy;gestellten Message-Handler <i>DefScreenSaverProc(...)</i>. Nach dem Empfang der Nachricht <i>WM_CREATE</i> initialisieren Sie – wie bisher in WinMain(...) – die Demobibliothek und starten den Thread des Demos.
+			Erhalten Sie die Nachricht <i>WM_DESTROY</i>, rufen Sie zum Beenden die <i>demoquit()</i>-Funktion der Demo auf.</p>
+			<p>An der Demo selbst ändert sich nichts. Damit können Sie alle bisher in PC Underground entwickelten Programme ohne Änderungen als Bildschirm&shy;schoner verwenden.</p>
+			<p>Bei der Prozedur <i>ScreenSaverConfigureDialog(...)</i> handelt es sich auch um einen Message-Handler, der einen Konfigurations&shy;dialog bereitstellen soll. Sie können einen solchen Dialog mit einem Ressourcen-Editor erzeugen und an dieser Stelle in das Demosystem einbauen. Die Konfigurations&shy;daten sollten Sie in der Registry sichern. Wünschen Sie keinen Konfigurations&shy;dialog, verwenden Sie einfach folgenden minimalen Dialog, der nicht einmal ein Fenster öffnet:</p>
+			<pre><code>
+BOOL WINAPI
+	ScreenSaverConfigureDialog(
+		HWND hdlg,UINT message,
+		WPARAM wparam,LPARAM lparam)
+{
+	switch (message)
+	{
+		case WM_INITDIALOG:
+			return TRUE;
+		case WM_COMMAND:
+			switch (LOWORD(wparam))
+			{
+				case IDOK:
+				case IDCANCEL:
+					EndDialog(hdlg,TRUE);
+					return TRUE;
+			}
+	}
+	return FALSE;
+}
+
+BOOL WINAPI
+	RegisterDialogClasses(
+	HANDLE hinst)
+{
+	return TRUE;
+}
+			</code></pre>
+			<p>Ein Bildschirm&shy;schoner unter Windows enthält normalerweise alle Daten (Bitmaps, Wave-Dateien oder Videosequenzen) als Ressourcen; das heißt, sie sind in der exe- bzw. scr-Datei enthalten. Unser Programm&shy;beispiel PC Underground Screen Saver.scr, das Sie in das Windows- oder das System32-Verzeichnis kopieren, verlangt die Bitmap-Grafik tunnel2.bmp im Haupt&shy;verzeichnis Ihrer Festplatte C:.</p>
+			<p>Ihren Bildschirm&shy;schoner sollten Sie im DirectX-Vollbildmodus laufen lassen, weil die GDI-Funktion <i>StretchDIBits(...)</i> zum Skalieren eines Bildes auf Bildschirm&shy;größe sehr langsam ist.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>DirectDraw-Surfaces</h2>
+		<p>Mit den sogenannten Surfaces (Oberflächen) verwalten Sie den Videospeicher. DirectDraw bietet viele verschiedene Arten von Surfaces. Solange Sie nur an einem einfachen Zugriff auf den Videospeicher interessiert sind, bleibt alles relativ einfach:</p>
+		<pre><code>
+DDSURFACEDESC SurfaceDesc;
+memset(&amp;SurfaceDesc, 0, sizeof(SurfaceDesc));
+SurfaceDesc.dwSize = sizeof(SurfaceDesc);
+		</code></pre>
+		<p>Um die gewünschten Eigenschaften festzulegen, füllen Sie eine Struktur vom Typ <i>DDSURFACEDESC</i> aus. Machen Sie das sorgfältig, denn (wie bereits erwähnt) ist DirectDraw nicht gerade fehlertolerant.</p>
+		<p>Die Struktur <i>SurfaceDesc</i> füllen Sie zuerst mit Null-Bytes und initialisieren das Feld <i>dwSize</i> mit der Größe der Struktur. DirectDraw stellt damit fest, mit welcher Version von DirectX Sie Ihr Programm übersetzt haben.</p>
+		<pre><code>
+SurfaceDesc.ddsCaps.dwCaps =
+	DDSCAPS_PRIMARYSURFACE |
+	DDSCAPS_FLIP |
+	DDSCAPS_COMPLEX;
+SurfaceDesc.dwBackBufferCount=1;
+		</code></pre>
+		<p>Die Daten im Feld <i>ddsCaps.dwCaps</i> beschreiben die Art der Oberfläche, die Sie anfordern: hier darstellbaren Videospeicher (<i>DDSCAPS_PRIMARYSURFACE</i>), der Page-Flipping (<i>DDSCAPS_FLIP</i> und <i>DDSCAPS_COMPLEX</i>) beherrscht. Das heißt: Sie können zwischen mehreren virtuellen Bildschirmen hin- und herschalten. Für das Page-Flipping benötigen Sie mindestens noch eine zweite Bildschirm&shy;seite. In <i>dwBackBufferCount</i> geben Sie die Anzahl der zusätzlichen Bildschirm&shy;seiten an und legen in <i>dwFlags</i> fest, daß Sie folgenden Wert setzen wollen:</p>
+		<pre><code>
+SurfaceDesc.dwFlags =
+	DDSD_CAPS |
+	DDSD_BACKBUFFERCOUNT;
+		</code></pre>
+		<p>Teilen Sie DirectDraw mit, welche Informationen Sie in der Struktur gesetzt haben. Da viele verschiedene Arten von Surfaces existieren, muß DirectDraw genau wissen, welche Art von Surface Sie haben möchten.</p>
+		<p>Dieser Code legt die Oberfläche nach Ihren Wünschen an:</p>
+		<pre><code>
+IDirectDrawSurface ddSurface = 0;
+dd2->CreateSurface(&amp;SurfaceDesc, &amp;ddSurface, 0);
+		</code></pre>
+		<p>Dabei wird <i>ddSurface</i> – falls Sie keinen Fehler gemacht haben – mit einem <i>IDirectDrawSurface</i> -Objekt initialisiert.</p>
+	</section>
+
+	<section>
+		<h2>Page-Flipping unter DirectDraw</h2>
+		<figure class="floatright">
+			<img src="assets/199903_1.png" width="635" height="599" alt="BEIM PAGE-FLIPPING vertauscht DirectDraw einfach die sichtbare mit der unsichtbaren Oberfläche.">
+			<figcaption><span>BEIM PAGE-FLIPPING</span> vertauscht DirectDraw einfach die sichtbare mit der unsichtbaren Oberfläche.</figcaption>
+		</figure>
+		<p>Mit dem in DirectDraw eingebauten Page-Flipping wechseln Sie schnell zwischen mehreren Bildschirm&shy;seiten. Das Prinzip ist sehr einfach: Die Oberfläche, die Sie eben angelegt haben, besteht aus zwei Bildschirm&shy;seiten. Eine davon ist sichtbar, während Sie den Inhalt der anderen Seite ändern können, ohne Darstellungs&shy;fehler zu erhalten. Sie brauchen sich nicht einmal darum zu kümmern, welche der Seiten gerade sichtbar ist. DirectDraw übernimmt diese Verwaltungs&shy;aufgabe für Sie.</p>
+		<p>Wenn Sie herausfinden wollen, welche Oberfläche Sie gerade ändern dürfen, fragen Sie Ihre sichtbare Surface einfach nach dem Back-Buffer, also der zweiten Bildschirm&shy;seite. Füllen Sie eine <i>DDSCAPS</i>-Struktur, und teilen Sie DirectDraw mit, daß Sie am BackBuffer interessiert sind:</p>
+		<pre><code>
+DDSCAPS caps;
+caps.dwCaps = DDSCAPS_BACKBUFFER;
+		</code></pre>
+		<p>Nun fordern Sie von der aktiven Surface die nächste zum Zeichnen verfügbare Seite an:</p>
+		<pre><code>
+IDirectDrawSurface* dds;
+ddSurface->GetAttachedSurface(&amp;caps, &amp;dds);
+		</code></pre>
+		<p>Die Variable <i>dds</i> wird dabei mit der Hintergrund-Surface initialisiert, und Sie dürfen mit dem Zeichnen anfangen.</p>
+		<p>Wenn Sie auf eine Surface zugreifen, ändern Sie immer automatisch die nicht sichtbare Bildschirm&shy;seite. Sobald Sie DirectDraw mitteilen, daß Sie fertig sind und umschalten möchten, werden die beiden Seiten ausgetauscht.</p>
+		<p>Das kostet kaum Rechenzeit, da der Wechsel der Bildschirm&shy;seiten in der Grafik-Hardware vonstatten geht. Die Surfaces befinden sich – sofern genug Grafikkarten&shy;speicher vorhanden ist – im Speicher der Karte und nicht im Hauptspeicher des Computers. Zudem wartet DirectDraw vor dem Umschalten darauf, daß der Monitor das Bild komplett aufgebaut hat. Diese Vorgehensweise verhindert Darstellungs&shy;fehler, die zum Beispiel entstehen, wenn Sie während des Bildaufbaus auf das nächste Bild umschalten.</p>
+		<p>Page-Flipping mit einem Bild im Hintergrund heißt Double-Buffering. Es funktioniert aber auch mit zwei (Triple-Buffering) oder mehr inaktiven Bildschirm&shy;seiten. Verwenden Sie etwa eine Zeichenroutine, die ein Bild schneller aufbaut als der Monitor, können Sie einige Bilder schon im voraus berechnen. Diese werden dann automatisch der Reihe nach abgespielt.</p>
+		<p>So starten Sie das Page-Flipping bei DirectDraw: Nachdem Sie ein Bild vollständig gezeichnet haben, rufen Sie die <i>Flip</i>-Funktion des <i>IDirectDrawSurface</i>-Objekts auf:</p>
+		<pre><code>
+ddSurface->Flip(0, DDFLIP_WAIT)
+		</code></pre>
+		<p>Übergeben Sie der Funktion zwei Parameter. Mit dem ersten ändern Sie die automatische Reihenfolge des Page-Flipping. Für unsere Zwecke ist das uninteressant. Der zweite Parameter <i>DDFLIP_WAIT</i> signalisiert, daß Sie mit dem Umschalten warten möchten, bis der Monitor das Bild komplett aufgebaut hat. Der Wechsel zwischen den Bildschirm&shy;seiten geschieht also genau dann, wenn der Rasterstrahl das untere Ende des Monitors erreicht hat und wieder nach oben an den Anfang läuft.</p>
+	</section>
+
+	<aside>
+		<h2>DIE KOMPONENTEN DES DIRECTX-SDK</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Komponente</th><th>Funktion</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>DirectDraw</td><td>Direktzugriff auf Bitmaps im Grafikspeicher, schnelles Hardware-Flipping</td></tr>
+					<tr><td>DirectSound</td><td>Mischen und Wiedergabe von Sounds</td></tr>
+					<tr><td>DirectPlay</td><td>Verbindung für Modem- und Netzwerkspiele</td></tr>
+					<tr><td>Direct3D</td><td>Komplettes 3D-Grafiksystem mit direkter Kontrolle der Rendering-Pipeline</td></tr>
+					<tr><td>DirectInput</td><td>Eingabe&shy;routinen für Joystick, Maus und Tastatur</td></tr>
+					<tr><td>DirectSetup</td><td>Installations&shy;prozedur für DirectX</td></tr>
+					<tr><td>AutoPlay</td><td>Automatischer Programmstart</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Zugriff auf das Surface-RAM-Flipping</h2>
+		<p>Eine wichtige Frage ist noch unbeantwortet: Wie greifen Sie auf den Speicher des verdeckten Bildes zu, um dessen Inhalt zu ändern? Das Objekt <i>IDirectDrawSurface</i> stellt hierfür zwei Funktionen zur Verfügung: <i>Lock</i> und <i>Unlock</i>.</p>
+		<p>Erneut kommen Sie nicht daran vorbei, eine DirectDraw-Struktur vom Typ <i>DDSURFACEDESC</i> auszufüllen:</p>
+		<pre><code>
+DDSURFACEDESC
+	SurfaceDescription;
+memset(&amp;SurfaceDescription, 0, sizeof(DDSURFACEDESC));
+SurfaceDescription.dwSize = sizeof(SurfaceDescription);
+		</code></pre>
+		<p>Dann rufen Sie die Funktion <i>Lock</i> auf, die Ihnen die Speicher&shy;adresse der Grafikdaten verrät:</p>
+		<pre><code>
+ddSurface->Lock(0,
+	&amp;SurfaceDescription,
+	DDLOCK_SURFACEMEMORYPTR |
+	DDLOCK_WAIT, 0)
+		</code></pre>
+		<p>Der Pointer <i>SurfaceDescription.lpSurface</i> zeigt nun auf das Video-RAM. Auch einige andere Felder der Struktur enthalten wichtige Informationen. So gibt das Feld <i>SurfaceDescription.lPitch</i> an, wie viele Bytes Speicher DirectDraw für eine Bildschirm&shy;zeile verwendet. Das mutet im ersten Moment etwas ungewöhnlich an, ist aber für viele Grafikkarten erforderlich.</p>
+		<p>Wenn Sie zum Beispiel einen 320 x 240 Pixel großen Videomodus in Highcolor setzen, belegt eine Grafikzeile genau 640 Byte. Viele Grafikkarten arbeiten jedoch schneller, wenn dieser Wert zwar etwas größer, aber rechnerisch einfacher zu handhaben ist als die mindestens benötigten Bytes pro Zeile. Sie sollten dies beim Schreiben in den Videospeicher unbedingt beachten.</p>
+		<p>Nach dem Zeichnen rufen Sie die <i>Unlock</i>-Funktion auf:</p>
+		<pre><code>
+ddSurface->Unlock(SurfaceDescription.lpSurface);
+		</code></pre>
+		<p>Halten Sie die Zeit zwischen <i>Lock</i> und <i>Unlock</i> immer so kurz wie möglich. Während Sie auf den Videospeicher zugreifen, bleibt fast das gesamte Betriebssystem stehen. Nur noch Sie bzw. Ihr Programm bekommt Prozessorzeit. Bedenken Sie: Wenn Sie viel Rechenzeit beanspruchen, werden eventuell wichtige Systemprozesse behindert.</p>
+	</section>
+
+	<section>
+		<h2>Grün bevorzugt</h2>
+		<p>Jetzt sehen wir uns das 16-Bit-Farbmodell genauer an. Ein 16 Bit breites Highcolor-Pixel ist aus drei Feldern aufgebaut: Sie entsprechen den drei Farb&shy;komponenten Rot, Grün und Blau (RGB). In der Regel werden die 16 Bits so aufgeteilt, daß Rot und Blau je 5 Bit bekommen, während Grün mit 6 Bit bevorzugt behandelt wird. Der Grund: Grün ist die Primärfarbe mit der größten Helligkeit, das Auge kann sie am besten wahrnehmen. Im Schema sieht das so aus:
+		<span class="code">RRRRR GGGGGG BBBBB</span>
+		Einige Grafikkarten verwalten die Bits jedoch auf andere Weise. Sie verwenden einheitlich für jede Primärfarbe 5 Bit und lassen dafür das oberste Bit ungenutzt:<br>
+		<span class="code">0 RRRRR GGGGG BBBBB</span>
+		DirectDraw gibt Ihnen auf einigen Grafikkarten diesen 15-Bit-Farbmodus, obwohl Sie einen 16-Bit-Modus setzen wollten. In diesem Fall wandeln Sie die Pixel während des Kopierens in das andere Farbformat um, um zur bisher in PC Undergound verwendeten Grafik&shy;bibliothek kompatibel zu bleiben.</p>
+		<p>Damit Sie sich künftig nicht mehr darum zu kümmern brauchen, enthält der Code der neuen DirectX-Bibliothek bereits eine effiziente Umwandlungs&shy;routine. Dieser zusätzliche Verwaltungs&shy;aufwand ist der Preis für die schnelle Grafik. Das Windows-GDI-Interface würde Ihnen auch diese Arbeit abnehmen.</p>
+		<p>Die Umwandlung von 16 nach 15 Bit nehmen Sie mit einigen einfachen Operationen parallel für jeweils zwei Pixel vor:</p>
+		<pre><code>
+unsigned long blau = pixel &amp; 0x001f001f;
+unsigned long rotgrün = (pixel > 1) &amp; 0xffe0ffe0;
+pixel = blau | rotgrün;
+		</code></pre>
+		<p>Zuerst maskieren Sie den Blau-Anteil aus, da er sich während der Umwandlung nicht ändert. Die beiden Farb&shy;komponenten Rot und Grün schieben Sie zunächst binär nach rechts und maskieren die gewünschten Bits. Wenn Sie beide Farbanteile mit einer Oder-Verknüpfung wieder zusammenfügen, haben Sie das unterste Grün-Bit weggeworfen und alle übrigen Farbanteile auf die richtige Position geschoben.</p>
+		<p>Wir haben diese Bibliotheks&shy;routine auch in Assembler programmiert. Sie ist damit nur minimal langsamer als das direkte Kopieren des Speichers.</p>
+		<p>Wenn Sie bereits mit der bisher in PC Underground verwendeten Grafik&shy;bibliothek experimentiert haben, wird Ihnen der Einsatz der neuen DirectX-Erweiterung leichtfallen.</p>
+		<p>Die einzige auffallende Änderung ist ein neuer Fenstermodus. Neben den vordefinierten Konstanten <i>FENSTER</i>, <i>SKALIERBAR</i> und <i>VOLLBILD</i> für die GDI-Routinen gibt es zusätzlich <i>DDVOLLBILD</i> für Vollbilddemos, die die Geschwindig&shy;keit von DirectDraw ausnutzen.</p>
+	</section>
+
+	<section>
+		<h2>Kompilation ohne Komplikation</h2>
+		<p>Um DirectX-Programme zu kompilieren, benötigen Sie das DirectX-SDK (Software Development Kit) von Microsoft. Sie beziehen es über die Internet-Seite von Microsoft unter <a href="https://msdn.microsoft.com/developer/sdk/directx.htm" rel="external nofollow noreferrer">msdn.microsoft.com/developer/sdk/directx.htm</a>. Die Aufgaben seiner Komponenten entnehmen Sie der Tabelle (vorige Seite unten). Aber Achtung: Nicht jede Version von DirectX funktioniert mit jedem Compiler. Benutzer von Microsoft Visual C++ sind hier im Vorteil: Sie brauchen nichts zu tun.</p>
+		<p>Bei Watcom C++ sieht das etwas anders aus. Mit Version 11 des Compilers erhalten Sie das DirectX SDK 3.0. Damit können Sie die hier entwickelten Programme problemlos kompilieren. Wenn Sie eine neuere Version des SDK installieren, werden Sie einiges an Handarbeit leisten müssen, um alles zum Laufen zu bringen.</p>
+		<p>Die DirectX-Bibliothek wird nicht – wie die Standard&shy;bibliotheken – automatisch zum Programm gelinkt. Darum müssen Sie sich selbst kümmern. Für die Arbeit mit DirectDraw binden Sie die beiden Libraries <i>ddraw.lib</i> und <i>guids.lib</i> (bzw. <i>dxguids.lib</i> bei Visual C) ein.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein / Burkhard Müller</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199902.html">2/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199904.html">4/1999</a>
+	</nav>
+</body>

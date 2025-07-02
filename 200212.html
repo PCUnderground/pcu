@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Leben im Fraktal (PC Underground, PC Magazin 12/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;12/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200211.html">11/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200301.html">1/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Cg – C for Graphics</h2>
+		<h1>Leben im <span class="highlight">Fraktal</span></h1>
+		<p class="summary">Cg ist C für Grafik. Damit lassen sich die Vertex- und Fragment-Shader der neuen Grafikkarten <span class="highlight">mit einer Hochsprache</span> programmieren. Sparen Sie sich den steinigen Weg über Low-Level-Assembler.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Vor kurzem hat nVidia das Cg-Toolkit vorgestellt. Mit diesem Werkzeug gelingt es, die Vertexund Fragment-(Pixel-)Shader der neueren Grafikkarten in C zu programmieren. Dieser Abstraktions&shy;schritt von der Hardware und der Assembler-Programmierung erlaubt es, schnell und vor allem universell verwendbare Shader zu programmieren, ohne zu sehr auf die genaue darunter&shy;liegende Hardware einzugehen. Dabei ist Cg über OpenGL bzw. DirectX angesiedelt und daher API-unabhängig.</p>
+		<p>Der tatsächliche Assembler-Code der Vertex-Shader wird während der Laufzeit erzeugt. Deshalb sind die Cg-Programme plattform- und vor allem Hardware-unabhängig. Momentan ist Cg noch eine nVidia-Domäne, aber es ist zu erwarten, dass auch weitere Grafikkarten&shy;hersteller sich anschließen.</p>
+		<p>Obwohl die Cg-API unabhängig ist, unterscheiden sich die API-Interfaces, um die Programme auf Cg-Basis zu verwenden. In dieser Ausgabe lernen Sie das OpenGL-Interface kennen, um Cg-Vertex-Shader zu programmieren.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200212.zip">💾 200212.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Fakten über Cg</h2>
+		<p>Momentan unterstützt Cg die Programmierung von Vertex- und Fragment-Shadern für die GeForce-2/3/4-Grafikkarten unter DirectX und OpenGL und die CineFX- und NV3x- Features. nVidia hat die CineFX-Architektur dem Cg-Toolkit in der Version Beta 2 schon hinzugefügt. Über die nVidia-NV3x-Architektur finden Sie über die Google-Suchmaschine zahlreiche Einträge wie: <a href="https://www1.sharkyextreme.com/hardware/videocards/article.php/1434621" rel="external nofollow noreferrer">www1.sharkyextreme.com/hardware/videocards/article.php/1434621</a></p>
+		<figure class="large">
+			<img src="assets/200212_1.jpg" width="739" height="212" alt="DIE WEGE der Daten in einer Grafikkarte">
+			<figcaption><span>DIE WEGE der Daten</span> in einer Grafikkarte</figcaption>
+		</figure>
+		<p>Zudem wird NV3x mit den neuesten Grafikkarten&shy;treibern per Software emuliert, da die zugehörige Hardware noch nicht verfügbar ist.</p>
+		<p>Da der Cg-Compiler aus dem Cg-Quelltext beispielsweise die Vertex-Shader erzeugt, bleibt die maximale Anzahl (und damit Länge) von 128 Instruktionen bestehen, weil dies die Hardware bestimmt. Ist das Kompilat länger, muss der Programmierer selbst Hand anlegen und die Berechnungen vereinfachen oder optimieren. Cg nimmt eine Abstraktion von der Assembler&shy;sprache und somit der Register vor. Dadurch ist es einfacher, zwei unabhängige Vertex-Shader miteinander zu kombinieren. Wer auf Assembler-Ebene programmieren wollte, müsste jedoch unter Umständen die Konstanten- oder Register&shy;belegung modifizieren.</p>
+	</section>
+
+	<section>
+		<h2>Installation des Cg-Toolkit</h2>
+		<p>Sie benötigen das nVidia SDK bzw. Cg-Toolkit, das Sie auf der nVidia Homepage unter <a href="https://www.nvidia.com" rel="external nofollow noreferrer">www.nvidia.com</a> finden. Sollten Sie schon eine ältere Version davon besitzen, benötigen Sie trotzdem die aktuelle Version, um die Beispiele zu dieser Ausgabe kompilieren zu können. Bislang gibt es nur Betaversionen des Compilers, was sich auch bei einigen Programmcode-Konstel&shy;lationen auswirkt. Nach der Installation finden Sie im Installations&shy;ordner das Unter&shy;verzeichnis <i>msdev_syntax_highlighting</i>. Darin enthalten ist eine Datei mit Registry-Einträgen, damit das Syntax Highlighting der Cg-Befehle in der Visual C++ IDE funktioniert. Außerdem sollten Sie das <i>bin</i>-Unter&shy;verzeichnis zur <i>PATH</i>-Systemvariable hinzunehmen. Als letztes müssen Sie in Visual C++ unter dem Menüpunkt <i>Tools/Options/Directiories</i> die <i>Include</i>- und <i>Library</i>-Pfade der Cg-Dateien setzen. Zu Ihren Programmen müssen Sie später die <i>cg.lib-</i> und <i>cgGL.lib</i> Dateien linken.</p>
+		<p>Damit können Sie bereits mit dem Cg-Compiler (<i>cgc.exe</i>) Progamme kompilieren und den Output in einer Textdatei betrachten. Im Folgenden werden wir die OpenGL-Funktionen verwenden und die Cg-Programme zur Laufzeit kompilieren.</p>
+		<p>Cg-Programme besitzen immer die Dateiendung <i>.cg</i>. Cg-Programme können Pixel- oder Fragment-Shader für verschiedene Grafik-Hardware darstellen. Diese werden in Cg mit Profilen unterschieden. Es gibt beispielsweise ein Profil für Vertex Programme und Fragment-Shader für GeForce-Karten und ein Profil für Vertex-Programme nach der ARB-Vertex-Programm-Erweiterung.</p>
+	</section>
+
+	<section>
+		<h2>Cg-Vertex-Shader</h2>
+		<figure class="floatright">
+			<img src="assets/200212_2.jpg" width="360" height="180" alt="Weitere Cg-Shader wie diese inklusive Source Code finden Sie unter www.cgshaders.org">
+			<figcaption><span>Weitere</span> Cg-Shader wie diese inklusive Source Code finden Sie unter <a href="https://www.cgshaders.org" rel="external nofollow noreferrer">www.cgshaders.org</a>.</figcaption>
+		</figure>
+		<p>Ein Cg-Vertex-Programm enthält mindestens eine Funktion, die, anders als bei C-Programmen, nicht <i>main()</i> heißen muss. Sie können auch weitere Subfunktionen deklarieren und verwenden.</p>
+		<p>Ein Vertex-Programm wird für jeden Vertex, der die OpenGL-Pipeline passiert, ausgeführt. Dabei ist es ausgeschlossen, berechnete Werte von einer Instanz des Vertex-Programms ans nächste zu übergeben.</p>
+		<p>Die Eingabedaten eines Vertex-Programms sind zum einen die <i>VaryingInputs</i>. Diese Daten stehen pro Vertex zur Verfügung, sind also in erster Linie Koordinaten und Attribute wie Textur-Koordinaten oder Farbwerte. Sie werden in OpenGL mit den <i>Immediate Mode</i>- oder den <i>Streaming</i>-Befehlen an die OpenGL-Pipeline übergeben.</p>
+		<p>Im Cg-Programm müssen Sie angeben, welche Varying Inputs Sie verwenden wollen und mit welchen Variablennamen Sie diese adressieren wollen. Dazu definieren Sie eine Struktur, in der alle Eingabedaten pro Vertex angegeben sind. Hinter jeder Variablen, getrennt durch einen Doppelpunkt, wird das <i>Binding Semantic</i>, die Belegung der Variablen, geschrieben. Damit legen Sie z.B. fest, welche Variable welche Bedeutung und somit welche Attribute enthält:</p>
+		<pre><code>
+struct myVaryingInput
+{
+	float4 myPosition : POSITION;
+	float3 myNormal : NORMAL;
+	float4 myColor : COLOR0;
+};
+		</code></pre>
+		<p>Eine Liste der definierten Datentypen finden Sie in der Textbox <i>Datentypen in Cg</i> auf Seite 212, der Binding Semantics in den Tabellen <i>Input-</i> sowie <i>Output Semantic Bindings</i> auf Seite 210/211. Analog zu den Bezeichnern in den Tabellen können die nVidia-Vertex-Programme weitere Bezeichner verwenden. Dazu gehören unter anderen <i>HPOS, COL0,</i> <i>COL1, BCOL0, BCOL1, TEX0</i> <i>TEX7, FOGC, PSIZ</i>.</p>
+		<p>Genauso wie die Varying Inputs definieren Sie die Varying Outputs, womit Sie die Resultate Ihres Vertex-Shaders an die Rasterizer-Einheit der Grafikkarte übergeben. Wenn Sie beispielsweise einen einfachen Shader programmieren, der die Beleuchtung berechnet, übergeben Sie die transformierte Koordinate und einen Farbwert:</p>
+		<pre><code>
+struct myVaryingOutput
+{
+	float4 myHPosition : POSITION;
+	float4 myOutputColor : COLOR0;
+};
+		</code></pre>
+		<p>Die zweite Form von Daten sind die Uniform Inputs, die sich nicht für jeden Vertex ändern und separat angegeben werden. Typischerweise gehören die Transformations&shy;matrix oder andere pro Frame bzw. 3D-Objekt konstante Werte dazu. Diese Daten geben Sie im Funktionskopf der Hauptfunktion des Vertex-Shaders an. Unser Beispiel Cg-Programm soll <i>cgMain</i> heißen und ist wie folgt deklariert:</p>
+		<pre><code>
+myVaryingOutput cgMain(myVaryingInput in,
+	uniform float4x4 modelviewProjection)
+{
+	...
+};
+		</code></pre>
+		<p>Dies bedeutet, dass Sie – wie in normalem C – eine Funktion haben, die als Parameter eine <i>myVaryingInput</i>-Struktur und eine Matrix bezeichnet, durch <i>modelviewProjection</i> entgegen nimmt und eine <i>myVaryingOutput</i>-Struktur zurückliefert. Diese Funktion wird für jeden Vertex ausgeführt.</p>
+	</section>
+
+	<aside>
+		<h2>INPUT SEMANTIC BINDINGS – UNTERSTÜTZT VON ALLEN PROFILEN</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Bezeichner</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>POSITION</td><td>Koordinate eines Vertex</td></tr>
+					<tr><td>BLENDWEIGHT</td><td>Vertex-Interpolations&shy;wert</td></tr>
+					<tr><td>COLOR0, COLOR1</td><td>Farbwerte pro Vertex</td></tr>
+					<tr><td>NORMAL</td><td>Vertexnormale</td></tr>
+					<tr><td>TEXCOORD0..7</td><td>Textur&shy;koordinaten</td></tr>
+					<tr><td>BINORMAL</td><td>Vertex-Binormale, identisch mit TEXCOORD6</td></tr>
+					<tr><td>TANGENT</td><td>Vertex-Tangente, identisch mit TEXCOORD7</td></tr>
+					<tr><td>TESSFACTOR</td><td>Tesselierungs&shy;faktor</td></tr>
+					<tr><td>PSIZE</td><td>Punktgröße für GL_POINTS</td></tr>
+					<tr><td>ATTR0...15</td><td>Alternative Stream-Bezeichnung, wie bei nVidia Vertex Programs</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<aside>
+		<h2>OUTPUT SEMANTIC BINDINGS</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Bezeichner</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>POSITION</td><td>Transformierte Vertex&shy;koordinate</td></tr>
+					<tr><td>FOG</td><td>Fog-Wert</td></tr>
+					<tr><td>COLOR0, COLOR1</td><td>Farbwerte</td></tr>
+					<tr><td>PSIZE</td><td>Punktgröße für GL_POINTS</td></tr>
+					<tr><td>TEXCOORD0..7</td><td>Textur&shy;koordinaten</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Cg-Programm in OpenGL</h2>
+		<p>Bevor Sie ein spezielles Cg-Programm entwickeln, sehen Sie zunächst, wie Sie solche Programme in OpenGL einbinden. Als erstes erzeugen Sie einen Cg-Kontext. Dabei sollten Sie immer die Fehlercodes abfragen, damit Ihr Programm, z.B. bei falsch geschriebenen Variablennamen, nicht abstürzt.</p>
+		<pre><code>
+CgContext = cgCreateContext();
+assert(CgContext != NULL);
+		</code></pre>
+		<p>Wenn Sie den Kontext erfolgreich angelegt haben, können Sie anschließend das Cg-Programm per Quelltextdatei schreiben und laden:</p>
+		<pre><code>
+cgError errorCode;
+errorCode = cgAddProgramFromFile(
+	CgContext, "test.cg",
+	cgVertexProfile, NULL);
+assert(CgProgram != NULL);
+
+cgProgramIter *CgProgram = NULL;
+CgProgram = cgProgramByName(
+	CgContext, "cgMain");
+assert(CgProgram != NULL);
+		</code></pre>
+		<p>Als Parameter benötigen Sie jeweils den Kontext. Mit <i>cgVertexProfile</i> geben Sie das Compiler-Profil an. Das sagt, ob es sich um einen Vertex- oder Fragment-Shader handelt und welche GPU angesprochen wird. Diese Konstanten definieren Sie in der <i>cg.h</i>-Datei.</p>
+		<p>Wenn Sie den erzeugten Vertex Shader Assembler Code betrachten möchten, können Sie sich diesen in einem String übergeben lassen. Dazu verwenden Sie folgende Funktion:</p>
+		<pre><code>
+char *vp = (char*)cgGetProgramObjectCode(CgProgram);
+		</code></pre>
+		<p>Wenn Sie diese Schritte durchgeführt haben, müssen Sie nur noch auf die <i>uniform</i> Variablen des Vertex Shaders zugreifen können. Diesen Zugriff erhalten Sie über einen Zeiger auf eine <i>cgBindIter</i>-Struktur. Die Struktur erhalten Sie, wenn kein Fehler wie bei falschen Variablennamen auftritt, mit:</p>
+		<pre><code>
+cgBindIter *CgBindModelviewProjection = NULL;
+
+CgBindModelviewProjection = cgGetBindByName(
+	CgProgram, "modelViewProjection");
+		</code></pre>
+		<p>Die Inhalte der entsprechenden Variablen setzten Sie über die Zugriffs&shy;funktionen:<br>
+		• Dazu gehören die <i>cgGLBindUniform4[f,d][v]</i>-Befehle, mit denen Sie einen <i>float</i>-Wert oder Vektor übergeben können. Der erste Parameter ist dabei immer das Cg-Programm, also vom Typ <i>cgProgramIter</i>, der zweite Wert ist der Variablen-Identifier, also vom Typ <i>cgBindIter</i>.<br>
+		• Weiterhin gehören die <i>cgGLBindUniformMatrix[c,r][f,d]</i>-Befehle dazu, mit denen Sie den Wert von <i>uniform</i> Variablen der Spalten- bzw. Zeilenmatrizen darstellen und setzen.<br>
+		• Der wichtigste Befehl ist <i>cgGLBindUniformStateMatrix</i>. Damit aktivieren Sie das Matrix-Tracking wie bei den nVidia-Vertex-Programmen: Eine Variable eines Cg-Programms enthält immer die aktuelle abgegebene Transformations&shy;matrix, also die Modelview, die Projektion oder wie in unserem Beispiel die Konkatenation (Verkettung von benachbarten Symbolen) aus Modelview und Projection Matrix. Außerdem können Sie angeben, ob die Matrix übernommen oder invertiert werden soll:</p>
+		<pre><code>
+cgGLBindUniformStateMatrix
+(
+	CgProgram,
+	CgBindModelviewProjection,
+	cgGLModelViewProjectionMatrix,
+	cgGLMatrixIdentity
+);
+		</code></pre>
+		<p>Um ein Cg-Programm für das Rendering zu verwenden, müssen Sie es selektieren und aktivieren. Zum Aktivieren müssen Sie wieder das Profil angeben, also in unserem Beispiel <i>cgVertexProfile</i> für einen GeForce 3 Vertex Shader:</p>
+		<pre><code>
+cgGLBindProgram(CgProgram);
+cgGLEnableProgramType(cgVertexProfile);
+		</code></pre>
+		<p>Jetzt können Sie die <i>varying</i> Daten pro Vertex an OpenGL übergeben. Dies kann mit den <i>glVertexPointer</i> oder <i>glInterleavedArrays</i>-Befehlen und <i>glDrawArrays/glDrawElements</i>-Befehlen geschehen oder mit den <i>Immediate Mode</i>-Befehlen wie <i>glVertex3f(...)</i>. Nachdem Sie die 3D-Objekte gezeichnet haben, schalten Sie das Cg-Programm wieder ab:</p>
+		<pre><code>
+cgGLDisableProgramType(cgVertexProfile);
+		</code></pre>
+		<p>Am Ende Ihres Programms geben Sie die Cg-Pointer wieder frei. Als erstes die Variablen vom <i>cgBindIter</i>-Typ mit dem Befehl:</p>
+		<pre><code>
+cgFreeBindIter(...)
+		</code></pre>
+		<p>Das Programm mitsamt Kontext räumen Sie mit folgenden Befehlen auf:</p>
+		<pre><code>
+cgFreeProgramIter(CgProgram);
+cgFreeContext(CgContext);
+cgCleanup();
+		</code></pre>
+	</section>
+
+	<aside>
+		<h2>DATENTYPEN IN CG</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Name</th><th>Daten</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>float</td><td>32 Bit IEEE Floating Point Zahl</td></tr>
+					<tr><td>half</td><td>16 Bit IEEE Floating Point Zahl (nur für NV30 Fragment Shader)</td></tr>
+					<tr><td>fixed</td><td>12 Bit Fixed Point Zahl (nur für NV30 Fragment Shader)</td></tr>
+					<tr><td>bool</td><td>Boolsche Variable</td></tr>
+				</tbody>
+			</table>
+			<p>Auf der Basis der obigen, einfachen Datentypen sind Vektortypen definiert, wie float4, float3, float2, float1, bool4, bool3, bool2 und bool1. float3 ist ein drei&shy;dimensionale Vektor, float4 wird für homogene Koordinaten verwendet. Außerdem sind Matrixdaten&shy;typen bis zur Größe von 4x4 Matrizen definiert. Ihre Bezeichner sind z.B. float1x1, float2x3 oder float4x4.</p>
+			<p>Strukturen können Sie in Cg wie von C bekannt definieren und verwenden:</p>
+			<pre><code>
+struct myStruct {
+...
+};
+myStruct s;
+			</code></pre>
+			<p>Auch Arrays können Sie wie in C-Code deklarieren, allerdings müssen Sie Unterschiede beachten: Cg unterstützt keine Pointer. Deshalb ist die Verwendung von Arrays eingeschränkt: zum einen in der Deklaration, zum anderen bei Aufrufen von Subfunktionen: Dabei werden Arrays kopiert und nicht die Referenz übergeben.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Cg-Julia Fraktal</h2>
+		<figure class="large">
+			<img src="assets/200212_3.jpg" width="557" height="389" alt="DAS JULIA-FRAKTALGEBIRGE auf dem Cg-Vertex-Shader">
+			<figcaption><span>DAS JULIA-FRAKTALGEBIRGE</span> auf dem Cg-Vertex-Shader</figcaption>
+		</figure>
+		<p>Ein etwas unkonvention&shy;elles Beispiel stellen wir Ihnen im Folgenden vor. Sie können Ihre Grafikkarte mit Hilfe eines Cg-Vertex-Shaders dazu verwenden, animierte Julia-Fraktalgebirge darzustellen.</p>
+		<p>Dazu rendern Sie später ein Polygongitter, dessen <i>x/z</i>-Koordinaten als Startwerte der Iteration dienen. Den Höhenwert, die <i>y</i>-Koordinate, lassen Sie vom Cg-Vertex-Shader berechnen. Die Berechnung eines Julia Fraktals erfolgt iterativ, das Ergebnis dient wiederum als Eingabewert, bis eine bestimmte Abbruch&shy;bedingung erreicht wurde. Als initialer Eingabewert dient ein zwei&shy;dimensionales Koordinaten&shy;paar <i>(x, y)</i>. Sie berechnen das neue Paar <i>(x’, y’)</i> wie folgt, wobei <i>a</i> und <i>b</i> zwei zeitabhängige Parameter sind, die das Fraktal animieren:</p>
+		<pre><code>
+x’ = x<sup>2</sup> - y<sup>2</sup> + a
+y’ = 2xy + b
+		</code></pre>
+		<p>Die Abbruch&shy;bedingung ist erfüllt, wenn</p>
+		<pre><code>
+x<sup>2</sup> + y<sup>2</sup>
+		</code></pre>
+		<p>größer als ein festgelegter Wert ist. In einem Vertex-Programm können Sie einige Iterations&shy;schritte, die auf maximal 128 Instruktionen begrenzt sind, durchführen. Solange die Abbruch&shy;bedingung nicht erfüllt ist, erhöhen Sie einen Zähler. Diesen Zähler verwenden Sie als Höhen&shy;information, um das Fraktalgebirge zu rendern.</p>
+		<p>Sie können die Berechnung etwas vereinfachen und umstellen und in einem Cg-Programm mit folgenden Variablen umsetzen:</p>
+		<pre><code>
+float x, y, x2, y2, counter;
+
+// Initialisierung
+x0 = in.myPosition.x;
+y0 = in.myPosition.z;
+x2 = x * x;
+y2 = y * y;
+counter = 0.0;
+incr = 1.0;
+		</code></pre>
+		<p>Ein Iterationsschritt sieht dann wie folgt aus:</p>
+		<pre><code>
+y = 2.0 * x * y + b;
+x = x2 - y2 + a;
+x2 = x * x;
+y2 = y * y;
+incr = (x2 + y2 &gt; 4.0) ? 0.0 : 1.0;
+counter += iter;
+		</code></pre>
+		<p>Eine Schwäche der Betaversion des Cg-Compilers: Wenn Sie diesen Iterations&shy;schritt mehrfach ausführen, werden die Register des Vertex-Shaders nicht genügen. Der Grund dafür ist, dass der Compiler die Zwischen&shy;ergebnisse des Vergleichs (bei <i>incr</i>) speichert und die Register nicht wieder überschreibt. Bei einem hand&shy;optimierten Vertex-Programm wäre nur die Programmlänge ein begrenzender Faktor. Eine Weg wäre, die Berechnung zu optimieren und die obige zu ersetzen. Dazu legen Sie folgende Variablen an:</p>
+		<pre><code>
+float4 f1 = float4(
+	in.myPosition.x,
+	in.myPosition.z,
+	0.0,
+	-in.myPosition.z
+);
+
+float4 f2 = float4(a, 0.0, 0.5 * b, -0.5 * b);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200212_4.jpg" width="482" height="359" alt="UNSER BEISPIELPROGRAMM kann auch Mandelbrotmengen berechnen.">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> kann auch Mandelbrotmengen berechnen.</figcaption>
+		</figure>
+		<p>Ein Iterations&shy;schritt lässt sich mit den <i>Swizzle-Operatoren</i> (komponenten&shy;weise vertauschen/ersetzen) in zwei Zeilen ausdrücken. Vollziehen Sie folgende Berechnung, die aus einem nVidia-Dokument stammt, auf einem Blatt Papier nach:</p>
+		<pre><code>
+float4 temp;
+temp = f1.xyxx * f1.xyyw + f2;
+f1.xyzw = temp.xzww - temp.ywwz;
+		</code></pre>
+		<p>Dieser Vergleich lässt sich wie folgt formulieren:</p>
+		<pre><code>
+incr = (float)
+	(dot(r0.xyzz, r0.xyzz) > 4.0f);
+		</code></pre>
+		<p>So können Sie Register einsparen und mehrere Iterations&shy;schritte ausführen. Dieser Bug dürfte in den nächsten Compiler&shy;versionen behoben sein.</p>
+		<p>Jetzt muss Ihr Vertex Shader nur noch die Ausgabewerte an die <i>Fragment</i>-Abteilung der Grafikkarte übergeben. Dazu definieren Sie in der <i>cgMain</i>-Funktion eine <i>myVaryingOutput</i>-Struktur, die Sie ausfüllen, indem Sie die Höhenver&shy;schiebung aus der Anzahl der Iterationen vor dem Abbruch&shy;kriterium berechnen und den Farbwert setzen:</p>
+		<pre><code>
+myVaryingOutput out;
+
+// verschobene Vertexkoordinate
+float4 newPos = in.myPosition;
+newPos.y = clamp(counter * 0.1, -1.0, 1.0);
+
+// und Transformieren
+out.position = mul(
+	modelViewProjection, newPos);
+
+// Graustufen Farbwert
+out.color0 = counter.xxxx * 0.1;
+return out;
+		</code></pre>
+		<p>Ein Fraktalgebirge erhalten Sie, indem Sie ein genügend fein aufgelöstes Polygongitter in Form eines Quadrates (in Ihrem OpenGL Programm) zeichnen:</p>
+		<pre><code>
+#define STEP 0.02f
+for(float j = -2.0f; j &lt; 2.0f; j += STEP)
+{
+	glBegin(GL_TRIANGLE_STRIP);
+	for(float i = -2.0f; i &lt;2.0f; i += STEP)
+	{
+		glVertex3f(i, 0, j);
+		glVertex3f(i, 0, j + STEP);
+	}
+	glEnd();
+}
+		</code></pre>
+		<p>Dieses Beispiel ist ein eher untypischer Verwendungs&shy;zweck für Vertex-Shader, aber es zeigt auch, wie vielfältig Sie mit wenig C-Code interessante Effekte schnell und einfach testen. Eine Übersicht über einen Teil der Befehle, die in der Cg-Standard-Library vorhanden sind, zeigt die Tabelle links.</p>
+	</section>
+
+	<aside>
+		<h2>CG-STANDARD-LIBRARY-FUNKTIONEN</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Mathematische Funktion</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>abs(x)</td><td>Betrag von x</td></tr>
+					<tr><td>sin(x), cos(x)</td><td>Trigono&shy;metrische Funktionen</td></tr>
+					<tr><td>acos(x), asin(x), atan(x), atan(y,x)</td><td>Arcus Funktionen</td></tr>
+					<tr><td>sinh(x), cosh(x)</td><td>Hyperbolikus-Funktionen</td></tr>
+					<tr><td>ceil(x), floor(x)</td><td>wie in C</td></tr>
+					<tr><td>clamp(x, a, b)</td><td>Bereichs&shy;beschränkung von x auf [a;b]</td></tr>
+					<tr><td>cross(a,b)</td><td>Kreuzprodukt zweier float4</td></tr>
+					<tr><td>dot(a,b)</td><td>Skalarprodukt zweier float4</td></tr>
+					<tr><td>mul(v,M)</td><td>Zeilenvektor mal Matrix</td></tr>
+					<tr><td>mul(M,v)</td><td>Matrix mal Spaltenvektor</td></tr>
+					<tr><td>exp(x), exp2(x), log(x), log2(x), log10(x)</td><td>Exponential- und Logarithmus-Funktionen</td></tr>
+					<tr><td>min(a,b), max(a,b)</td><td>Minimum-/Maximum-Funktion</td></tr>
+					<tr><td>pow(x,y)</td><td>x^y</td></tr>
+					<tr><td>sign(x)</td><td>Signum-Funktion</td></tr>
+					<tr><td>frac(x)</td><td>Nachkomma-Anteil von x</td></tr>
+					<tr><td>round(x)</td><td>x gerundet</td></tr>
+					<tr><td>lerp(a,b,f)</td><td>(1-f)*a+b*f für Float oder Vektor&shy;variablen</td>
+					<tr><td>sqrt(x)</td><td>Quadratwurzel von x</td></tr>
+				</tbody>
+			</table>
+			<table>
+				<thead>
+					<tr><th>Geometrische Funktion</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>distance(pt1,pt2)</td><td>Euklidischer Abstand zweier Punkte</td></tr>
+					<tr><td>faceforward(N,I,Ng)</td><td>Resultat ist N, wenn dot(Ng,I) &lt; 0 sonst -N</td></tr>
+					<tr><td>length(v)</td><td>Länge des Vektors v</td></tr>
+					<tr><td>normalize(v)</td><td>Normalisierter Vektor zu v</td></tr>
+					<tr><td>reflect(i,n)</td><td>Reflexions&shy;vektor zu i an n, für float3</td></tr>
+					<tr><td>refract(i,n,eta)</td><td>Refraktions&shy;vektor zu i an n mit Brechzahl eta</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200211.html">11/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200301.html">01/2003</a>
+	</nav>
+</body>

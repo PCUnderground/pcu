@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Alles fließt (PC Underground, PC Magazin 12/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;12/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200111.html">11/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200201.html">1/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Physikalische Simulation von Wasserwellen</h2>
+		<h1>Alles <span class="highlight">fließt</span></h1>
+		<p class="summary">Nutzen Sie Forschungs&shy;ergebnisse aus der Ozeanographie, um Wasserwellen physikalisch zu simulieren. Sie <span class="highlight">animieren realistische Wellen</span>.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Um 3D-Welten in Spielen darzustellen, genügt es nicht mehr, die 3D-Szenen technisch und künstlerisch ansprechend zu rendern. In den letzen Jahren begannen Programmierer deshalb physikalische Vorgänge erfolgreich zu simulieren. Meist beschränkte sich die Simulation in Computer&shy;spielen darauf, starre Körper zu bewegen und Kollisionen zu berechnen. Der zweite große Trend zeigte dann, wie sich große Outdoor-Spielewelten mit eindrucks&shy;vollen Landschaften und blühender Flora und Fauna rendern ließen.</p>
+		<p>Wir widmen uns in dieser Ausgabe der physikalischen Simulation von Wasserwellen, in tiefem Wasser, wie Sie es vom Meer her kennen. Dieses Gebiet wurde von pro&shy;fessionellen Forschern genau untersucht. Diese Experten sind nicht als Programmierer oder Grafiker ausgebildet. Die Profis im Dienst der Marine berechnen, wie sich Schiffe auf offener und schwerer See bewähren müssen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Wellen aus Sinusschwingungen</h2>
+		<p>Wenn Sie über die Simulation von Wellen nachdenken, mag Ihnen ein Polygongitter in den Sinn kommen. Bei diesem verschieben Sie die Position der Vertizes, womit der richtige Anfang gemacht ist. Im nächsten Schritt perfek&shy;tionieren Sie die Bewegung dadurch, dass Sie die Verschiebung nach oben und unten durch überlagerte Sinus&shy;schwingungen steuern und berechnen. Damit vermitteln Sie einen Eindruck, dass es sich um Wasser handelt,.</p>
+		<p>Die beiden Forscher Pierson und Moskowitz haben in ihren Untersuchungen im Jahr 1964 festgestellt, dass sich die Bewegung der Wasser&shy;oberfläche durch eine Überlagerung der richtigen Sinus&shy;schwingungen darstellen lässt. Dazu haben sie eine ganze Reihe von Windseen untersucht.</p>
+	</section>
+
+	<section>
+		<h2>Die Pierson-Moskowitz-Formel</h2>
+		<figure class="floatright">
+			<img src="assets/200112_5.png" width="320" height="230" alt="DAS PIERSON-MOSKOWITZ-SPEKTRUM für U(10) = 5 m/s">
+			<figcaption><span>DAS PIERSON-MOSKOWITZ-SPEKTRUM</span> für U(10) = 5 m/s</figcaption>
+		</figure>
+		<p>Das Ergebnis ihrer Arbeit war die sogenannte Pierson-Moskowitz-Formel (kurz PM-Formel). Mit dieser Formel können Sie für eine konstante Windge&shy;schwindigkeit die spektrale Energie&shy;verteilung eines voll entwickelten Windsees berechnen. Vollentwickelt bedeutet, Sie berechnen die Wellen für einen Zeitpunkt, zu dem der Wind schon so lange auf das Wasser gewirkt hat, dass sich eine Art Gleichgewicht gebildet hat zwischen der Interaktion Wind-Wasser.</p>
+		<p>Die spektrale Energie&shy;verteilung besagt, wie stark welche Sinusfrequenz zu der Wasser&shy;oberfläche beiträgt (ihre Amplitude). Die PM-Formel berechnet die Wellen auf der Grundlage des Windes. Wind ist auch der Haupt&shy;verursacher an Wellen auf dem Meer. Der Wind verursacht auf eine Wasser&shy;oberfläche Wellen, weil sich durch kleine Turbulenzen der Luftdruck über der Wasser&shy;oberfläche ändert und somit auf sie wirkt.</p>
+		<p>Die PM-Formel für die Peakfrequenz (die stärkste Sinus&shy;schwingung im Spektrum) und die ein&shy;dimensionale Energie&shy;verteilung, die sich aus den Versuchen ergab, sieht wie folgt aus:
+		<img class="math" src="assets/200112_1.png" width="304" height="107" alt="PM-Formel"></p>
+		<p>Im Bild sehen Sie das mit der Formel berechnete Spektrum für die Windge&shy;schwindigkeit, die in 10 Meter Höhe gemessen wird, mit einem Wert von:</p>
+		<pre><code>U(10) = 5m/s</code></pre>
+		<p>Mit der Dispersions&shy;gleichung für Gravitations&shy;wellen in tiefem Wasser können Sie die Wellenlängen, bzw. den Wellenlängen&shy;bereich mit der meisten Energie, berechnen. Die Konstante <i>g</i> ist die Erdbe&shy;schleunigung und <i>k=2*pi/lambda</i> die Wellennummer:
+		<img class="math" src="assets/200112_2.png" width="181" height="51" alt="Dispersionsgleichung"></p>
+		<p>Eine weitere Formel ist das Jonswap-Spektrum:
+		<img class="math" src="assets/200112_3.png" width="301" height="151" alt="Jonswap-Spektrum"></p>
+		<p>Für das Jonswap Modell gibt es noch eine spezielle Funktion, mit der Sie die Peakfrequenz berechnen können:
+		<img class="math" src="assets/200112_4.png" width="147" height="55" alt="Peakfrequenz"></p>
+		<p>Der Unterschied zwischen den verschiedenen Formeln für die Energie&shy;verteilung liegt hauptsächlich in der Ausprägung des Maximums. Alle diese Formeln basieren auf Beobachtungen. Deshalb gibt es unterschied&shy;liche Formeln für einen Vorgang. Allgemein gilt: Wenn die Windge&shy;schwindigkeit zunimmt, wird die Peakfrequenz kleiner und die Wellenlänge größer. Wer dies beobachten konnte, wird sich dieser Faustregel anschließen. Umgekehrt ist einsichtig, dass bei Windstille keine Wellen auftreten.</p>
+	</section>
+
+	<section>
+		<h2>Die Richtung der Sinuswellen</h2>
+		<figure class="floatright">
+			<img src="assets/200112_8.jpg" width="473" height="307" alt="DIE ZWEIDIMENSIONALE Energieverteilung">
+			<figcaption><span>DIE ZWEIDIMENSIONALE</span> Energie&shy;verteilung</figcaption>
+		</figure>
+		<p>Mit den Formeln, die wir Ihnen bisher vorgestellt haben, können Sie die Amplitude der Sinus&shy;schwingungen für eine Wasser&shy;oberfläche in Abhängigkeit von der Windstärke berechnen. Für die Darstellung der Wasser&shy;oberfläche reicht diese Information nicht aus. Sie benötigen noch das Wissen über die Richtung, in der eine Sinuswelle läuft, also die Richtungs&shy;verteilung. Diese ist natürlich abhängig von der Windrichtung. Diese Verteilung können Sie mit der Formel von Mitsuyasu bestimmen.
+		<img class="math" src="assets/200112_9.png" width="232" height="52" alt="Mitsuyasu-Formel"></p>
+		<p>Diese berechnet die Energie, die eine Welle der Frequenz <i>f</i> hat, die im Winkel Theta zur Windrichtung läuft:
+		<img class="math" src="assets/200112_10.png" width="175" height="160" alt="Mitsuyasu-Formel"></p>
+		<p>Für die Formel benötigen Sie folgende Fallunter&shy;scheidungen:
+		<img class="math" src="assets/200112_11.png" width="121" height="51" alt="Fallunterscheidungen"></p>
+		<p>Die Gamma-Funktion ist wie folgt definiert:</p>
+		<p>Aus den genannten Formeln und der PM-Formel (oder einer anderen Frequenz-Energie-Verteilungs&shy;funktion) erhalten Sie dann die zwei&shy;dimensionale Energiever&shy;teilungs&shy;funktion:
+		<img class="math" src="assets/200112_12.png" width="211" height="25" alt="Energieverteilungsfunktion"></p>
+		<p>In Bild sehen Sie eine dieser Energie&shy;verteilungen als 3D-Diagramm.</p>
+	</section>
+
+	<section>
+		<h2>Die Berechnung der Amplitude</h2>
+		<p>Aus der zwei&shy;dimensionalen Energie&shy;verteilungs&shy;funktion können Sie die Amplitude berechnen. Dazu müssen Sie folgende Berechnungen durchführen:
+		<img class="math" src="assets/200112_13.png" width="132" height="44" alt="Amplitude"></p>
+		<p>Die Ableitung von <i>dk/df</i> (sprich <i>dknach df</i>) berechnen Sie aus der Dispersions&shy;gleichung:
+		<img class="math" src="assets/200112_14.png" width="116" height="152" alt="Dispersionsgleichung"></p>
+		<p>Jetzt lösen Sie die obige Gleichung nach <i>F(k)</i> auf
+		<img class="math" src="assets/200112_15.png" width="115" height="45" alt="Dispersionsgleichung">
+		und setzen Sie in
+		<img class="math" src="assets/200112_16.png" width="173" height="41" alt="Dispersionsgleichung">
+		ein. Bei dem Omega Term handelt es sich um einen Korrekturterm, dessen mathematische Notwendigkeit für unsere Anwendung nicht konkret berechnet wird. Durch weitere Vereinfachung und Auflösung, erhalten Sie für die Amplitude folgende Formel
+		<img class="math" src="assets/200112_7.png" width="199" height="104" alt="Amplitude"></p>
+		<p>Nun haben Sie die endgültige Formel, die Ihnen die Amplitude zu einer Sinus&shy;schwingung auf der Wasser&shy;oberfläche berechnet.</p>
+	</section>
+
+	<section>
+		<h2>Vereinfachung für Echtzeit 3D-Grafik</h2>
+		<p>Das berechnete Spektrum und die Energie&shy;verteilung sind kontinuierlich. Das bedeutet, dass die Ergebnisse die Energie&shy;verteilung für unendlich viele überlagerte Sinuswellen jeglicher Frequenz und Richtung darstellen. Auch wenn der Bereich der Funktionen eingeschränkt ist, in denen sie bedeutend größer als Null sind (sichtbarer Beitrag zum gerenderten Bild), sind im entsprechenden Bereich immer noch unendlich viele Frequenzen und Richtungen enthalten.</p>
+		<p>Verwenden Sie ein Polygongitter, dessen Vertizes Sie verschieben, um die Wellenbewegung darzustellen. Die Anzahl der Sinuswellen, die Sie in der Berechung überlagern, wird aber deutlich durch die Größe des Gitters und der verfügbaren Rechenzeit eingeschränkt. Suchen Sie sich in der Vorbe&shy;rechnungsphase eine zufällige Frequenz und eine zufällige Richtung der Welle aus. Mit Hilfe der obigen Formeln können Sie die Amplitude dieser Welle berechnen. Wenn die Amplitude einen – von Ihnen gewählten – Grenzwert nicht überschreitet, also zu schwach ist, um im Bild sichtbar zu sein, verwerfen Sie die Zufallswerte und generieren eine neue Welle. Sie speichern also nur die Sinuswellen, die stark genug sind. Für den visuellen Eindruck genügen etwa 16 bis 32 dieser ausgewählten Wellen.</p>
+	</section>
+
+	<section>
+		<h2>Die Implementation</h2>
+		<p>Nachdem Sie die Windge&shy;schwindigkeit und Windrichtung festgelegt haben, berechnen Sie zunächst die Peakfrequenz:</p>
+		<pre><code>
+const float windSpeed = 5.5f;
+const float windDirection = 0.0f;
+const float gravity = 9.81f;
+float freqPeak = 0.13f * gravity / windSpeed;
+		</code></pre>
+		<p>Zur Berechnung der Amplitude verwenden Sie folgende Funktionen für die Richtungs- und frequenz&shy;abhängige-Energie&shy;verteilung:</p>
+		<pre><code>
+float directionEnergy(float f, float theta)
+{
+	float temp = cos(theta * 0.5f);
+	temp *= temp;
+	float s_sm, sm;
+	if(f &gt;= freqPeak)
+	{
+		s_sm = pow(f / freqPeak, -2.5f);
+		sm = 9.77f;
+	} else
+	{
+		s_sm = pow(f / freqPeak, 5.0f);
+		sm = 6.97f;
+	}
+
+	float s = s_sm * sm;
+	return gamma(s+1) * pow(temp, s) /
+		(2.0 * sqrt(M_PI) * gamma(s + 0.5));
+}
+
+float energy1DFreq(float f)
+{
+	return alpha * gravity2 /
+		(pow(2.0f * M_PI, 4) * pow(f, 5)) *
+		exp(-5.0 / 4.0 * pow((f / freqPeak), 4.0));
+}
+
+float energy2DFreqAngle(float f, float theta)
+{
+	return energy1DFreq(f) *
+		directionEnergy(f, theta);
+}
+		</code></pre>
+		<p>Mit den gerade beschriebenen Funktionen können Sie die Amplitude einer Welle wie folgt berechnen:</p>
+		<pre><code>
+float waveAmplitude(float f, float theta, float k)
+{
+	float omega = 10.0f;
+	return sqrt(energy2DFreqAngle(f, theta) *
+		gravity * M_PI * M_PI / (k * f * omega));
+}
+		</code></pre>
+		<p>Als nächstes erzeugen Sie die einzelnen Wellen und berechnen deren Parameter. Die Parameter speichern Sie für jede Welle in einer Struktur:</p>
+		<pre><code>
+typedef struct
+{
+	// Richtung (Winkel)
+	float direction;
+	// Richtung (Vektor)
+	float dirX, dirY;
+	// Wellenlänge
+	float lambda;
+	// Wellennummer
+	float k;
+	// Winkelgeschwindigkeit
+	float omega;
+	// Frequenz
+	float freq;
+	// Periodenlänge
+	float periode;
+	// Amplitude
+	float amplitude;
+	// Phase
+	float phase;
+} WAVE;
+int nWaves;
+WAVE wave[MAX_WAVES];
+		</code></pre>
+		<p>Die Berechnung und Selektion der Wellen erfolgen in einer While-Schleife:</p>
+		<pre><code>
+WAVE *w = &amp;wave[0];
+nWaves = 0;
+while(nWaves &lt; 32)
+{
+	// zufällige Frequenz
+	float frequency = freqPeak +
+		rand() / 32768.0f - 0.5f;
+		</code></pre>
+		<p>Durch den Zufalls&shy;zahlen&shy;generator können auch negative Frequenzen auftauchen, die wir gleich an dieser Stelle ausschließen wollen:</p>
+		<pre><code>
+if (frequency > 0.0f)
+{
+	w-&gt;lambda = 2.0f * M_PI / (pow(
+		2.0f * M_PI * frequency, 2.0f) /
+		gravity);
+	w-&gt;k = 2.0f * M_PI / w-&gt;lambda;
+	w-&gt;omega = sqrt(gravity * w-&gt;k);
+	w-&gt;freq = w-&gt;omega / (2.0f * M_PI);
+	w-&gt;periode = 1.0f / w-&gt;freq;
+		</code></pre>
+		<p>Aus der Richtung als Winkel ergibt sich der Vektor</p>
+		<pre><code>
+w-&gt;direction = 0.0f + (rand() /
+	16384.0f + 0.5f) * M_PI;
+w-&gt;dirX = cos(w-&gt;direction) * 0.5f;
+w-&gt;dirY = sin(w-&gt;direction) * 0.5f;
+		</code></pre>
+		<p>Die Startphase der Welle bestimmen Sie auch durch einen Zufallswert</p>
+		<pre><code>
+float phi0 = rand() / 16384.0f * M_PI;
+float a0 = waveAmplitude(w-&gt;freq,
+	w-&gt;direction - windDirection, w-&gt;k);
+	w-&gt;amplitude = a0 * cos(phi0);
+	w-&gt;phase = a0 * sin(phi0);
+</code></pre>
+	<p>Die Welle ist nur interessant, wenn Ihre berechnete Amplitude groß genug ist:</p>
+<pre><code>
+if (fabs(w-&gt;amplitude) &gt;= 0.0001f)
+{
+	w++;
+	nWaves++;
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Zeitliche Animation der Wellen</h2>
+		<p>Jetzt haben Sie alle Vorbereitungen getroffen, um mit der eigentlichen Animation des Wassers zu beginnen. Die Implementation des Renderings, dass Sie auf der Heft CD oder im Internet finden, verwendet den schon mehrmals eingesetzten PC Underground OpenGL Startup. Im Beispiel&shy;programm wurde auf Geschwindigkeit optimiertes Rendering zu Gunsten der Übersicht&shy;lichkeit verzichtet.</p>
+		<p>Um die Wasserfläche zu rendern, benötigen Sie ein zwei&shy;dimensionales Array, in dem Sie die Höhen&shy;verschiebung des entsprechenden Gitterpunktes (Vertex) speichern. Für die realistische Beleuchtung verwenden Sie außerdem eine Oberflächen&shy;normale für jeden Vertex:</p>
+		<pre><code>
+#define WATERX 128
+#define WATERY 128
+typedef struct
+{
+	float x, y, z;
+} VERTEX3D;
+
+float *waterHeight;
+VERTEX3D *waterNormal;
+
+waterHeight = new float[WATERX * WATERY];
+waterNormal = new VERTEX3D[WATERX * WATERY];
+		</code></pre>
+		<p>Berechnen Sie während der Animation für einen Zeitpunkt <i>time</i> die aktuellen Gitter&shy;verschiebungen für jeden Punkt des Gitters:</p>
+		<pre><code>
+for (j = 0; j &lt; WATERY; j++)
+	for (i = 0; i &lt; WATERX; i++)
+	{
+		float h = 0.0f;
+		</code></pre>
+		<p>Sie überlagern alle Wellen</p>
+		<pre><code>
+for (k = 0; k &lt; nWaves; k++)
+{
+	wave *w = &amp;wave[k];
+		</code></pre>
+		<p>Entscheidend ist zum einen die Amplitude der Welle. Die Phase der Sinuswelle setzt sich aus der initialen Phase und der zeit- und ortsabhängigen Phasen&shy;verschiebung zusammen:</p>
+		<pre><code>
+	h += w-&gt;amplitude *
+		sin(
+		// Initiale Phase
+		w-&gt;phase +
+		// Ausbreitungsgeschwindigkeit
+		w-&gt;omega*w-&gt;freq * (
+			// Zeitliche Verschiebung
+			time +
+			// Ortsabhängige Verschiebung
+			w-&gt;dirX * i +
+			w-&gt;dirY * j)
+		);
+	}
+}
+
+waterHeight[i + j * WATERX] = h;
+		</code></pre>
+		<p>Für die Darstellung müssen Sie noch die Oberflächen&shy;normalen berechnen. Es genügt, diese in einer Näherung zu berechnen. Alles andere wäre viel zu rechenintensiv für eine Echtzeit&shy;anwendung.</p>
+		<p>Die Normale eines Punktes berechnen Sie durch die Höhendifferenz seiner Nachbarpunkte. Die X-Komponente der Normalen erhalten Sie durch die horizontalen Nachbarn im <i>waterHeight</i>-Array, die Z-Komponente aus den vertikalen. Die Y-Komponente, die nach oben zeigt, setzen Sie auf einen konstanten Wert:</p>
+		<pre><code>
+for (j = 0; j &lt; WATERY; j++)
+	for (int i = 0; i &lt; WATERX; i++)
+	{
+		float x, y, z, l;
+		x = waterHeight[( i + 1) +
+			j * WATERX] -
+			waterHeight[(i - 1) +
+			j * WATERX];
+
+		z = waterHeight[i +
+			( j + 1) * WATERX] -
+			waterHeight[i + (j - 1) *
+			WATERX];
+
+		y = 8.0f;
+
+		waterNormal[i + j * WATERX].x = x;
+		waterNormal[i + j * WATERX].y = y;
+		waterNormal[i + j * WATERX].z = z;
+	}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200112_17.png" width="156" height="96" alt="DIE WASSERTEXTUR">
+			<figcaption><span>DIE WASSERTEXTUR</span></figcaption>
+		</figure>
+		<p>Die Normalen brauchen Sie nicht normalisieren. OpenGL übernimmt das für Sie beim Rendering, wenn Sie <i>glEnable(</i> <i>GL_NORMALIZE)</i> nutzen.</p>
+		<p>Mit der Höhen&shy;information und den Normalen für die Vertizes können Sie nun die Wasser&shy;oberfläche rendern. Diese rendern Sie am besten mit der Grundfarbe Ihres Wasser, also einem Blauton und einer Textur, die Struktur von Wasserwellen abbildet.</p>
+		<figure class="large">
+			<img src="assets/200112_19.jpg" width="808" height="627" alt="DIE WASSEROBERFLÄCHE mit einfacher Beleuchtung bei leichtem Wind">
+			<figcaption><span>DIE WASSER&shy;OBERFLÄCHE</span> mit einfacher Beleuchtung bei leichtem Wind</figcaption>
+		</figure>
+		<figure class="large">
+			<img src="assets/200112_18.jpg" width="808" height="627" alt="DIESELBE WASSEROBERFLÄCHE nur bei mehr Wind">
+			<figcaption><span>DIESELBE WASSER&shy;OBERFLÄCHE</span> nur bei mehr Wind</figcaption>
+		</figure>
+		<p>Außerdem schalten Sie die OpenGL Beleuchtungs&shy;berechnung ein. Wenn Sie Specular Highlights (Spiegelnde Reflexion) anschalten, können Sie den Eindruck vermitteln, als ob die Sonne sich auf dem Wasser spiegelt. Damit erhalten Sie Resultate wie in den nächsten Bildern mit leichtem Wind und etwas stärkerem Seegang. Der Himmel in den Screenshots wurde einfach mit einer Hinter&shy;grundbitmap erzeugt. So zeichnen Sie die Wasser&shy;oberfläche:</p>
+		<pre><code>
+glColor3ub(120, 200, 255);
+glDepthFunc(GL_LEQUAL);
+// Texturwählen
+bump-&gt;select();
+for (int j = 0; j &lt; WATERY; j++)
+{
+	glBegin(GL_QUAD_STRIP);
+	for (int i = 0; i &lt; WATERX; i++)
+	{
+		int x = i&amp;(WATERX - 1);
+		int y = j&amp;(WATERY - 1);
+		int y1 = (j + 1)&amp;(WATERY - 1);
+		glNormal3fv(&amp;waterNormal[x + y * WATERX]);
+		glTexCoord2f(i * 0.3f,j * 0.3f);
+		glVertex3f((i - WATERX / 2),
+			waterHeight[x + y * WATERX],
+			(j - WATERY / 2));
+		glNormal3fv(&amp;waterNormal [x + y1 * WATERX]);
+		glTexCoord2f(i * 0.3f, (j + 1) * 0.3f);
+		glVertex3f((i - WATERX / 2),
+			waterHeight[x + y1 * WATERX],
+			(j + 1 - WATERY / 2));
+	}
+	glEnd();
+}
+		</code></pre>
+		<p>Sie verbessern die Optik mit einer zusätzlichen <i>Reflectionmap</i>. Diese spiegelt den Himmel auf der Wasser&shy;oberfläche.</p>
+		<figure class="large">
+			<img src="assets/200112_20.jpg" width="808" height="627" alt="DIE WASSEROBERFLÄCHE mit einer Reflectionmap">
+			<figcaption><span>DIE WASSER&shy;OBERFLÄCHE</span> mit einer Reflectionmap</figcaption>
+		</figure>
+		<p>OpenGL berechnet für Sie die Textur&shy;koordinaten für die Reflectionmap aus den Vertex&shy;koordinaten oder den Normalen des Gitters. Die dafür nötigen Befehle sind <i>glTexGeni(...)</i> und <i>glTexGenf(...)</i>. Damit können Sie die automatische Textur&shy;generierung steuern.</p>
+		<p>Die Darstellung des Wassers lässt sich optimieren. Im Beispiel&shy;programm sehen Sie mit einge&shy;schaltetem Wireframe Rendering, das die weiter entfernten Polygone sehr klein werden. Das Gitter benötigt eine so hohe Auflösung, da das Wasser sonst von nahem zu grob wirkt. Rechnen Sie die Höhe eines beliebigen Punktes aus: Sie können Polygon&shy;strukturen verwenden, die eine bessere Auflösungs&shy;verteilung haben. Weitere Informationen finden Sie unter unserer Underground-Homepage <a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a>.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur:</b></p>
+		<p class="footnote">Fournier, Alain; William T. Reeves; „A Simple Model of Ocean Waves“, SIGGRAPH 1986, Vol. 20, Number 4</p>
+		<p class="footnote">Mastin, Gary A.; Perter A. Watterberg; „Fourier Synthesis of Ocean Scenes“, IEEE Computer Graphics &amp; Animation 1987 <a href="https://www.first.gmd.de/persons/bwalter/html/report/" rel="external nofollow noreferrer">www.first.gmd.de/persons/bwalter/html/report/</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200111.html">11/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200201.html">1/2002</a>
+	</nav>
+</body>

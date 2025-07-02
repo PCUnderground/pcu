@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Wasser-Spiegel (PC Underground, PC Magazin 1/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;1/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200112.html">12/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200202.html">2/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Reflection und Refraction Mapping in OpenGL</h2>
+		<h1><span class="highlight">Wasser-Spiegel</span></h1>
+		<p class="summary">Spiegelungen und Lichtbrechung von Flüssigkeiten sind für Sie ab jetzt kein Problem mehr. Alles, was Sie benötigen, ist <span class="highlight">OpenGL und ein wenig Theorie</span>!</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200201_1.jpg" width="512" height="384" alt="DAS BEISPIELPROGRAMM dieser Ausgabe in Aktion">
+			<figcaption><span>DAS BEISPIELPROGRAMM</span> dieser Ausgabe in Aktion</figcaption>
+		</figure>
+		<p>Mathematiker hatten viel Arbeit, Wasserwellen auf dem offenen Meer physikalisch zu simulieren (siehe PC Underground, Heft 12/01, S. 246). In dieser Ausgabe beschäftigen Sie sich mit dem Wasser-Rendering im Kleinen: in Flüssigkeits&shy;behältern. Dabei lernen Sie das so genannte <i>parabolische Reflection-</i> und <i>Refraction-Mapping</i> (Lichtbrechung) kennen. Dieses wenden Sie auf eine kleine Wasser&shy;oberfläche an, die sich in einem Behälter befindet.</p>
+		<p>Bei der Simulation der Wasser&shy;oberfläche legen Sie weniger Wert auf die korrekte spektrale Zusammen&shy;setzung der Wellen als vielmehr auf eine Fortpflanzung von Wellen und ihrer Reflexion an der Behälterwand.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Berechnung der Wasseroberfläche</h2>
+		<p>Die Wasser&shy;oberfläche speichern Sie als ein Gitter aus Vertizes, deren <i>y</i>-Koordinate (die nach oben zeigt) variabel ist. Die <i>x</i>- und <i>z</i>-Koordinaten bleiben konstant. Mit dieser Festlegung simulieren Sie Wasser. Zunächst definieren Sie das Gitter wie in Bitmapeffekten:</p>
+		<pre><code>
+#define WATERX 96
+#define WATERY 96
+
+typedef struct
+{
+	GLfloat x, y, z;
+} VERTEX3D;
+
+VERTEX3D waterHeight[WATERX * WATERY];
+
+// arrays initialisieren
+for(y = 0, index = 0; y &lt; WATERY; y++)
+	for(x = 0; x &lt; WATERX; x++, index++)
+	{
+		waterHeight[index].x =
+			(x - WATERX / 2) / (float)(WATERX / 2);
+		waterHeight[index].z = (y - WATERY / 2) /
+			(float)(WATERY / 2);
+		// standard höhe
+		waterHeight[index].y = 0.0f;
+		}
+		</code></pre>
+		<p>Als Startenenergie verschieben Sie zwei oder mehr Gitterpunkte nach oben:</p>
+		<pre><code>
+waterHeight[WATERX + 1].y = 0.5f;
+waterHeight[WATERX * (WATERY - 1) - 2].y = 0.5f;
+		</code></pre>
+		<p>Weiterhin benötigen Sie, um die Wellenfort&shy;pflanzung zu berechnen, für jeden Gitterpunkt einen Geschwindig&shy;keits- und einen Kraftvektor. Da Sie nur eine Bewegung in <i>y</i>-Richtung zulassen, beschränken sich die Vektoren auf einen Float-Wert:</p>
+		<pre><code>
+float waterVelocity[WATERX * WATERY];
+float waterForce[WATERX * WATERY];
+		</code></pre>
+		<p>Und so berechnen Sie die iterative Animation des Wassers: Aus der Ableitung der <i>waterHeight</i>-Einträge in verschiedenen Richtungen erhalten Sie die Kraftvektoren. Da Sie es mit diskreten Gitterpunkt&shy;werten und nicht mit einer kontinuier&shy;lichen Funktion zu tun haben, sind die Ableitungen nichts anderes als die Differenzen: Wenn Sie einen Gitterpunkt betrachten, besitzt dieser acht Nachbarpunkte (oben, rechts oben, rechts, rechts unten, usw.). Berechnen Sie jeweils die Differenz zwischen der Höhe des aktuellen Gitterpunkts und der Höhe eines seiner Nachbarn. Das Ergebnis addieren Sie negiert zum Kraftvektor des aktuellen Gitterpunkts und nicht-negiert zum Kraftvektor des Nachbarpunkts. Die Differenz der schrägen Nachbarpunkte multiplizieren Sie mit dem Inversen der Wurzel aus 2.</p>
+		<p>Der Faktor ergibt sich durch die Annahme, dass die Gitterpunkte eine Längeneinheit voneinander entfernt sind, woraus sich für schräge Nachbarn eine Entfernung von Wurzel 2 ergibt. Exemplarisch für den oberen Nachbarn und den rechten oberen betrachten Sie folgenden Codeteil:</p>
+		<pre><code>
+memset(waterForce, 0, sizeof(float) * nVertices);
+for(int y = 2; y &lt; WATERY - 2; y++)
+	for(int x = 2; x &lt; WATERX - 2; x++)
+	{
+		float d;
+		d = waterHeight[x + WATERX * y].y -
+			waterHeight[x - 1 + WATERX * y].y;
+		waterForce[x + WATERX * y] -= d;
+		waterForce[x - 1 + WATERX * y] += d;
+
+		d = (waterHeight[x + WATERX * y].y -
+			waterHeight[x + 1 + WATERX * (y + 1)].y);
+		d *= INVSQRT2;
+		waterForce[x + WATERX * y] -= d;
+		waterForce[x + 1 + WATERX * (y + 1)] += d;
+...
+}
+		</code></pre>
+		<p>Nun müssen Sie noch die Geschwindig&shy;keit und die Verschiebungen berechnen. Aus der Physik ist bekannt, dass Sie aus der Kraft durch Integration über die Zeit die Geschwindig&shy;keit und eine weitere Integration darüber die Auslenkung (Verschiebung) erhalten. Die einfachste, aber für diesen Zweck taugliche Methode zu integrieren, lautet:</p>
+		<pre><code>
+for(i = 0; i &lt;nVertices; i++)
+	waterVelocity[i] += waterForce[i] * 0.04f;
+
+for(i = 0; i &lt; nVertices; i++)
+	waterHeight[i].y += waterVelocity[i];
+		</code></pre>
+
+		<p>Damit ist die Simulation der Wasser&shy;oberfläche vollständig, und Sie können sich dem Rendering widmen. Dazu greifen Sie tief in die Trickkiste der Computergrafik.</p>
+	</section>
+
+	<section>
+		<h2>Dual-Paraboloid Environment Mapping</h2>
+		<p>Das Dual-Paraboloid Environment Mapping ist ein relativ neuer Ansatz, um Spiegelungen einer 3D-Szene auf einem Objekt zu visualisieren. Er gestattet es, die gespiegelte 3D-Szene in Texturen festzuhalten und die Spiegelungen auf eine Oberfläche unabhängig von der Betrachter&shy;position zu rendern.</p>
+		<p>Ein Vorteil gegenüber Spheremapping oder dem Nachteil von Spheremaps ist, dass die Sampling-Rate gleichmäßiger ist. Sie bezieht sich in diesem Fall auf die Fläche auf den Environment&shy;maps (Sphere oder Dual-Paraboloid), die einem bestimmten Raumwinkel zugeordnet ist. Eine weitere akzeptable Lösung ist das Cube Environment-Mapping, das nur wenige moderne 3D-Beschleuniger unterstützen. Zudem braucht das Verfahren sechs Texturen. Dual-Paraboloid Environment Mapping kommt mit zwei Texturen aus. Diese zwei Texturen enthalten die ganze Umgebung, also die ganze gespiegelte 3D-Szene von einem 3D-Objekt. Dual-Paraboloid Environment Mapping wird allerdings auch nur von relativ neuen 3D-Beschleunigern (nVidia) direkt unterstützt.</p>
+		<figure class="large">
+			<img src="assets/200201_2.png" width="768" height="256" alt="DIE EXEMPLARISCHE SPHEREMAP zeigt schlechtes Sampling (links).">
+			<figcaption><span>DIE EXEMPLARISCHE SPHEREMAP</span> zeigt schlechtes Sampling (links).<br>
+			<span>DIE PARABOLISCHEN MAPS</span> für vorne und hinten (rechts)</figcaption>
+		</figure>
+		<p>Die Bilder zeigen jeweils eine Spheremap und die entsprechenden Dual-Paraboloid Maps. Jede Farbe steht für einen 90-Grad-Sektor der Umgebung des Objekts. Ein Sektor ist die 3D-Szene vom Objekt aus gerendert, wobei der Kameraöffnungs&shy;winkel 90 Grad beträgt. Auffällig ist das schlechte Sampling des gelben Sektors bei den Spheremaps. Die Dual-Paraboloid Maps sind die Bilder von zwei Kameras, die in entgegen&shy;gesetzter Richtung aufgestellt sind und mit einer speziellen Linse den 180-Grad-Sektor einsehen. Diese Texturen können Sie berechnen, wie der folgende Codeausschnitt an Beispielen einer Front oder Back Map zeigt:</p>
+		<pre><code>
+VERTEX3D ray, color, p, pos;
+float s, t;
+for(j = 0; j &lt; 256; j++)
+{
+	t = 2.0f * ((float)j / 256.0f - 0.5f);
+	for(i = 0; i &lt; 256; i++)
+	{
+		s = 2.0f * ((float)i / 256.0f - 0.5f);
+		float q = s * s + t * t + 1;
+		ray.x = 2.0f * s / q;
+		ray.y = 2.0f * t / q;
+		ray.z = (q - 2) / q;
+		pos.x = pos.y = pos.z = 0.0f;
+		unsigned int color = intersect(pos, ray);
+		dpMap[i + j * 256 ] = color;
+	}
+}
+		</code></pre>
+		<p>Die Hauptarbeit dieser Routine verbirgt sich in der Funktion <i>intersect(...)</i>. Die Schleife berechnet die Richtungen der Lichtstrahlen, die für einen Texel (Bildpunkt auf einer Textur) auf der Dual-Paraboloid Map verantwortlich sind. Per Raytracing können Sie diesen Strahl verfolgen und die berechnete Farbe in die Map eintragen. Wenn Sie einen eigenen Raytracer geschrieben haben oder einen anderen modifizieren, können Sie damit solche Maps berechnen.</p>
+		<figure class="large">
+			<img src="assets/200201_4.jpg" width="1152" height="735" alt="DIE SKYBOX-TEXTUREN enthalten die ganze Umgebung.">
+			<figcaption><span>DIE SKYBOX-TEXTUREN</span> enthalten die ganze Umgebung.</figcaption>
+		</figure>
+		<p>Unser Beispiel&shy;programm beschränkt sich auf eine einfachere Alternative. Die Szene besteht aus einer <i>Skybox</i>, also sechs Würfelseiten, die mit Landschafts&shy;texturen belegt sind. <i>Intersect(...)</i> berechnet damit die Schnittpunkte und liest die entsprechende Farbe aus den Skybox -Texturen aus.</p>
+		<p>Das Resultat für die Frontpara&shy;boloidmap sehen Sie im folgenden Bild. Darin ist schon die ganze Umgebung gespeichert, die sich auf der Wasser&shy;oberfläche spiegeln kann. Wie Sie selbst solche Skybox-Texturen berechnen, entnehmen Sie der Textbox auf der nächsten Seite.</p>
+	</section>
+
+	<section>
+		<h2>Reflection-Mapping in OpenGL</h2>
+		<figure class="floatright">
+			<img src="assets/200201_5.jpg" width="256" height="256" alt="ALLE SPIEGELUNGEN der Wasseroberfläche sind in dieser Textur gespeichert.">
+			<figcaption><span>ALLE SPIEGELUNGEN</span> der Wasseroberfläche sind in dieser Textur gespeichert.</figcaption>
+		</figure>
+		<p>Nicht jede Grafikkarten-Hardware unterstützt das Dual-Paraboloid Environment Mapping. Es muss die <i>GL_REFLECTION_MAP_NV</i>-Erweiterung von OpenGL vorhanden sein, die Sie zu Beginn des Programms testen sollten. Doch dann lassen sich mit OpenGL die Textur&shy;koordinaten <i>s</i> und <i>t</i> für die Environment Maps mit Matrizen aus den Reflection Vektoren berechnen.
+		<img class="math" src="assets/200201_7.jpg" width="319" height="116" alt="Texturkoordinaten"></p>
+		<p>Die einzelnen Matrizen sind wie folgt definiert: <i>A</i> ist eine Matrix, die 2D-Koordinaten vom Intervall <i>[-1,1]</i> in das Intervall <i>[0,1]</i> für das Texturemapping transformiert.
+		<img class="math" src="assets/200201_10.jpg" width="197" height="113" alt="Texturkoordinaten-Transformation">
+		Die Matrix <i>P</i> enthält die Projektion eines 3D-Vektors auf <i>2D</i>.</p>
+		<p>Die Matrix <i>S</i> subtrahiert den 3D-Vektor von einem Orientierungs&shy;vektor <i>d</i>, der die Blickrichtung repräsentiert, also
+		<img class="math" src="assets/200201_8.jpg" width="184" height="113" alt="Matrix">
+		<i>(0,0,1)</i> für die Frontmap oder <i>(0,0,-1)</i> für die Backmap.</p>
+		<p>Die folgende Matrix ist die Inverse zur Modelview-Matrix von OpenGL.
+		<img class="math" src="assets/200201_9.png" width="143" height="66" alt="Inverse Modelview-Matrix"></p>
+		<p>Die Modelview-Matrix von OpenGL ist eine affine Abbildung (Kombination aus Rotation, Skalierung und Verschiebung), deren inverse Matrix das Beispiel&shy;programm berechnet. Nun müssen Sie OpenGL noch mitteilen, was es mit den Matrizen und Texturen tun soll. Wählen Sie also die entsprechende Textur mit <i>glBind(...)</i> aus, und führen Sie folgenden Code aus, wobei Sie mit Streamdaten (Arrays aus Vertizes und Normalen) rendern:</p>
+		<pre><code>
+glEnableClientState(GL_VERTEX_ARRAY);
+glVertexPointer(3, GL_FLOAT, 0, &amp;waterHeight[0]);
+glEnableClientState(GL_NORMAL_ARRAY);
+glNormalPointer(GL_FLOAT, 0, &amp;waterNormal[0]);
+
+// Abbildungsmatrix übergeben
+glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP_NV);
+glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP_NV);
+glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP_NV);
+glEnable(GL_TEXTURE_GEN_S);
+glEnable(GL_TEXTURE_GEN_T);
+glEnable(GL_TEXTURE_GEN_R);
+glDrawElements(GL_TRIANGLES, nIndices,
+	GL_UNSIGNED_INT, waterIndex);
+
+glDisableClientState(GL_VERTEX_ARRAY);
+glDisableClientState(GL_NORMAL_ARRAY);
+		</code></pre>
+		<p>Im obigen Code-Ausschnitt finden Sie zwei bislang unbekannte Arrays:<br>
+		• <i>waterIndex</i> enthält lediglich die Indizes der zu zeichnenden Dreiecke in der <i>waterHeight</i>-Liste. Diese legt das Programm zu Beginn an.<br>
+		• <i>waterNormal</i> enthält die Normalen für jeden Gitterpunkt. Diese berechnen Sie gleich nach der Wasser&shy;simulation für jeden Frame neu, indem Sie – ähnlich wie bei den Kraftvektoren – Differenzen bilden. Exemplarisch für eine Normale:</p>
+		<pre><code>
+n.x = 0.0f;
+n.y = 1.0f;
+n.z = 0.0f;
+n.x += waterHeight[CLAMP(x - 1, y)].y;
+n.x -= waterHeight[CLAMP(x + 1, y)].y;
+n.z += waterHeight[CLAMP(x, y - 1)].y;
+n.z -= waterHeight[CLAMP(x, y + 1)].y;
+		</code></pre>
+		<p>Der Aufwand für dieses Verfahren hält sich in Grenzen, doch die Ergebnisse sind beeindruckend.</p>
+	</section>
+
+	<aside>
+		<h2>SKYBOXEN MIT TERRAGEN</h2>
+		<div>
+			<figure class="floatright">
+				<img src="assets/200201_6.jpg" width="455" height="378" alt="SKYBOXES berechnen Sie leicht mit Terragen.">
+				<figcaption><span>SKYBOXES</span> berechnen Sie leicht mit Terragen.</figcaption>
+			</figure>
+			<p>Mit Terragen, einem für Privatnutzer freien Programm (<a href="https://www.planetside.co.uk" rel="external nofollow noreferrer">http://www.planetside.co.uk</a>), können Sie Landschaften, Wasser, Wolken und Himmel erzeugen und rendern. Mit wenigen Arbeits&shy;schritten erzeugen Sie Skybox-Texturen. Nach dem Programmstart von Terragen sind automatisch zwei Fenster geöffnet.</p>
+			<p>Im Landscape-Fenster können Sie mit <i>Generate Terrain</i> eine Zufalls&shy;landschaft abhängig von zahlreichen Parametern generieren. Betrachten Sie dann das <i>Rendering-Control-Fenster</i>. Damit positionieren Sie den Betrachter in der Mitte der Landschaft und aktivieren <i>Fixed Height above Surface</i>. Bei den Settings stellen Sie das Rendering-Detail auf <i>Maximum</i>. Bei den <i>Camera Settings</i> wählen Sie <i>Traditional Computer Graphics,</i> und für <i>Zoom/Magnifikation</i> geben Sie den Wert <i>1.0</i> an. Anschließend berechnen Sie die sechs Skybox-Texturen mit 256 x 256 Pixeln und folgenden Kamera-Einstellungen:</p>
+			<table>
+				<thead>
+					<tr><th>Seite</th><th>Camera Head</th><th>Camera Pitch</th><th>Camera Bank</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+					<tr><td>2</td><td>90</td><td>0</td><td>0</td></tr>
+					<tr><td>3</td><td>180</td><td>0</td><td>0</td></tr>
+					<tr><td>4</td><td>270</td><td>0</td><td>0</td></tr>
+					<tr><td>5</td><td>0</td><td>90</td><td>0</td></tr>
+					<tr><td>6</td><td>0</td><td>270</td><td>0</td></tr>
+				</tbody>
+			</table>
+			<p>Mit diesen sechs Texturen und unserem Tool berechnen Sie die Dual-Paraboloid Maps.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Refraction Mapping</h2>
+		<figure class="floatright">
+			<img src="assets/200201_11.jpg" width="512" height="485" alt="UNSERE REFRACTIONMAP enthält alle Seitenflächen des Gefäßes.">
+			<figcaption><span>UNSERE REFRACTIONMAP</span> enthält alle Seitenflächen des Gefäßes.</figcaption>
+		</figure>
+		<p>Außer den Spiegelungen, soll unsere Wasser&shy;oberfläche Lichtbrechung aufweisen. Dazu gibt es leider keine entsprechende OpenGL-Erweiterung, so dass Sie selbst Hand anlegen müssen. Wenn ein Lichtstrahl aus der Luft ins Wasser eintritt, ändert sich seine Richtung. Die neue Richtung, die nach dem Gesetz von Snell berechnet wird, hängt von der Oberflächen&shy;normalen, der ursprünglichen Richtung und der Brechzahl des Mediums (hier Wasser) ab. Sie berechnen das Verfahren, hier gleich in C-Syntax dargestellt, folgendermaßen:</p>
+		<pre><code>
+// Kameraposition
+float m[16];
+
+glGetFloatv(GL_MODELVIEW_MATRIX, m);
+cameraPosition.x = m[2];
+cameraPosition.y = m[6];
+cameraPosition.z = m[10];
+
+//Richtung Betrachter-&gt;Gitterpkt
+eyeVector.x = cameraPosition.x -
+	waterHeight[CLAMP(x, y)];
+eyeVector.y = cameraPosition.y -
+	waterHeight[CLAMP(x, y)];
+eyeVector.z = cameraPosition.z -
+	waterHeight[CLAMP(x, y)];
+
+// Brechzahl
+float eta = 0.75f;
+
+dot = n.x * eyeVector.x + n.y *
+	eyeVector.y + n.z * eyeVector.z;
+lambda = sqrt(1 - (eta * eta * (1 - (dot * dot))));
+lambda = (eta * dot) - lambda;
+refract.x = lambda * n.x - eta * eyeVector.x;
+refract.y = lambda * n.y - eta * eyeVector.y;
+refract.z = lambda * n.z - eta * eyeVector.z;
+		</code></pre>
+		<p>Die Richtung der gebrochenen Strahlen sollten Sie zusammen mit den Normalen berechnen.</p>
+		<p>Es fragt sich, wie Sie von der Richtung des gebrochenen Strahls auf verwertbare Textur&shy;koordinaten kommen und wie die entsprechende Textur aussehen muss.</p>
+		<p>Die verwendete Textur muss alle Innenwände unseres Gefäßes (hier ein Quader) ausgestalten, weil die Textur&shy;koordinaten für die Eckpunkte eines Dreiecks verschiedene Seitenflächen des Wasser&shy;containers repräsentieren können, aber nur eine Textur gleichzeitig adressierbar ist.</p>
+		<p>Im Bild sehen Sie an den vier Seiten perspektivisch verzerrt die Texturen der Wände. In der Mitte befindet sich die Boden-Textur. Diese Refractionmap (Wasser&shy;container) zeichnen Sie per Hand mit einem Bildbearbeitungs&shy;programm, wobei Sie Beleuchtungs&shy;effekte hinzufügen.</p>
+		<p>Die Textur&shy;koordinaten für die Refractionmap können Sie berechnen, wenn Sie den Aufbau der Map kennen. Zunächst berechnen Sie die Schnittpunkte (soweit vorhanden, in positiver Richtung) des gebrochenen Lichtstrahls mit den Gefäßwänden und speichern die Entfernung:</p>
+		<pre><code>
+float MAXV = (float)1e37;
+float distance[5] = {MAXV, MAXV, MAXV, MAXV, MAXV };
+if(refract.x != 0.0f)
+{
+	distance[0] = vertex.x / -refract.x;
+	distance[1]= (vertex.x - 1) / -refract.x;
+}
+
+if(refract.z != 0.0f)
+{
+	distance[2] = vertex.z / -refract.z;
+	distance[3] = (vertex.z - 1) / -refract.z;
+}
+distance[4]=(1 + vertex.y) / -refract.y;
+
+for(c = 0; c &lt; 5; c++)
+if(distance[c] &lt; 0)
+	distance[c] = MAXV;
+		</code></pre>
+		<p>Anschließend suchen Sie den nächsten Schnittpunkt, der <i>minValue</i> entfernt ist. Der Index des Eintrags ist <i>minDistance</i>. <i>minDistance</i> gibt an, welche Gefäßwand vom Strahl getroffen wurde. Da Sie wissen, welchem Teil der Textur diese Wand entspricht, können Sie den Schnittpunkt mit dieser Wand berechnen und auf den entsprechenden Bereich in der Textur abbilden:</p>
+		<pre><code>
+if(minDistance == 4)
+{
+	// boden
+	vertex.x +=refract.x * minValue;
+	vertex.y +=refract.y * minValue;
+	vertex.z +=refract.z * minValue;
+	u = vertex.x * 0.5f + 0.25f;
+	v = vertex.z * 0.5f + 0.25f;
+} else
+{
+	// seitenwand
+	vertex.x += refract.x * minValue;
+	vertex.z += refract.z * minValue;
+	vertex.y = refract.y * minValue;
+	float determineV;
+	if(minDistance &amp; 2)
+		determineV = vertex.x;
+	else
+		determineV = vertex.z;
+	u = -0.25f * vertex.y;
+	v = u + determineV * (1 - 2 * u);
+
+	if(minDistance &amp; 1)
+		u = 1 - u;
+	if(minDistance &amp; 2)
+		swap(u,v);
+}
+		</code></pre>
+		<p>Die so berechneten Textur&shy;koordinaten speichern Sie für jeden Gitterpunkt im <i>waterTexCoord</i>-Array. Wie sich das Licht im Wasser bricht, zeichnen folgende Zeilen:</p>
+		<pre><code>
+glEnableClientState(GL_VERTEX_ARRAY);
+glVertexPointer(3, GL_FLOAT, 0, &amp;waterHeight[0]);
+glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+glTexCoordPointer(2, GL_FLOAT, 0, &amp;waterTexCoord[0]);
+glDrawElements(GL_TRIANGLES, nIndices,
+	GL_UNSIGNED_INT, waterIndex);
+
+glDisableClientState(GL_VERTEX_ARRAY);
+glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		</code></pre>
+		<p>Wenn Sie Lichtbrechung und Spiegelung kombinieren wollen, zeichnen Sie zuerst die Lichtbrechung und aktivieren anschließend das additive Blending mit</p>
+		<pre><code>
+glEnable(GL_BLEND);
+glBlendFunc(GL_ONE, GL_ONE);
+		</code></pre>
+		<p>Dann rendern Sie die Spiegelung. Wenn Sie das Wasser oder die Spiegelung färben möchten, wählen Sie eine entsprechende Farbe und fügen folgende Zeilen vor dem Rendering des Wassers ein:</p>
+		<pre><code>
+glColor3ub(r, g, b);
+glTexEnvf(GL_TEXTURE_ENV,
+	GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		</code></pre>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Quellen im Internet:</b></p>
+		<p class="footnote">Wolfgang Heidrich and Hans-Peter Seidel: View-independent environment maps, In Proceedings of the SIGGRAPH/Eurographics Workshop on Graphics Hardware, 1998, im Internet unter: <a href="https://www9.informatik.uni-erlangen.de/eng/research/rendering/envmap" rel="external nofollow noreferrer">www9.informatik.uni-erlangen.de/eng/research/rendering/envmap</a></p>
+		<p class="footnote">Advanced Rendering Techniques Using OpenGL, SIGGRAPH 99 Course Notes im Internet unter: <a href="https://www.opengl.org/developers/code/sig99/index.html" rel="external nofollow noreferrer">www.opengl.org/developers/code/sig99/index.html</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200112.html">12/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200202.html">2/2002</a>
+	</nav>
+</body>

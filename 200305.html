@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Tiefenrausch (PC Underground, PC Magazin 5/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;5/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200304.html">4/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200306.html">6/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>3D Stereo Rendering</h2>
+		<h1>Tiefen<span class="highlight">rausch</span></h1>
+		<p class="summary">Computergrafik und verschiedene Techniken vermitteln Realismus in der virtuellen Welt. Besonders wichtig ist dabei ein Tiefeneindruck. Mit der <span class="highlight">Theorie des 3D Stereo Rendering</span> implementieren Sie diesen Eindruck mit OpenGL.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>In der Computergrafik, allgemein in zwei&shy;dimensionalen Bildern, spielen eine Reihe von Aspekten eine wichtige Rolle, um einen räumlichen Eindruck der Szene zu vermitteln. Dazu zählt zum Beispiel die Perspektive, d.h. weiter entfernte Objekte nehmen auf der Bildebene weniger Fläche ein als nähere sowie parallele Linien, die in großer Distanz konvergieren. Auch Licht und Schatten spielen eine wichtige Rolle. Erst durch die unterschied&shy;liche Beleuchtung einer gekrümmten Fläche wird diese auch gut als solche wahrgenommen. Schatten verdeutlichen vor allem die relative Lage verschiedener Gegenstände. Weitere Aspekte sind mit der Entfernung abnehmende Details, Verdeckung von weiter entfernten Objekten und relative Bewegungs&shy;geschwindigkeit in animierten Szenen.</p>
+		<figure class="large">
+			<img src="assets/200305_1.jpg" width="640" height="409" alt="Räumlich sehen: Unser Beispielprogramm rendert Rot-Blau-Stereo-Bildpaare. Diesen Effekt betrachten Sie mit einer Brille mit gefärbten Gläsern.">
+			<figcaption><span>Räumlich sehen:</span> Unser Beispielprogramm rendert Rot-Blau-Stereo-Bildpaare. Diesen Effekt betrachten Sie mit einer Brille mit gefärbten Gläsern.</figcaption>
+		</figure>
+		<p>Eine wichtige Eigenschaft kann ein zwei&shy;dimensionales Bild nicht enthalten: Ein Mensch kann beim Betrachten einer Szene nicht zwei unterschied&shy;liche Bilder wahrnehmen. Die beiden Augen besitzen einen Abstand (den interokularen Abstand), der zu unterschied&shy;lichen Projektionen der wahrgenommenen Szene auf der Netzhaut, also zu unterschied&shy;lichen Bildern führt. Dies wird auch mit <i>Binocular Disparity</i> bezeichnet und ist der wichtigste Punkt für einen räumlichen Eindruck. Trotzdem können falsche Darstellungen der anderen Aspekte störend wirken. Für das 3D Stereo Rendering ist es also unerlässlich, zwei Bilder zu generieren, die – von je einem Auge – so wahrgenommen werden können, dass ein räumlicher Eindruck entsteht. Der menschliche Sehapparat muss die Bilder als eines akzeptieren und die Tiefen&shy;information wie gewünscht verarbeiten. Werden die Bilder nicht als eines wahrgenommen, kann einer der folgenden vier Fälle eintreten:<br>
+		● Für ein Auge wird ein Bild dominant und dieses vorrangig wahrgenommen.<br>
+		● Die Tiefen&shy;wahrnehmung wird übertrieben und damit zu schwach.<br>
+		● Das Betrachten der Szene ist unbehaglich.<br>
+		● Der Betrachter sieht zwei separate Bilder.</p>
+		<p>Um das Stereo Rendering einzusetzen, stehen verschiedene Techniken zur Verfügung. Die bekanntesten sind die so genannten Shutter-Brillen. Hierbei werden auf dem Monitor abwechselnd die Bilder für das linke bzw. rechte Auge dargestellt, wobei durch die Brille mit Hilfe von LCD-Shuttern jeweils die Sicht für ein Auge blockiert wird. Einige 3D-Grafikkarten unterstützen diese Technik. Allerdings werden sehr hohe Bildwiederhol&shy;frequenzen benötigt, um eine flimmerfreie Darstellung zu erhalten. Die wohl teuerste Technik sind Polarisations&shy;brillen. Hierbei wird auf einer Leinwand das Bild für jeweils ein Auge von einem Projektor dargestellt.</p>
+		<p>Allerdings besitzt das Licht jedes Projektors eine unterschied&shy;liche Polarisation. Durch eine Polarisations&shy;brille können Sie die beiden Bilder getrennt wahrnehmen. Beide Verfahren können farbige Bilder darstellen. Um als einfachste Methode daheim Stereo Rendering zu erfahren, verwenden Sie Rot-Grün- oder Rot-Blau-Brillen. Hierbei werden die beiden Bilder gleichzeitig auf dem Monitor dargestellt. Das Bild für das linke Auge in rot, gemischt mit dem Bild für das rechte Auge in blau oder grün. Die eingefärbten Brillengläser separieren die Bilder, wobei allerdings Farben nicht mehr korrekt dargestellt werden. Das Beispiel&shy;programm dieser Ausgabe erzeugt solche Bilder, die Sie mit einer solchen einfachen Brille betrachten können. Diese können Sie schon für weit unter einem Euro im Internet bestellen und in 3D sehen. Suchen Sie unter <a href="https://www.google.de" rel="external nofollow noreferrer">www.google.de</a> nach dem Begriff <i>rotblau 3d brillen</i>.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200305.zip">💾 200305.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Parallaxe</h2>
+		<figure class="floatright">
+			<img src="assets/200305_2.jpg" width="338" height="139" alt="Das View Frustum: Das Auge des Betrachters schweift in die Tiefen der z-Ebene.">
+			<figcaption><span>Das View Frustum:</span> Das Auge des Betrachters schweift in die Tiefen der z-Ebene.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200305_3.jpg" width="338" height="234" alt="Parallax: Punkte hinter der Bildebene resultieren in einem positiven horizontalen Parallax.">
+			<figcaption><span>Parallax:</span> Punkte hinter der Bildebene resultieren in einem positiven horizontalen Parallax.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200305_4.jpg" width="338" height="234" alt="Negativer Parallax: Dies verursacht ein Punkt vor der Bildebene.">
+			<figcaption><span>Negativer Parallax:</span> Dies verursacht ein Punkt vor der Bildebene.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200305_5.jpg" width="338" height="234" alt="Zero Parallax: Alle Punkte der Bildebene resultieren in keinem Parallax.">
+			<figcaption><span>Zero Parallax:</span> Alle Punkte der Bildebene resultieren in keinem Parallax.</figcaption>
+		</figure>
+		<p>Bevor Sie sich auf die Implementation stürzen, beschäftigen wir uns mit der Theorie. Im Bild <i>View Frustum</i> sehen Sie die Computergrafik dazu. Das <i>Frustum</i> ist der Teil der mathematischen Welt, der durch die virtuelle Kamera sichtbar ist. Dieser Teil hat die Form eines Pyramiden&shy;stumpfes, wenn Sie eine perspektivische Abbildung verwenden. Betrachten Sie das anschließende Bild: Hier sehen Sie in Aufsicht den Fall eines hinter der <i>Projection Plane</i> (also dem Bildschirm) liegenden Punktes. Die Projektion dieses Punktes für das linke und rechte Auge befindet sich an unterschied&shy;lichen Stellen der Bildebene. Dieser Abstand wird als <i>horizontaler Parallax</i> bezeichnet.</p>
+		<p>Da sich die Projektion für das linke Auge auf der linken Seite befindet (und umgekehrt für das rechte Auge), wird der Abstand als positiver Parallax definiert. Der maximale horizontale Parallax ist gleich dem Abstand der Augen und tritt auf, wenn der Objektpunkt unendlichweit entfernt ist. Ist der Punkt – wie im nächsten Bild – vor der Bildebene, so ist die Projektion für das linke Auge weiter rechts als die Projektion des Punktes für das rechte Auge, was als negativer horizontaler Parallax bezeichnet wird. Dieser ist betragsmäßig gleich dem interokularen Abstand, wenn sich der Punkt genau zwischen Betrachter und Bildebene befindet. Er kann unendlich groß werden.</p>
+		<figure class="floatright">
+			<img src="assets/200305_6.jpg" width="338" height="234" alt="Der Parallax Angle: Kriterium für den Stereo Effekt">
+			<figcaption><span>Der Parallax Angle:</span> Kriterium für den Stereo Effekt</figcaption>
+		</figure>
+		<p>Im folgenden Bild sehen Sie, dass ein Punkt auf der Bildebene liegt. Dann ist die Parallaxe gleich Null. Die unterschied&shy;lichen Fälle finden Sie in der Tabelle <i>Horizontaler Parallax</i>. Für den horizontalen Parallax <i>H</i> eines Punktes <i>P</i> lassen sich folgende Fälle unterscheiden (<i>d</i> ist der interokular Abstand). Für den Parallax Winkel gilt:<br>
+		T &gt; 0: P liegt hinter und<br>
+		T &lt;0: P liegt vor der Bildebene.</p>
+		<p>Objekte, die sich vor der Bildebene befinden, scheinen beim Stereo Rendering auch vor dem Monitor zu sein. Objekte hinter der Bildebene erwecken den Eindruck, im Monitor zu liegen.</p>
+		<p>Im Allgemeinen ist es einfacher, Stereo-Bildpaare zu betrachten, bei denen die Objekte hinter der Bildebene liegen. Dies können Sie durch die flexible Anpassung der Kamera&shy;parameter – wie in den nächsten Abschnitten vorgeführt – erreichen. Dabei gibt es einige Aspekte und Faustregeln, die Sie beachten sollten. Die Stärke des Stereo Effektes hängt sowohl vom Abstand des Betrachters zur Bildebene, als auch dem Abstand der beiden Kameras ab. Ein zu großer Abstand erzeugt so genannte Hyperstereo Effekte und führt leicht zu schlechter Wahrnehmung des 3D-Bildes.</p>
+		<p>Als Richtwert für die maximale Trennung der Bilder verwenden Sie am besten fünf Prozent des Abstands zur Bildebene. Die zweite Regel besagt, dass der negative (horizontale) Parallax betragsmäßig nicht den interokularen Abstand überschreiten sollte.</p>
+		<p>Die letzte Regel zieht den so genannten Parallax Winkel <i>T</i> heran. Dieser ist definiert, als</p>
+		<pre><code>
+T = 2 * arctan(∆ x / (2d)),
+		</code></pre>
+		<p>wobei ∆<i>x</i> der horizontale Parallax eines projizierten Punktes und <i>d</i> der Abstand des Betrachters von der Bildebene ist. Für alle Punkte der 3D-Szene sollte der Wert von <i>T</i> 1.5 Grad nicht überschreiten. Die verschiedenen Fälle für <i>T</i> finden Sie in der Tabelle <i>Vergleich Toe-In / Off-Axis</i>. Meistens wird für die Grenze von <i>T</i> im Negativen ein Wert nahe Null gewählt, um den negativen horizontalen Parallax, der im Allgemeinen schwerer bei der Betrachtung zu verarbeiten ist, zu beschränken.</p>
+	</section>
+
+	<aside>
+		<h2>Horizontaler Parallax und Parallax Winkel</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Horizontaler Parallax H</th><th>Fallunter&shy;scheidung mit d als interokularem Abstand</th><th>Punkt P</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>H</td><td>&gt; 0</td><td>P liegt hinter der Bildebene</td></tr>
+					<tr><td>H</td><td>&lt; 0</td><td>P liegt vor der Bildebene </td></tr>
+					<tr><td>H</td><td>= d</td><td>P ist unendlich weit entfernt</td></tr>
+					<tr><td>H</td><td>= -d</td><td>P liegt mittig zwischen Betrachter und Bildebene</td></tr>
+					<tr><td>H</td><td>= 0</td><td>P liegt auf der Bildebene</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Toe-In-Methode</h2>
+		<figure class="floatright">
+			<img src="assets/200305_7.jpg" width="338" height="234" alt="Die Toe-In-Methode: Stereo Rendering mit leichten Mängeln.">
+			<figcaption><span>Die Toe-In-Methode:</span> Stereo Rendering mit leichten Mängeln.</figcaption>
+		</figure>
+		<p>Von den verschiedenen Methoden, um Stereo-Bildpaare zu rendern, lernen Sie hier zwei kennen. Die erste ist die so genannte Toe-In-Methode, die sehr weit verbreitet ist. Allerdings liefert die Technik keine korrekte Darstellung. Sie berechnen dazu zwei Bilder, indem Sie zwei virtuelle Kameras, mit identischem Öffnungswinkel, an die Stelle der Augen platzieren. Diese Kameras besitzen einen gemeinsamen Zielpunkt, den Mittelpunkt der Projektions&shy;ebene.</p>
+		<figure class="floatright">
+			<img src="assets/200305_8.jpg" width="442" height="412" alt="Toe-In-Methode: Das Rechteck wird bis zum Trapez verzerrt.">
+			<figcaption><span>Toe-In-Methode:</span> Das Rechteck wird bis zum Trapez verzerrt.</figcaption>
+		</figure>
+		<p>Das Bild verdeutlicht diesen Sachverhalt, der im Wesentlichen einer Rotation der 3D-Szene entspricht. So erzeugte Stereo-Bildpaare vermitteln zwar einen räumlichen Eindruck, aber verursachen bei längerer Betrachtung verstärkt Unbehag&shy;lichkeit. Der Grund hierfür ist eine auftretende <i>vertikale Parallaxe</i> : Die Projektionen des Punktes <i>P</i> im Bild <i>Toe-In-Methode</i> sind nicht nur parallel zur Bildebene verschoben, sondern auch vertikal, also eine Verschiebung aus der Bildebene heraus! Besonders stark ist dieser Effekt bei größeren Öffnungs&shy;winkeln.</p>
+		<p>Hinzu kommt ein weiterer Nachteil: Solche Stereo-Bildpaare sind jeweils immer für einen Betrachter&shy;standpunkt berechnet, der meist als mittig vor dem Bildschirm angenommen wird. Bei einem anderen Standpunkt, der bei teuren Systemen z.B. mittels eines Tracking-Verfahrens ständig neu bestimmt wird, treten mit dem Toe-In-Verfahren Verzerrungen auf.</p>
+		<p>Die Grafik <i>Toe-In (links)</i> verdeutlich, wie sich der auf der Bildebene gedachte, rechteckige Bildschirm auf das gerenderte Bild auswirkt. Diese Verzerrung ist nur bei einem mittig platziertem Betrachter akzeptabel!</p>
+		<p>Dafür lässt sich diese Methode einfach programmieren. Sie setzen zwei identische Kameras an die Position der Augen, die Sie auf einen gemeinsamen Zielpunkt blicken lassen. Das erreichen Sie prinzipiell mit den folgenden OpenGL-Kommandos:</p>
+		<pre><code>
+// Projektionsmatrix
+glMatrixMode(GL_PROJECTION);...
+
+// linkes Auge
+glMatrixMode(GL_MODELVIEW); ...
+
+// rechtes Auge
+glLoadIdentity(); ...
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Off-Axis</h2>
+		<figure class="floatright">
+			<img src="assets/200305_9.jpg" width="338" height="234" alt="Die Off-Axis-Methode: Stereo Rendering in höchster Vollendung">
+			<figcaption><span>Die Off-Axis-Methode:</span> Stereo Rendering in höchster Vollendung</figcaption>
+		</figure>
+		<p>Die so genannte Off-Axis-Methode stellt die korrekte Art dar, um Stereo-Bildpaare zu rendern. Dabei tritt kein vertikaler Parallax auf, was zur Folge hat, dass sich solche Bilder entspannter betrachten lassen. Dazu benötigen Sie asymmetrische Kamera-Frusta, wie Sie in der Aufsicht im Bild <i>Off Axis</i> entnehmen können.</p>
+		<p>Solche Kamera-Frusta entstehen durch Scherung. Sie können sie auch mit OpenGL verwenden, wobei allerdings der <i>gluPerspective(...)</i>-Befehl nicht mehr ausreicht. Solche Frusta müssen Sie selbst mit dem <i>glFrustum(...)</i>-Befehl aufbauen, was wir Ihnen im Folgenden vorführen. Ein weiterer Vorteil der Off-Axis-Methode ist, dass die erzeugten Bilder auch dann korrekt sind, wenn sich der Betrachter nicht mittig vor dem Bildschirm befindet, da ein gedachtes Rechteck auf der Bildebene immer als solches auf den Bildschirm abgebildet wird. Die Betrachter&shy;position muss natürlich bekannt sein. Sie kann – wie bereits erwähnt – mittels optischer oder magnetischer Tracking-Systeme bestimmt werden.</p>
+		<p>Die Berechnung der gescherten asymmetrischen Frusta ist allerdings nicht so kompliziert, wie Sie vielleicht befürchten. Betrachten Sie dazu zunächst den <i>glFrustum(...)</i>-Befehl:</p>
+		<pre><code>
+void glFrustum (GLdouble left, GLdouble right,...
+		</code></pre>
+		<p>Dieser Befehl erzeugt eine 4x4-Matrix mit einer perspektivischen Abbildung. Die Punkte (left, bottom, znear) und (right, top, znear) bestimmen die linke untere, bzw. rechte obere Eck des Rechtecks auf der <i>Z-Near</i>-Ebene, das auf den Bildschirm abgebildet wird. Das geschieht unter der Annahme, dass sich der Betrachter an der Position <i>(0,0,0)</i> befindet. Die <i>znear</i> bzw. <i>zfar</i>-Parameter, die beide größer als Null sein müssen, geben den Abstand zur <i>Z-Near</i> und <i>Z-Far</i>-Ebene an. Für die Berechnung der Kamera-Frusta verwenden Sie folgende Bezeichnungen:<br>
+		<i>w/h</i>: Breite bzw. Höhe des Bildschirms<br>
+		<i>d</i>: Abstand des Betrachters zur Bildebene<br>
+		<i>o</i>: Interokular Abstand<br>
+		<i>zn, zf</i>: Abstand zur <i>Z-Near</i>- bzw. <i>Z-Far</i>-Ebene</p>
+		<figure class="floatright">
+			<img src="assets/200305_10.jpg" width="338" height="234" alt="Asymmetrisches Frustum: So konstruieren Sie es für die Off-Axis-Methode.">
+			<figcaption><span>Asymmetrisches Frustum:</span> So konstruieren Sie es für die Off-Axis-Methode.</figcaption>
+		</figure>
+		<p>Das Kamera-Frustum für das linke Auge befindet sich um <i>d/2</i> nach links verschoben (relativ zur Betrachter&shy;position). Somit besitzt die linke Seite eine Breite von <i>(w/2 - d/2)</i>. Die <i>left</i>-Koordinate (die negativ ist!), erhalten Sie durch Projektion dieses Wertes auf die <i>Z-Near</i>-Ebene:</p>
+		<pre><code>
+left = - (w/2-d/2)* zn / d;
+		</code></pre>
+		<p>Analog dazu, besitzt die rechte Seite eine Breite von <i>(w/2 + d/2)</i>:</p>
+		<pre><code>
+right = (w/2+d/2) * zn / d;
+		</code></pre>
+		<p>In der Vertikalen ist das Kamera-Frustum symmetrisch und jeweils <i>(h/2)</i> hoch, beachten Sie auch hierbei die Vorzeichen:</p>
+		<pre><code>
+top = - h/2 * zn / d;
+bottom = - h/2 * zn / d;
+		</code></pre>
+		<p>Die Übergabe der Parameter an OpenGL erfolgt dann mit:</p>
+		<pre><code>
+glMatrixMode(GL_PROJECTION);
+		</code></pre>
+		<p>Jetzt müssen Sie vor dem Rendering der 3D-Szene für das linke Auge noch die Verschiebung der Kamera berechnen, denn das linke Auge befindet sich um <i>o/2</i> zur Betrachter&shy;position verschoben. Diese Translation nehmen Sie am besten in der Modelview Matrix vor:</p>
+		<pre><code>
+glMatrixMode(GL_MODELVIEW);
+glLoadIdentity();
+glTranslatef (o/2.0f, 0.0f, 0.0f);
+		</code></pre>
+		<p>Alle weiteren Trans&shy;formationen, wie z.B. die Positionierung des Betrachters mit <i>gluLookAt(...)</i> oder Objekt&shy;transformationen können Sie wie gewohnt anwenden. Für das rechte Auge führen Sie die Berechnung des Frustums analog durch, wie Sie es für das linke Auge schon erprobt haben. Wie gewohnt finden Sie alles im Beispiel&shy;programm zu dieser Ausgabe.</p>
+	</section>
+
+	<section>
+		<h2>Rendering in OpenGL</h2>
+		<p>Um das Stereo-Bildpaar darzustellen, verwenden Sie – wie bereits erwähnt – am einfachsten eine Rot-Blau- oder Rot-Grün-Darstellung. Diese können Sie in OpenGL (auch in anderen APIs wie Direct3D) erreichen. Zunächst löschen Sie wie üblich den Frame-Buffer (in schwarz) und den Z-Buffer:</p>
+		<pre><code>
+glClearColor(0.0, 0.0, 0.0, 1.0);
+glClear(GL_COLOR_BUFFER_BIT |
+	GL_DEPTH_BUFFER_BIT);
+		</code></pre>
+		<p>Dann berechnen Sie die Kamera&shy;parameter für das linke Auge und setzen die OpenGL-Matrizen. Bevor Sie jetzt die 3D-Szene rendern, beschränken Sie den Schreibzugriff auf den Frame-Buffer auf den Rot-Kanal:</p>
+		<pre><code>
+glColorMask(GL_TRUE, GL_FALSE,
+	GL_FALSE, GL_FALSE);
+		</code></pre>
+		<p>Um nun das Bild für das rechte Auge darzustellen, müssen Sie nur den Z-Buffer löschen, um die Szene korrekt rendern zu können. Den Frame-Buffer löschen Sie nicht, sondern beschränken den Schreibzugriff auf blau, grün oder blau/grün (cyan), je nach verwendeter Stereobrille:</p>
+		<pre><code>
+glClear(GL_DEPTH_BUFFER_BIT);
+switch (brille)...
+renderScene();
+		</code></pre>
+	</section>
+
+	<aside>
+		<h2>Vergleich Toe-In/Off-Axis</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Position</th><th>Toe-In</th><th>Off-Axis</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>View Frustum</td><td>Zwei identische Frusta, mit unterschied&shy;lichen Zielpunkten (gluPerspective)</td><td>Asymmetrische gescherte Frusta (glFrustum)</td></tr>
+					<tr><td>Vertikaler Parallax</td><td>ja</td><td>nein</td></tr>
+					<tr><td>Öffnungswinkel</td><td>nur für kleinere Winkel akzeptabel</td><td>nahezu beliebig</td></tr>
+					<tr><td>Betrachter&shy;position</td><td>nur mittige Position akzeptabel</td><td>nahezu beliebig</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Klippen des Stereo Renderings</h2>
+		<p>Eine Reihe von Techniken bedürfen Beachtung, wenn Sie diese mit Stereo Rendering kombinieren wollen. Die Schwierig&shy;keiten beginnen beim Gouraud Shading. Beim Gouraud Shading berechnen Sie, kurz formuliert, die Beleuchtung für Dreiecksnetze nur an den Eckpunkten der Dreiecke und Sie interpolieren die berechnete Helligkeit linear über das Dreieck.</p>
+		<p>Ebenso verfahren Sie beim normalen Rendering wie mit <i>glShadeModel(GL_SMOOTH)</i>. Beim Gouraud Shading treten zwei Artefakte auf (auch beim Nicht-Stereo-Rendering), die so genannten Mach-Band-Effekte, die die Dreieckskanten sichtbar machen, sowie verschwindende Glanzlichter. Der Aspekt ist wichtig. Um Glanzlichter korrekt darzustellen, berechnen Sie eine Beleuchtung pro Pixel – eine Interpolation berechneter Helligkeiten genügt nicht. Da aber der Betrachter&shy;standpunkt für die beiden Bilder (Augen) unterschied&shy;lich ist, können Glanzlichter auf einem Bild verschwinden, während sie auf dem anderen noch gut erkennbar sind. Solche Unterschiede stören.</p>
+		<p>Ein weiterer Aspekt, der auch wiederum mit den unterschied&shy;lichen Betrachter&shy;positionen der Augen zusammenhängt, ist eine Level-of-Detail-Darstellung von Dreiecksnetzen. Diese unterschied&shy;lichen Positionen können zu unterschied&shy;lichen Geometrien/LOD-Stufen führen, wenn Sie nicht darauf achten, beispielsweise eine gemeinsame Referenz&shy;position für solche Berechnungen zu verwenden.</p>
+		<p>Der letzte hier erwähnte Punkt ist das Bump-Mapping. Hierbei wird die Oberflächen&shy;normale pro Pixel für die Beleuchtungs&shy;berechnung pertubiert (modifiziert). Dadurch vermitteln Sie den Eindruck einer gewellten oder gewölbten Oberfläche. Die Oberfläche selbst wird aber nicht verschoben. Beim Stereo Rendering wird die Oberfläche zwar von jedem Auge als gewellt wahrgenommen, aber die Oberflächen&shy;punkte befinden sich nach wie vor auf einer Ebene. Dieses Problem erkennen Sie aber nur bei sehr starken Pertubationen und guten Stereo Systemen – mit einer Farb-Stereo Brille sollten Sie solche Artefakte kaum erkennen können.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote">Info:</p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.captain3d.com/stereo/html/tutorial.html" rel="external nofollow noreferrer">www.captain3d.com/stereo/html/tutorial.html </a></p>
+		<p class="footnote"><a href="https://www.google.de" rel="external nofollow noreferrer">www.google.de</a>, Suchbegriff „rot blau 3d brillen“ </p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200304.html">4/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200306.html">6/2003</a>
+	</nav>
+</body>

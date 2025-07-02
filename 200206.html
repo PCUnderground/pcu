@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Licht im Schatten (PC Underground, PC Magazin 6/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;6/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200205.html">5/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200207.html">7/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Schatten in 3D-Szenen darstellen</h2>
+		<h1><span class="highlight">Licht</span> im Schatten</h1>
+		<p class="summary">Die <span class="highlight">virtuelle Welt</span> wirkt mit Schatten in 3D-Objekten realistisch. Wir zeigen, wie Sie Schatten rendern.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Die Programmierer schaffen es mehr und mehr, die 3D-Grafik neuer Spiele der Realität anzupassen. Indem sie den Schatten von Objekten darstellen, verstärken sie den drei&shy;dimensionalen Eindruck.</p>
+		<p>Es gibt viele Verfahren, um in der Hardware-beschleunigten Computergrafik Schatten in Echtzeit zu gestalten. Sie unterscheiden sich in Qualität, Leistungs&shy;fähigkeit und Flexibilität.</p>
+		<p>Wir wollen Ihnen die Technik der Stencil-Buffer-Schatten vorführen (zu Stencil Buffers vgl. Heft 5/02, ab S. 190). Die Rendering-Auflösung dieser Schatten ist identisch mit der des restlichen Bildes. Ein weiterer Vorteil: 3D-Objekte können sich selbst beschatten.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200206.zip">💾 200206.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Methoden der Schattendarstellung</h2>
+		<p>Es gibt mehrere Methoden, wie Sie Schatten darstellen können.<br>
+		• Die einfachste Variante sind die Projektions&shy;schatten. Projizieren Sie das 3D-Objekt, das Schatten werfen soll, mit einer Projektions&shy;abbildung auf eine Ebene. Eine Projektions&shy;abbildung geben Sie in OpenGL mit einer Matrix an. Die projizierten Dreiecke zeichnen Sie in Schwarz oder einer anderen dunklen Farbe. Wenn Sie 3D-Objekte haben, die auf einen Boden oder wenige große Flächen (Ebenen) Schatten werfen sollen, ist dieses Verfahren zu empfehlen. Es ist aber viel zu aufwändig, wenn ein 3D-Objekt sich selbst oder andere 3D-Objekte beschatten soll, weil das Schatten werfende Objekt auf jede Ebene, die durch ein Polygon bestimmt wird, projiziert werden muss.<br>
+		• Um Schatten&shy;texturen zu verwenden, platzieren Sie die OpenGL- Kamera an der Position der Lichtquelle und lassen sie in Richtung des Schatten werfenden Objekts zeigen. Den Framebuffer löschen Sie mit weißer Farbe. Rendern Sie das Objekt in Schwarz und kopieren Sie das gerenderte Bild in die Schattentextur. Wenn Sie ein anderes 3D-Objekt für das finale Bild rendern, projizieren Sie die Schattentextur auf dieses 3D-Objekt. Dazu generieren Sie etwa Textur-Koordinaten von OpenGL. Anschließend modulieren Sie die Helligkeit der gezeichneten Pixel mit den Helligkeits&shy;intensitäten aus der Schattentextur. Der Vorteil dieser Methode: Sie müssen das Schatten werfende 3D-Objekt nur in die Textur zeichnen. Der Nachteil: Die Schattentextur entspricht nicht der Bildschirm&shy;auflösung, dadurch treten manchmal Aliasing-Effekte auf. Auch können 3D-Objekte nicht selbst Schatten werfen.<br>
+		• Shadow Maps verwenden den Z-Buffer und projektives Texture Mapping (wie eben beschrieben). Auch hier entsprechen sich Kameraposition/-richtung und Position/Richtung der Lichtquelle. Damit rendern Sie die 3D-Szene aus der Sicht der Lichtquelle, wobei Sie auch den Z-Buffer zum Rendern verwenden. Den Z-Buffer kopieren Sie in eine Textur. Diese enthält Grauwerte, die die Entfernung der sichtbaren Teilen der 3D-Szene von der Lichtquelle repräsentieren. Diese Textur wird beim Rendern des fertigen Bildes mit der Textur-Transformation-Matrix von OpenGL und Textur-Koordinaten auf die 3D-Objekte gesetzt. Die Koordinaten&shy;generierung stellen Sie so ein, dass die Koordinaten (<i>x,y,z</i>) im Raum eines Punktes und die Textur-Koordinaten (<i>s,t</i>) eines Pixels in der Shadow Map sind. Der Parameter <i>r</i> enthält die Entfernung zur Lichtquelle, wobei <i>r</i> die dritte Komponente der OpenGL Textur-Koordinaten&shy;generierung ist.</p>
+		<p>Dann liefert OpenGL die Methode, um den Wert von <i>r</i> mit dem des Texels an der Stelle (<i>s,t</i>) in der Shadow Map zu vergleichen. Wenn <i>r</i> größer als der Texelwert ist, liegt der Pixel im Schatten. Dann liegt eine andere Stelle der 3D-Szene näher an der Lichtquelle und beschattet den gerade betrachteten Punkt.</p><p>Dieses Verfahren ist sehr flexibel und lässt auch Selbst&shy;beschattung zu. Allerdings ist, wie bei den Schatten&shy;texturen die Auflösung der Schattenränder an die Auflösung der Shadow Maps gebunden.</p>
+	</section>
+
+	<section>
+		<h2>Stencil Buffers</h2>
+		<figure class="floatright">
+			<img src="assets/200206_1.jpg" width="354" height="114" alt="MIT DREI SCHRITTEN bekommen Sie mit Stencil Buffers Schatten in die 3D-Szene.">
+			<figcaption><span>MIT DREI SCHRITTEN</span> bekommen Sie mit Stencil Buffers Schatten in die 3D-Szene.</figcaption>
+		</figure>
+		<p>Mit dem Stencil Buffer können Sie das Rendering für einzelne Pixel steuern. Im Stencil Buffer befindet sich für jeden Pixel eine Zahl, deren Bitbreite je nach Hardware und Anforderung unter&shy;schiedlich ist. Sie teilen dies OpenGL bei der Intialisierung mit, wenn Sie den Renderkontext gestalten.</p>
+		<p>Gebräuchliche Bitbreiten sind 1 oder 8 Bit pro Pixel. Diese Werte können Sie im Ganzen löschen und mit OpenGL-Primitiven wie Dreiecken, Linien, Punkten etc. beschreiben. Als Operationen sind denkbar: löschen, mit einem Wert beschreiben, erhöhen, erniedrigen und invertieren. Um das Rendering zu steuern, stellt Ihnen der Stencil Buffer die Methode zur Verfügung, um vor dem Setzen eines Pixels einen gegebenen Wert mit dem des Stencil Buffer an dieser Stelle zu vergleichen. Das Ergebnis des Vergleichs bestimmt, ob ein Pixel gezeichnet wird oder nicht. Den Stencil Buffer löschen Sie mit der Zeile:</p>
+		<pre><code>
+glClear(GL_STENCIL_BUFFER_BIT);
+		</code></pre>
+		<p>Um den Stencil Buffer zu beschreiben oder Vergleiche damit auszuführen, aktivieren Sie den Stencil-Test:</p>
+		<pre><code>
+glEnable(GL_STENCIL_TEST);
+		</code></pre>
+		<p>Die Vergleichs&shy;operation, die OpenGL beim Setzen jedes Pixels durchführt, legen Sie mit dem Befehl <i>glStencilFunc(...)</i> fest. Der erste Parameter gibt die Vergleichs&shy;funktion an. Diese legt fest, ob der Wert im Stencil Buffer kleiner (gleich), größer (gleich) oder gleich einem Referenzwert sein muss, um den Test als gelungen zu bezeichnen. Der Referenzwert ist der zweite Parameter.</p>
+		<p>Sie können auch festlegen, dass der Test immer ein positives oder negatives Ergebnis liefert, wenn es nur darum geht, den Stencil Buffer mit Werten zu füllen. Mit dem dritten Parameter können Sie eine Bitmaske übergeben. Auf beide Werte, dem aus dem Stencil Buffer und dem Referenzwert, führen Sie vor dem Vergleich ein bitweises <i>AND</i>-Verfahren durch.</p>
+		<p>Mit dem OpenGL-Befehl <i>glStencilOp(...)</i> bestimmen Sie, was nach dem Stencil Test abhängig vom Ergebniss passiert, ob ein Pixel gesetzt wird oder nicht, und ob der Stencil-Buffer-Wert verändert wird oder nicht. Dabei unterscheiden Sie drei Fälle, bei denen auch das Ergebnis des Z-Buffer-Tests relevant ist:<br>
+		• Der Stencil-Buffer-Test liefert ein negatives Ergebnis,<br>
+		• der Stencil-Buffer-Test liefern ein positives Ergebnis, aber der Z-Buffer Test schlägt fehl,<br>
+		• beide Tests liefern ein positives Resultat. Beim Z-Buffer Test kann das auch auftreten, wenn dieser deaktiviert ist.</p>
+		<p>Für jeden dieser drei Fälle geben Sie bei der Funktion <i>glStencilOp(...)</i> an, welche der oben genannten Operationen durchgeführt werden soll.</p>
+	</section>
+
+	<section>
+		<h2>Schatten mit dem Stencil Buffer</h2>
+		<figure class="floatright">
+			<img src="assets/200206_2.jpg" width="227" height="159" alt="DAS SCHATTENVOLUMEN eines Dreiecks">
+			<figcaption><span>DAS SCHATTENVOLUMEN</span> eines Dreiecks</figcaption>
+		</figure>
+		<p>Diese Technik betrachtet die Schatten eines Objektes als polygonale Volumen. Stellen Sie sich zunächst den einfachsten Fall vor, dass ein einzelnes Dreieck einen Schatten werfen soll. Halbgeraden, die von der Lichtquelle aus durch die Eckpunkte des Dreiecks gehen, begrenzen das Schatten&shy;volumen. Dieses wird auf der einen Seite auch durch das Dreieck selbst begrenzt, in der anderen Richtung ist es theoretisch unendlich lang. Daraus erhalten Sie einen Pyramiden&shy;stumpf. Alle Teile der 3D-Objekte, die innerhalb dieses Pyramiden&shy;stumpfes liegen, befinden sich im Schatten des Dreiecks und werden nicht direkt von der Lichtquelle beleuchtet. Die Normale des Schatten werfenden Dreiecks zeigt zur Lichtquelle.</p>
+		<p>Sie verwenden den Stencil Buffer nun, um festzustellen, welche Teile der 3D-Szene im Schatten&shy;volumen sind und welche nicht. Für jeden Pixel des Bildes wird die Strecke zwischen Betrachter und Punkt in der Szene untersucht, was Sie wieder als Halbgerade auffassen können. Die Richtung ist durch den Ort des Pixels im Bild und den Tiefen-Wert des Z-Buffers an der entsprechenden Stelle gegeben. Der Wert des Stencil Buffer wird erhöht, wenn die Halbgerade in ein Schatten&shy;volumen eindringt, und erniedrigt, wenn ein Schatten&shy;volumen verlassen wird.</p>
+		<figure class="floatright">
+			<img src="assets/200206_3.jpg" width="209" height="192" alt="EINE SEITENFLÄCHE des Silhouettenvolumens wird durch eine Kante und die Lichtquelle bestimmt.">
+			<figcaption><span>EINE SEITENFLÄCHE</span> des Silhouettenvolumens wird durch eine Kante und die Lichtquelle bestimmt.</figcaption>
+		</figure>
+		<p>Um das Verfahren mit der Hardware-Beschleunigung zu nutzen, rendern Sie die 3D-Szene. Anschließend zeichnen Sie die Schatten&shy;volumina in den Stencil Buffer. Zeichnen Sie nur die Polygone der Schatten&shy;volumina, die zum Betrachter hinzeigen, stellen Sie die Stencil-Buffer-Operation auf <i>Inkrementieren</i> und aktivieren Sie den Z-Buffer-Test. Damit erhöhen Sie den Stencil-Buffer-Wert für das Eindringen in alle Schatten&shy;volumina, die (für einen Pixel) zwischen Betrachter und der nächsten sichtbaren Stelle der 3D-Szene liegen. Mit den vom Betrachter wegzeigenden Polygonen verfahren Sie analog, nur dass Sie den Stencil-Buffer-Wert dekrementieren.</p>
+		<p>Als Resultat haben alle Pixel, die sich in einem Schatten&shy;volumen befinden, einen Stencil-Buffer-Wert ungleich Null. Am einfachsten ist es jetzt, ein dunkles halb&shy;transparentes Rechteck über das gesamte Bild zu zeichnen, wobei der Stencil-Buffer-Test auch auf ungleich Null gesetzt wird. Damit werden die beschatteten Teile abgedunkelt.</p>
+		<p>Diese Variante ist nicht ganz korrekt, weil beim Zeichnen der Szene die Beleuchtung normalerweise angeschaltet ist, und die beschatteten Teile jetzt nur abgedunkelt, aber beleuchtet, wurden. Im Beispiel&shy;programm finden Sie die gerade beschriebene vereinfachte Variante. Wenn Sie ganz korrekt vorgehen wollen, verfahren Sie wie folgt:<br>
+		• Zeichnen Sie die 3D-Szene mit Beleuchtungs&shy;attributen für Schatten (nur ambientes Licht).<br>
+		• Deaktivieren Sie <i>Color- und Z-Buffer&shy;schreiben</i>, und aktivieren Sie den Z-Buffer Vergleich.<br>
+		• Zeichnen Sie wie zuvor beschrieben die Schatten&shy;volumina.<br>
+		• Zeichen Sie die volle Beleuchtungs&shy;berechnung und Szene, wobei Sie den Stencil-Buffer-Vergleich auf Null setzen.<br>
+		Beim Löschen des Stencil Buffer gilt: Wenn sich der Betrachter innerhalb eines Schatten&shy;volumens befindet, müssen Sie den Stencil Buffer auf den Wert <i>1</i> statt <i>0</i> initialisieren. Der Grund: Betrachten Sie den Fall eines einzigen Schatten&shy;volumens, dann würden nur die Dreiecke gezeichnet, die den Stencil-Buffer-Wert dekrementieren. Andere befinden sich hinter dem Betrachter. Der Stencil Buffer kann aber nicht kleinere Werte als Null annehmen, und somit würde die ganze Szene als beleuchtet dargestellt.</p>
+	</section>
+
+	<section>
+		<h2>Optimierung und Implementation</h2>
+		<figure class="floatright">
+			<img src="assets/200206_4.png" width="228" height="149" alt="UNSER BEISPIELPROGRAMM in Aktion">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> in Aktion</figcaption>
+		</figure>
+		<p>Für komplexere Objekte ist es nicht sinnvoll, für jedes Dreieck ein eigenes Schatten&shy;volumen zu konstruieren. Stattdessen verwenden Sie die Kanten, die die Silhouette des Objektes (betrachtet von der Lichtquelle aus) bilden. Daraus konstruieren Sie sich die Seitenflächen des Schatten&shy;volumens. Die Kanten der Silhouette sind solche, die Randkanten des 3D-Objektes sind, und solche, die Teil zweier Dreiecke sind, bei denen eines zur Lichtquelle hinzeigt und eines nicht.</p>
+		<p>An dieser Stelle wollen wir Ihnen Schritt für Schritt vorführen, wie Sie die Stencil Buffer Schatten eines 3D-Objektes rendern. Dabei bauen Sie auf der Basis des OpenGL Frameworks auf. Dieses initialisiert OpenGL und lädt einfache 3D-Objekte für Sie, die jeweils eine Vertexliste (<i>pVertexList</i>) und eine Indexliste (<i>pFaceList</i>) inklusiver der Normalen für jedes Dreieck besitzen. Davon ausgehend erläutern wir die notwendigen Programmier&shy;schritte.</p>
+		<p>Zunächst einmal benötigen Sie die so genannte <i>Adjazenz</i>-Information, die ausweist, welche Polygone benachbart sind und sich welche Kante teilen. Dazu bilden Sie eine Liste mit allen Kanten des 3D-Modells (in <i>pEdgeList</i>), die jeweils die Referenz auf die benachbarten Dreiecke speichern. Anschliessend können Sie elegant für jedes Dreieck und jede seiner Kanten das benachbarte Dreieck feststellen:</p>
+		<pre><code>
+// Für jedes Dreieck die Nachbarn
+// finden und Pointer darauf speichern
+for(i = 0; i &lt; nFaces; i++)
+{
+	for(int j = 0; j &lt; 3; j++)
+	{
+		int edge = pFaceList[i].adjacent[j];
+		int *adj = &amp;pEdgeList[edge].poly[0];
+		if(pEdgeList[edge].boundary == 1)
+			pFaceList[i].adjacentFace[j] = NULL;
+		else {
+			if(adj[0] == i)
+				pFaceList[i].adjacentFace[j] =
+					&amp;pFaceList[adj[1]];
+			else
+				pFaceList[i].adjacentFace[j] =
+					&amp;pFaceList[adj[0]];
+		}
+	}
+}
+		</code></pre>
+		<p>Mit diesen Daten können Sie nun den Schatten eines 3D-Objekts zeichnen. Dabei beginnen Sie festzustellen, welche Polygone zur Lichtquelle hinzeigen und welche nicht. Das ist der gleiche Vorgang wie beim Backface Culling, nur dass Sie die Position der Lichtquelle statt der der Kamera heranziehen.</p>
+		<p>Um mit den Normalen der Dreiecke arbeiten zu können, muss die Position der Lichtquelle in dasselbe Koordinaten&shy;system transformiert wird, in dem die Koordinaten der Vertices definiert sind, dem <i>Object Space</i>. Dazu invertieren Sie die Trans&shy;formationen der Modelview Matrix durch die Umkehrung der Einzel&shy;transformationen und deren Reihenfolge. Die Transformation der Lichtquelle in den Object Space nehmen Sie wie folgt vor:</p>
+		<pre><code>
+VERTEX3D lightObject;
+MATRIX44 modelView, invModelView;
+
+// Modelview Matrix auslesen
+glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
+
+// Inverse Berechnen
+inverseMatrix(modelView, invModelView);
+
+// und Position transformieren
+// Vektor = Matrix * Vektor !
+lightObject = invModelView * lightWorld;
+		</code></pre>
+		<p>Jetzt können Sie feststellen, welche Dreiecke zur Lichtquelle hinzeigen:</p>
+		<pre><code>
+for(int i = 0; i &lt; nFaces; i++)
+{
+	if(pFaceList[i].normal * lightObject +
+		pFaceList[i].w &gt; 0)
+			pFaceList[i].facesLight = 1;
+	else
+		pFaceList[i].facesLight = 0;
+}
+		</code></pre>
+		<p>Konstruieren und zeichnen Sie alle Seitenflächen des Schatten&shy;volumens wie im Bild. Zuvor setzen Sie die Parameter für den Stencil und Z-Buffer:</p>
+		<pre><code>
+// Z-Buffer Test, Schreiben aus
+glDepthFunc(GL_LEQUAL);
+glDepthMask(GL_FALSE);
+
+// Stencil Buffer, schreiben
+glEnable(GL_STENCIL_TEST);
+glColorMask(0, 0, 0, 0);
+glStencilFunc(GL_ALWAYS, 1, 0xff);
+
+// 1.: Zum Betrachter zeigende Schattenvolumina Flächen
+// OpenGL macht Backface Culling der Seitenflächen !
+glFrontFace(GL_CCW);
+glStencilOp(GL_KEEP,GL_KEEP,GL_INCR);
+// Seitenflächen suchen/zeichnen
+for(i = 0; i &lt; nFaces; i++)
+	if(pFaceList[i].facesLight)
+	{
+		FACE *k;
+		//Jede Kante, angrenzend eines zur Lichtquelle
+		// hin- &amp; wegzeigenden Dreiecks:
+		for(int j = 0; j &lt; 3; j++)
+			if((k= pFaceList[i].adjacentFace[j]) != 0
+				&amp;&amp; !k-&gt;facesLight)
+			{
+				// e1, e2: Punkte der Kante
+				VERTEX3D *e1 =
+					&amp;pVertexList[pFaceList[i].p[j]];
+				VERTEX3D *e2 =
+					&amp;pVertexList[pFaceList[i].p[(j + 1) % 3]];
+				VERTEX3D e3, e4;
+
+				// weitere Punkte der Flächen
+				// durch die Halbgerade &amp; dem
+				// Ort der Lichtquelle bestimmt:
+				e3 = *e1 + (*e1 - lightObject) * SLENGTH;
+				e4 = *e2 + (*e2 - lightObject) * SLENGTH;
+				// Seitenfläche zeichnen
+				glBegin(GL_TRIANGLE_STRIP);
+				glVertex3fv((GLfloat*)e1);
+				glVertex3fv((GLfloat*)&amp;e3);
+				glVertex3fv((GLfloat*)e2);
+				glVertex3fv((GLfloat*)&amp;e4);
+				glEnd();
+			}
+	}
+
+// 2. Durchgang
+glFrontFace(GL_CW);
+glStencilOp
+(GL_KEEP,GL_KEEP,GL_DECR);
+// Zeichnen wie oben
+...
+		</code></pre>
+		<p>Wie Sie im obigen Code-Ausschnitt sehen, sind die Seitenflächen des Schatten&shy;volumens nicht unendlich lang, Sie sind ausreichend gross, so dass sie den sichtbaren Bereich verlassen. Das erreichen Sie durch die <i>SLENGTH</i>-Konstante.</p>
+		<p>Jetzt müssen Sie nur noch die Teile der 3D-Szene, die sich im Schatten befinden, abdunkeln. Dazu zeichnen Sie ein dunkles, teilweise transparentes Rechteck, wobei Sie den Stencil-Buffer-Test auf ungleich Null stellen:</p>
+		<pre><code>
+glStencilFunc(GL_NOTEQUAL, 0, 0xff);
+glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
+
+// Farbe und Blending
+glColor4ub(0, 0, 0, 128);
+glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA,
+GL_ONE_MINUS_SRC_ALPHA);
+
+// Rechteck zeichnen:
+glMatrixMode(GL_MODELVIEW);
+glLoadIdentity();
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+glDisable(GL_DEPTH_TEST);
+glBegin(GL_TRIANGLE_STRIP);
+glVertex2i(-1, 1);
+glVertex2i(-1, -1);
+glVertex2i(1, 1);
+glVertex2i(1, -1);
+glEnd();
+glEnable(GL_DEPTH_TEST);
+		</code></pre>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Info:</b></p>
+		<p class="footnote">„Advanced Rendering Techniques Using OpenGL“, SIGGRAPH 99 Course Notes, <a href="https://www.opengl.org/developers/code/sig99/index.html" rel="external nofollow noreferrer">www.opengl.org/developers/code/sig99/index.html</a></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200205.html">5/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200207.html">7/2002</a>
+	</nav>
+</body>

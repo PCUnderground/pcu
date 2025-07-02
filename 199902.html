@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Rot-Grün in Bewegung (PC Underground, PC Magazin 2/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;2/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+	<nav class="pagenav">
+		<a rel="prev" href="199901.html">1/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199903.html">3/1999</a>
+	</nav>
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/NT</h2>
+		<h1>Rot-Grün in <span class="highlight">Bewegung</span></h1>
+		<p class="summary">Dank <span class="highlight">Stereo-Rendering</span> nehmen Sie Objekte räumlich wahr. Außerdem tunen Sie die 3D-Engine durch schnelleres Clipping und Partikel&shy;systeme.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Spiele warten heutzutage mit faszinierenden 3D-Grafiken auf. Spezielle 3D-Grafikkarten stillen dabei den Leistungs&shy;hunger. Auch in dieser Rubrik haben wir bereits eine einfache 3D-Grafik-Engine entwickelt, die wir nun erweitern (letztes Update in Ausgabe 9/98, ab S. 216). Wenn Sie nicht von Anfang an dabei waren, finden Sie alle bisher erschienenen PC-Underground-Beiträge auf der Heft-CD.</p>
+		<p>Was genau versteckt sich hinter dem Schlagwort 3D? Im Bereich der Computergrafik bedeutet 3D meist nur, daß die Grafikobjekte durch drei&shy;dimensionale Koordinaten repräsentiert sind. Spätestens für die Ausgabe am Monitor werden die Daten auf die zwei&shy;dimensionale Bildschirm&shy;ebene herunter&shy;projiziert. Die Grafik erscheint somit für jedes Auge gleich. Einen drei&shy;dimensionalen Eindruck suggerieren bestenfalls Bildmerkmale wie die Größe eines bekannten Alltagsgegenstandes: Je kleiner er ist, um so weiter entfernt erscheint er. Ebenso hebt sich auf Portraitfotos der unscharfe Hintergrund von der aufgenommenen Person ab und trägt so zum Eindruck von Tiefe bei.</p>
+		<p>Um ein virtuelles Objekt räumlich wahrzunehmen, müssen Sie jedem Auge ein eigenes Teilbild präsentieren. Da die Augen bei den meisten Menschen etwa sechseinhalb Zentimeter auseinander liegen, unterscheiden sich die Teilbilder dementsprechend in ihrem Kamerastandpunkt. Wenn Sie beim Betrachten Ihren Kopf zur Seite bewegen, ändert sich Ihr Blickwinkel auf das Objekt nicht – Sie sehen immer noch die gleichen Teilbilder. Daher heißt dieses Verfahren auch „2½D“ oder „Stereo-Sehen“, analog zum Musikgenuß aus zwei Kanälen.</p>
+		<p>Diesem Manko begegnen Virtual-Reality-Helme und Bewegungssensoren. Damit können Sie Ihren Kopf frei bewegen und sich interaktiv um ein Objekt herumbewegen: 3D par excellence.Ein Computer muß nur die Bewegungsdaten der Sensoren auswerten und die dazu passenden Teilbilder errechnen. Wir beschränken uns in diesem Artikel auf die bereits sehr wirkungsvolle Stereo-Betrachtung.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199902.zip">💾 199902.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Rot + Grün = 3D</h2>
+		<figure class="floatright">
+			<img src="assets/199902_1.jpg" width="320" height="240" alt="MIT EINER ROT-GRÜN-BRILLE sieht das linke Auge ausschließlich die grünen Farbanteile, das rechte Auge nur die roten.">
+			<figcaption><span>MIT EINER ROT-GRÜN-BRILLE</span> sieht das linke Auge ausschließlich die grünen Farbanteile, das rechte Auge nur die roten.</figcaption>
+		</figure>
+		<p>Da Shutter-Brillen (siehe Textbox auf S. 215) noch zu teuer sind und das Polarisationsverfahren nicht mit Monitoren funktioniert, bietet sich die Rot-Grün-Technik für einen Einbau in das Voxelprogramm (vgl. Ausgabe 1/99, ab S. 244) und die 3D-Engine (vgl. Ausgaben 8/98, ab S. 234 und 9/98, ab S. 216) an. Hierfür berechnen Sie zwei unabhängige Bilder für beide Augen. Da die Echtfarben-Darstellung ohnehin durch die Brille verlorengeht, genügen Graustufen-Bilder. Die zwei Bilder unterscheiden sich in den Positionen der betrachtenden virtuellen Kameras. Sie verwenden also für das linke Bild eine Kamera, die ein wenig nach links von der Betrachterposition verschoben ist, und für das rechte eine Kamera etwas rechts davon.</p>
+		<p>Um die beiden Bilder für die Ausgabe auf dem Monitor geschickt zusammenzufügen, nutzen Sie die Eigenschaften des im Demosystem verwendeten Farbmodells aus. Mit zwei Shading-Tabellen können Sie die darin enthaltenen Farbwerte so plazieren, daß Sie jeweils nur die Pixel der Einzelbilder mit einem bitweisen <i>Oder</i> verknüpfen müssen, um den endgültigen Farbwert zu erhalten.</p>
+	</section>
+
+	<section>
+		<h2>Voxelspace umrüsten</h2>
+		<p>Das Voxelprogramm müssen Sie kaum modifizieren. Sie fügen nur einige Zeilen hinzu, um das fertige Programm im Projektverzeichnis <i>VOXEL3D</i> zu erhalten.</p>
+		<p>Legen Sie statt einer Shading-Tabelle für den Nebeleffekt zwei Tabellen namens <i>fogtable_red</i> und <i>fogtable_green</i> an. Diese enthalten den Rot- und den Grün-Wert für jede Voxel-Farbe und jede Schattierung. Die Berechnung geschieht folgendermaßen:</p>
+		<pre><code>
+for(int j = 0; j &lt; 32; j++)
+	for(int i = 0; i &lt; 256; i++)
+	{
+		value = j * j / 32;
+		shade = (colormapbmp.cColors
+			[i * 4 + 0] * (32 - value)) / 32 +
+			(colormapbmp.cColors
+			[i * 4 + 1] * (32 - value)) / 32 +
+			(colormapbmp.cColors
+			[i * 4 + 2] * (32 - value)) / 32;
+		shade /= 3;
+		fogtable_red[i][j] = ColorCode(shade, 0, 0);
+		fogtable_green[i][j] = ColorCode(0, shade, 0);
+	}
+		</code></pre>
+		<p>Die <i>Oder</i>-Verknüpfung, mit der Sie zwei Pixel für das endgültige Bild verarbeiten, bauen Sie direkt in die Zeichenroutine des Voxelprogramms ein. Diese einfache Lösung bietet sich an, da jeder Pixel nur ein einziges Mal gezeichnet wird. Sie ändern also in der Prozedur <i>castray</i> nur die Schleife, die die Pixel setzt:</p>
+		<pre><code>
+void castray(int col, int horiz,
+	int delta_x, int delta_y,
+	int fogtable[256][32])
+{
+	...
+	//Schnittpunkt
+	if (h>z)
+	{
+		c=fogtable[colormap8[ofs]][distance &gt;&gt; 3];
+		//Diese Schleife wird durchschnittlich 2x durchlaufen
+		do
+		{
+			//Steigung erhöhen
+			delta_z += VSCALE;
+			//Pixel mit OR setzen
+			screen[pixel] |= c;
+			//Z erhöhen
+			z += ph;
+			//in nächsthöhere Bildschirmzeile gehen
+			pixel -= SCREEN_X;
+			if (pixel &lt; 0) return;
+		} while(h>z);
+	}
+	...
+}
+		</code></pre>
+		<p>Wie Sie der geänderten Prozedurdefinition entnehmen, steht Ihnen innerhalb der Prozedur <i>castray</i> die Shading-Tabelle für die Berechnung beider Bilder zur Verfügung. Es fehlt nur noch die neue Schleife, in der Sie die Position der Kamera nach links und rechts versetzen. Den Richtungsvektor für diese Verschiebung berechnen Sie aus der Blickrichtung. Da dieser Vektor zweidimensional ist, erhalten Sie das gewünschte Lot dazu, indem Sie die Komponenten vertauschen und eine davon negieren. Eine neue Schleife ist etwa:</p>
+		<pre><code>
+xp = xpos;
+yp = ypos;
+for(x=0; x &lt; SCREEN_X; x++)
+{
+	winkel=(BLICKWINKEL * (SCREEN_X - x * 2)) / SCREEN_X;
+	delta_x = cos(drehwinkel + winkel) &lt;&lt; (RADIX - 16);
+	delta_y = sin(drehwinkel + winkel) &lt;&lt; (RADIX - 16);
+
+	//bisher:
+	//castray(x, neigung, delta_x, delta_y);
+
+	float move = -0.002;
+	xpos =xp + move * delta_y;
+	ypos =yp - move * delta_x;
+	castray(x, neigung, delta_x, delta_y, fogtable_red);
+
+	move = 0.002;
+	xpos = xp + move * delta_y;
+	ypos = yp - move * delta_x;
+	castray(x, neigung, delta_x, delta_y, fogtable_green);
+}
+		</code></pre>
+		<p>Der empirisch gewonnene Faktor <i>move</i> bestimmt den idealen Abstand des Betrachters vom Monitor. Damit Sie einen möglichst optimalen 3D-Effekt bekommen, sollten Sie diesen Wert experimentell an Ihren Arbeitsplatz anpassen.</p>
+	</section>
+
+	<section>
+		<h2>Die Stereo-3D-Engine</h2>
+		<p>Die 3D-Engine der Ausgaben 8/98 (ab S. 234) und 9/98 (ab S. 216) rüsten Sie mit fast ebensowenig Aufwand auf eine echte 3D-Darstellung auf. Im Projektverzeichnis <i>ENGINE3D</i> passen Sie zunächst die Definition der 3D-Objekte so an, daß Sie nicht mehr eine einzige Palette für eine Textur haben, sondern je eine für jedes Teilbild. Entsprechend ändern Sie auch die Textur-Laderoutine <i>LoadTexture(...)</i> im Programmcode der Datei <i>tpolygon.cpp</i>.</p>
+		<p>Sie verringern die Anzahl der Shading-Abstufungen und der Farbeinträge in diesen Tabellen, indem Sie die Texturfarben nach dem Laden als entsprechende Graustufen behandeln. Der Unterschied fällt nicht auf, da Sie die Bilder in Graustufen berechnen. Zudem sparen Sie etwas Rechenzeit. Passen Sie hierzu die innere Schleife der Polygon-Zeichenroutine an.</p>
+		<p>Die nächste Änderung nehmen Sie in der Datei <i>3dclip.cpp</i> vor. Hier erweitern Sie die Prozedur <i>clippolygondraw(...)</i> um einen Zeiger auf die aktuelle Palette. Nach dem Clipping der Polygone gegen das Viewing-Fustrum (das Sichtbarkeits-Volumen) rufen Sie die Polygonroutine auf. Dieser übergeben Sie den Zeiger auf die aktuelle Palette.</p>
+		<p>Die Methode <i>tobject::draw</i> des Objekts <i>tobject</i> ruft <i>clippolygondraw(...)</i> auf. Fügen Sie dieser Draw-Methode einen zusätzlichen Parameter hinzu, indem Sie das zu zeichnende Teilbild angeben:</p>
+		<pre><code>
+void tobject::draw(unsigned short *buffer,
+	tcamera *camera, int redgreen)
+{
+	...
+	if (redgreen)
+		clippolygondraw(*currentface, *this,
+			buffer,palette_green);
+	else
+		clippolygondraw(*currentface, *this,
+			buffer,palette_red);
+	...
+}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199902_2.png" width="320" height="258" alt="BEI SEHR NAHEN Objekten erkennen Sie deutlich die unterschiedlichen Teilbilder in Rot und Grün für jedes Auge.">
+			<figcaption><span>BEI SEHR NAHEN</span> Objekten erkennen Sie deutlich die unterschiedlichen Teilbilder in Rot und Grün für jedes Auge.</figcaption>
+		</figure>
+		<p>Jetzt haben Sie alle Änderungen in den Unterprogrammen erledigt und nehmen sich das Hauptprogramm vor: Bei der 3D-Engine können Sie im Gegensatz zum Voxel nicht beide Bilder gleichzeitig zeichnen, sondern müssen sie unabhängig voneinander bearbeiten. Hierzu definieren Sie einen neuen Speicherbereich für das zweite Bild und eine zusätzliche Kamera.</p>
+		<p>Alle weiteren notwendigen Änderungen betreffen die Prozedur <i>DrawSzene(...)</i>. Berechnen Sie aus der Kameraposition und dem Zielpunkt den Richtungsvektor der Blickrichtung. Das Kreuzprodukt aus diesem Vektor und dem <i>up</i>-Vektor der Kamera ergibt denjenigen Vektor, der vom Betrachter aus nach links zeigt. Damit bestimmen Sie die Verschiebung der beiden Kameras für die zwei Teilbilder. Ein einziger Z-Buffer genügt, da dieser nach dem Zeichnen des ersten Bildes nicht mehr benötigt wird.</p>
+	</section>
+
+	<aside>
+		<h2>DER STEREO-EFFEKT AUF IHREM BILDSCHIRM</h2>
+		<div>
+			<p>Bei Computergrafiken und Videoaufnahmen unterstützen verschiedene Verfahren das räumliche Vorstellungsvermögen des Menschen. Allen ist gemein, daß sie mit Spezialbrillen arbeiten.</p>
+			<p>Eine Methode bedient sich sogenannter Shutter-Brillen. Ein Computer kann ihre Gläser unabhängig voneinander zwischen den Zuständen durchsichtig und undurchsichtig umschalten. Diesen Effekt realisieren Flüssigkristall-Displays (wie sie auch in digitalen LCD-Uhren verwendet werden) in den Brillengläsern. Während der Computer das Bild für das linke Auge auf den Monitor zeichnet, schaltet er das rechte Glas auf undurchsichtig. Danach schaltet er auf das rechte Teilbild um und versperrt gleichzeitig die Sicht für das linke Auge.</p>
+			<p>Das Verfahren verlangt eine hohe Bildwiederholfrequenz des Monitors bzw. der Grafikkarte, da diese durch das Abwechseln der Augen faktisch halbiert wird. Es kommen also nur Frequenzen um 100 bis 120 Hz – am besten noch höher – in Frage. Die Brillen sind bislang wenig verbreitet, was sicherlich am hohen Preis liegt, umgekehrt aber auch eine Entwicklung hin zur billigen Massenware hemmt.</p>
+			<p>Das eleganteste Verfahren, für jedes Auge ein unabhängiges Bild darzustellen, macht sich 3D-Brillen mit Polarisationsfiltern zunutze. Sie können sich einen Lichtstrahl prinzipiell als ein Bündel von Energiewellen vorstellen, das sich entlang der Strahlrichtung bewegt. Eine solche Welle verläuft auf einer Ebene. In der Natur sind diese Wellen nicht polarisiert; das heißt, es kommen alle möglichen Drehwinkel der Ebenen vor, in denen diese Wellen verlaufen. Nach dem Passieren eines (linearen) Polarisationsfilters besteht das Lichtbündel nur noch aus Wellen, die in einer bestimmten Richtung schwingen.</p>
+			<p>Bei der Projektion auf eine Leinwand können Sie so das Bild für das linke Auge mit vertikal polarisierten Licht und das Bild für das rechte Auge mit horizontal polarisierten Licht darstellen. Damit jedes Auge nur das ihm zugeordnete Bild empfängt, trägt der Betrachter eine 3D-Brille mit entsprechend eingesetzten Filtern. Leider bleibt diese Methode speziellen Kinos wie IMAX 3D vorenthalten, da Monitore kein polarisiertes Licht erzeugen können. Ziemlich alt, aber immer noch populär, sind Rot-Grün-Brillen, die unter Verlust der Echtfarbdarstellung einen drei&shy;dimensionalen Eindruck vermitteln. Diese Brillen haben vor dem linken Auge einen Rot- und vor dem rechten Auge einen Grün-Filter. Der rote Filter absorbiert alle roten Lichtanteile, der grüne Filter umgekehrt alle grünen Anteile.</p>
+			<p>Ein rotes Objekt auf schwarzem Hintergrund sehen Sie durch den Grün-Filter im Idealfall gar nicht. Dadurch erreichen Sie, daß bestimmte Bildteile nur für ein Auge sichtbar sind. Bildteile, die beide Augen wahrnehmen sollen, zeichnen sie in Gelbtönen, also der additiven Mischung der roten und grünen Farbanteile.</p>
+			<p>Diese Filter funktionieren allerdings nicht ideal: Sie können meist, wenn auch schwach, rote Bereiche durch den roten Filter erkennen und umgekehrt. Die Ursache dafür liegt an den Wellenlängen der roten und grünen Farbtöne. Diese sind im Farbspektrum benachbart und gehen ineinander über. Eine Lösung böte eine Rot-Blau-Brille, ihr Nachteil ist allerdings die relativ schwache Abstrahlung von blauer Farbe bei Monitoren.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Boundary Boxes</h2>
+		<p>Boundary Boxes beschleunigen die Berechnung der 3D-Animation. Es ist schwierig, in 3D-Grafiken sichtbare Polygone so schnell wie möglich von unsichtbaren zu trennen. Wenn Sie ein komplexes 3D-Objekt (oder auch eine Gruppe von Objekten) durch eine sehr einfache Struktur – etwa einen Quader – ersetzen, geht die Berechnung einfach und schnell vonstatten. Prüfen Sie zuerst, ob dieses einfache Objekt in den Sichtbarkeitsbereich der Kamera fällt. Falls nicht, ist auch das darin enthaltene komplexere Objekt nicht sichtbar. Nur bei einem positiven Ergebnis stellen Sie weitere Untersuchungen zur Sichtbarkeit an.</p>
+		<figure class="floatright">
+			<img src="assets/199902_3.png" width="320" height="258" alt="DEN VOXELSPACE der letzten Ausgabe rüsten Sie mit wenigen Zeilen auf räumliche 3D-Darstellung um.">
+			<figcaption><span>DEN VOXELSPACE</span> der letzten Ausgabe rüsten Sie mit wenigen Zeilen auf räumliche 3D-Darstellung um.</figcaption>
+		</figure>
+		<p>Um die Eigenschaften der objektorientierten Programmierung auszunutzen und den bereits vorhandenen Programmcode zu verwenden, sollten Sie ein Objekt von der Klasse <i>tobject</i> ableiten. Im Beispiel heißt das neue Objekt <i>tboundedobject</i>. Es ist vom Interface her natürlich kompatibel zum alten Objekt. Die folgenden Änderungen finden Sie im Unterverzeichnis <i>ENGINEV2</i>.</p>
+		<p>Als einfache Repräsentation der Geometrie kommen Objekte wie Kugeln und Quader in Frage. Für eine 3D-Engine, die auf Echtzeit-Berechnung ausgelegt ist, empfehlen sich Quader. Kugeln eignen sich aufgrund der mathematisch einfachen Schnittpunktberechnung mit Geraden eher für Raytracing-Aufgaben.</p>
+		<p>Berechnen Sie die acht Eckpunkte des Quaders, der das Objekt möglichst eng umschließt. Sie leiten diese direkt aus den Minima und Maxima der Vertex-Koordinaten ab. Die Funktion <i>tboundedobject::calculate_boundarybox()</i> erledigt dies mit einer einfachen Schleife, die jeden Eckpunkt mit den bisherigen Höchst- und Tiefstwerten vergleicht.</p>
+		<p>Die Funktion sollte direkt nach dem Laden einer 3D-Geometrie ausgeführt werden. Dazu nutzen Sie die Vorzüge objektorientierter Programmierung: Erweitern Sie den vererbten Konstruktor von <i>tboundedobject</i> um den Aufruf von <i>calculate_bondarybox</i>. Dadurch brauchen Sie sich um die Berechnung der Boundary Box nicht zu kümmern.</p>
+		<figure class="floatright">
+			<img src="assets/199902_4.png" width="320" height="258" alt="AUCH DIE 3D-ENGINE erhält durch Stereo-Rendering und Rot-Grün-Brille eine faszinierende Tiefenwirkung.">
+			<figcaption><span>AUCH DIE 3D-ENGINE</span> erhält durch Stereo-Rendering und Rot-Grün-Brille eine faszinierende Tiefenwirkung.</figcaption>
+		</figure>
+		<p>Die Sichtbarkeit der Box prüfen Sie, indem Sie die acht Eckpunkte der Boundary Box mit dem Sichtbarkeits-Volumen (dem Viewing-Fustrum) der Kamera vergleichen. Dies funktioniert genauso wie das 3D-Clipping.</p>
+		<p>Dabei testen Sie jeden Punkt einzeln auf den fünf Ebenen des Kamera-Volumens. Diese fünf Ebenen schließen den Bereich im 3D-Raum ein, der von der Kamera aus sichtbar ist. Da Sie einen rechteckigen Bildausschnitt berechnen, handelt es sich um die linke, rechte, obere und untere Kante. Zusätzlich müssen Sie noch gegen die nahe Z-Ebene clippen. Objekte hinter der Kamera sind unsichtbar. Das mathematische Kameramodell, das die 3D-Engine benutzt, erledigt dies nicht automatisch:</p>
+		<pre><code>
+unsigned int fustrum_clipcode(const tvector v)
+{
+	unsigned int clip = 0;
+	//znear:
+	if (v.z &lt; znear_distance)
+		clip |= 1;
+
+	//Links+Rechts
+	if (dotproduct(fustrum[0], v) &lt; 0) clip |= 2;
+	if (dotproduct(fustrum[1], v) &lt; 0) clip |= 4;
+
+	//Oben+Unten
+	if (dotproduct(fustrum[2], v) &lt; 0) clip |=8;
+	if (dotproduct(fustrum[3], v) &lt; 0) clip |=16;
+
+	return clip;
+}
+		</code></pre>
+		<p>Für jede Ebene, die Sie testen, vergeben Sie ein bestimmtes Bit eines Integers. Die so gewonnenen Bitmuster (Clipcodes) verwenden Sie für die Trivial-Clipping-Methode von Cohen und Sutherland.</p>
+		<figure class="floatright">
+			<img src="assets/199902_7.png" width="332" height="206" alt="FÜR DAS 2D-CLIPPING verwenden Sie diese vierstelligen Clipcodes.">
+			<figcaption><span>FÜR DAS 2D-CLIPPING</span> verwenden Sie diese vierstelligen Clipcodes.</figcaption>
+		</figure>
+		<p>Zunächst betrachten wir den zweidimensionalen Raum: Die Abbildung auf S. 221 oben zeigt alle möglichen Clipcode-Kombinationen. Der Bereich in der Mitte entspricht dem sichtbaren Bildbereich. Bei Punkten links davon ist das unterste Bit gesetzt. Rechts vom Bildbereich wird das zweite Bit gesetzt und so weiter.</p>
+		<p>Möchten Sie wissen, ob eine Linie (wenigstens teilweise) sichtbar ist, verknüpfen Sie die Clipcodes ihrer beiden Endpunkte mit der <i>Und</i>-Funktion. Ist das Ergebnis ungleich Null, schneidet sie das mittlere Rechteck nicht und ist somit nicht sichtbar. Sonst liegt sie entweder ganz (beide Clipcodes sind dann <i>0000</i>) oder teilweise im Sichtbarkeitsbereich.</p>
+		<p>Analog gehen Sie bei 3D-Objekten vor: Sie berechnen zunächst die Clipcodes für alle acht Punkte der Boundary Box. Durch deren logische Verknüpfung erhalten Sie eine Menge Informationen.</p>
+		<p>Ist die bitweise <i>Und</i>-Verknüpfung aller Punkte ungleich Null, befindet sich die Boundary Box außerhalb des sichtbaren Bereichs. Da die Boundary Box alle Flächen und Eckpunkte unseres Objekts umschließt, muß auch das Objekt selbst unsichtbar sein. Sie können sich daher jede weitere Berechnung sparen und gleich zum nächsten Objekt übergehen. Wird ein Objekt wie hier sofort nach dem Auswerten der <i>Und</i>-Verknüpfung eliminiert, spricht man von einem <i>Trivial Reject Test</i>.</p>
+		<p>Clipcodes liefern Ihnen noch weitere Informationen. Sind zum Beispiel alle Clipcodes gleich Null, ergibt auch die <i>Oder</i>-Verknüpfung diesen Wert. Das Objekt ist somit vollständig sichtbar, und Sie können das gesamte Clipping überspringen.</p>
+		<p>Erhalten Sie ein Ergebnis wie <i>0001</i>, müssen Sie das Objekt nur gegen die linke Ebene clippen. Ähnlich lesen Sie alle anderen Ebenen aus dem kombinierten Clipcode ab. Es ist also sinnvoll, der 3D-Clipping-Funktion den Clipcode des Objektes mitzuliefern. Unser Programmbeispiel läuft mit dieser neuen 3D-Clipping-Funktion etwa doppelt so schnell wie vorher.</p>
+		<p>Veranschaulichen Sie sich das Kombinieren von Clipcodes einmal auf einem Blatt Papier. Es ist ein hervorragendes Verfahren und kommt in der Computergrafik häufig zum Einsatz. Ob Sie Linien in einer Ebene oder Polygone im drei&shy;dimensionalen Raum betrachten, ist egal. Die zunächst unberücksichtigte Z-Near-Ebene repräsentieren Sie einfach durch ein weiteres Bit. Dabei brauchen Sie für diese Ebene nur die Z-Koordinate eines Eckpunkts zu überprüfen und können auf Skalarprodukte verzichten.</p>
+		<p>Die Berechnung der Clipcodes und die Behandlung der einzelnen Fälle übernimmt <i>tboundedobject::draw()</i> in der Datei <i>3dengine.cpp</i>:</p>
+		<pre><code>
+void tboundedobject::draw(unsigned short *buffer,
+	tcamera *camera)
+{
+	//Transformationsmatrix des Objektes berechnen
+	build_ltm(camera);
+
+	//Boundary Box Test:
+	tvector tempvector;
+	unsigned int clip_and = 31;
+	unsigned int clip_or = 0;
+	unsigned int clipcode;
+
+	for(int i = 0; i &lt; 8; i++)
+	{
+		//Transformation in den 3D-Raum der Kamera:
+		transform(boundarybox[i], ltm, tempvector);
+
+		//Clipcode für alle Ebenen berechnen:
+		clipcode = fustrum_clipcode(tempvector);
+
+		//Logische Verknüpfungen berechnen:
+		clip_and &amp;= clipcode;
+		clip_or |= clipcode;
+	}
+
+	//Trivial Reject Test:
+	if(clip_and) return;
+	...
+}
+		</code></pre>
+	</section>
+
+	<aside>
+		<h2>ROT-GRÜN-BRILLE IM EIGENBAU</h2>
+		<div>
+			<p>Falls Sie bei Ihrem Optiker keine Rot-Grün-Brille erwerben können, hilft vielleicht ein Gang zum Buchhändler weiter: Dort gibt es neben 3D-Comics oft auch interessante Bücher in Rot-Grün-Technik (Anaglyphen), denen eine einfache Brille beiliegt.</p>
+			<p>Ein empfehlenswertes Werk ist Die Mars Mission von Holger Heuseler (49,95 Mark, BLV-Verlag, erschienen im März 1998, ISBN: 3405154618) mit einigen schönen Stereofotos des roten Planeten.</p>
+			<p>Zum Nulltarif bekommen Sie Ihr Brillengestell diesmal nicht bei Fielmann, sondern durch eine kleine Bastelei: Drucken Sie das Schnittmuster 3D-Glasses.gif (auf der Heft-CD) aus, kleben Sie es auf ein Stück dünne Pappe, und schneiden Sie die Teile aus. Beim Schreibwarenhändler besorgen Sie sich dann noch transparente Folien und kleben sie – Rot links, Grün rechts – in das Gestell. Farbiges Bonbonpapier eignet sich weniger, da es meist nicht sehr glatt ist und die Sicht trübt.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Partikelsysteme</h2>
+		<p>Computerspiele setzen gern Partikelsysteme ein, um Explosionen, Feuer und andere Phänomene auf den Bildschirm zu zaubern. Diese Systeme zu implementieren ist nicht schwer.</p>
+		<p>Bei Partikelsystemen werden Objekte nicht mehr durch Polygone, sondern durch einzelne Elemente wie zum Beispiel Punkte dargestellt. Diese einzelnen Teilchen sind ständig in Bewegung. Um starre Körper oder einen Raum zu zeichnen, sind Partikel deshalb ungeeignet. Bei Explosionen, Feuerwerken und dergleichen sind sie Polygon-Objekten hingegen weit überlegen.</p>
+		<figure class="floatright">
+			<img src="assets/199902_5.png" width="320" height="258" alt="PARTIKELSYSTEME simulieren bewegte Objekte wie ein loderndes Feuer sehr realistisch.">
+			<figcaption><span>PARTIKELSYSTEME</span> simulieren bewegte Objekte wie ein loderndes Feuer sehr realistisch.</figcaption>
+		</figure>
+		<p>Meist genügt eine physikalisch sehr vereinfachte Berechnung der Partikel: Repräsentieren Sie jedes Element durch eine Struktur, die nicht nur dessen Position, sondern auch die Bewegungsrichtung und das „Alter“ speichert:</p>
+		<pre><code>
+struct particle
+{
+	tvector vertice;
+	tvector direction;
+	long lifetime;
+};
+		</code></pre>
+		<p>Das Alter dient dazu, den Partikel nach einiger Zeit wieder verschwinden zu lassen, da Partikeleffekte im relativ beschränkten Raum ablaufen sollen. Als Ausgleich dafür kommen immer wieder neue Teilchen hinzu.</p>
+		<p>Um einen Partikel darzustellen, zeichnen Sie an der entsprechenden Position im 3D-Raum eine kleine Bitmap additiv auf den Hintergrund. Durch Überlagerung vieler Partikel verwischen die Kanten der Bitmaps, und Sie erhalten den gewünschten Effekt. Von der Lebensdauer des Partikels hängt die Helligkeit der Bitmap ab. Alle Routinen zum Zeichnen von Texturen sind schon in mehreren Helligkeiten vorhanden.</p>
+		<p>Die Implementation der Darstellung finden Sie in der Datei <i>3dengine.cpp</i>. Das gesamte Partikelsystem ist als Objekt <i>tparticleobject</i> vom Basisobjekt <i>tobject</i> abgeleitet. Dadurch ersparen Sie sich das erneute Programmieren der 3D-Berechnung und das Laden der Texturen.</p>
+	</section>
+
+	<section>
+		<h2>Partikel bewegen</h2>
+		<p>Partikel können sich natürlich im 3D-Raum bewegen. Für statische Effekte ist dies überflüssig, Explosionen oder lodernde Feuer verlangen hingegen Mobilität. Durch die Struktur der Partikel bietet sich ein einfaches, an die Physik angelehntes Modell an.</p>
+		<p>In der Abbildung rechts sehen Sie einen Partikel an seiner alten Position <i>A</i>, seine Richtung als Vektor <i>v</i> sowie seine neue Position <i>B</i>. Die neue Position bestimmen Sie, indem Sie die Richtung <i>v</i> um die Gravitation <i>g</i> verändern. Hierzu addieren Sie einfach die Vektor-Komponenten. Danach verschieben Sie den Partikel um seine neue Geschwindigkeit <i>v’</i>.</p>
+		<p>So erreichen Sie eine Bewegung, die den physikalischen Tatsachen schon sehr nahe kommt und gut aussieht. Legen Sie noch fest, wie und wo Partikel erzeugt werden. Dafür fassen Sie alle nötigen Informationen in einer Struktur namens <i>particleemitter</i> zusammen:</p>
+		<pre><code>
+struct particleemitter
+{
+	long maxparticles;
+	long lifetime;
+	long output;
+	tvector position_rand;
+	tvector speed;
+	tvector speed_rand;
+	tvector gravity;
+};
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199902_6.png" width="315" height="217" alt="BEIM WANDERN eines Partikels von A nach B spielen Bewegungsrichtung und Gravitation eine Rolle.">
+			<figcaption><span>BEIM WANDERN</span> eines Partikels von A nach B spielen Bewegungsrichtung und Gravitation eine Rolle.</figcaption>
+		</figure>
+		<p>Die Eigenschaft <i>maxparticles</i> legt die maximale Anzahl an Partikeln fest, die ein Partikel-Objekt gleichzeitig verwalten soll. Deren Lebenszeit <i>lifetime</i> wird in berechneten Bildern gemessen. Zusätzlich steuert <i>output</i>, wie viele Partikel pro Bild neu zum Objekt hinzukommen.</p>
+		<p>Während Sie Partikel generieren, ist es sinnvoll, die Startposition und die Richtung für jeden Partikel etwas zu variieren. Die dafür nötigen Felder sind <i>position_rand</i> und <i>speed_rand</i>. Außerdem legen Sie noch die Grundgeschwindigkeit <i>speed</i> sowie die Gravitationskraft <i>gravity</i> fest.</p>
+		<p>Auch bei diesem Effekt gilt: Experimentieren lohnt sich. Sie können damit Feuer, Explosionen, Funken und viele andere Lichteffekte nachbilden.</p>
+	</section>
+
+	<section>
+		<h2>Einzelne Partikel zeichnen</h2>
+		<p>Für die Echtzeit-Grafik ist es sinnvoll, statt einzelner Punkte kleine Bitmaps für die Partikel zu zeichnen. Benutzen Sie deshalb die gleiche Methode (additives Shading) wie für den Lense-Flare-Effekt (vgl. Ausgabe 10/98, ab S. 232).</p>
+		<p>Setzen Sie die Bildpunkte der Partikel nicht einfach in das Bild ein, sondern „addieren“ Sie sie auf die aktuellen Pixelwerte. Dadurch verwischen die Kanten zwischen den Partikeln, und Sie benötigen wesentlich weniger einzelne Teilchen.</p>
+		<p>Wenn Sie mit dem addierenden Zeichnen nicht vertraut sind, stellen Sie sich mehrere Dia-Projektoren vor, mit denen Sie verschiedene Bilder auf eine Leinwand projizieren. Je mehr Bilder Sie übereinander legen, desto heller werden die Pixel an den überlagerten Stellen. Das additive Zeichnen kostet zwar viel Zeit, aber da Sie für einen realistischen Effekt wesentlich weniger Partikel brauchen, schneiden Sie im Zeitvergleich besser ab.</p>
+		<p>Die Partikel zeichnen Sie immer erst am Schluß, da Sie keine Z-Buffer-Werte für die Partikel besitzen. Der Z-Buffer enthält nach dem Zeichnen der Objekte immer den minimalen Abstand zum Betrachter für einen Pixel. Außerdem kennen Sie zu jedem Partikel dessen Abstand zum Betrachter.</p>
+		<p>Vor dem Zeichnen vergleichen Sie einfach diesen Wert mit dem Z-Buffer-Wert des Bildes an der Stelle, an welcher der Partikel im zweidimensionalen Raum sitzt. Ist er näher als ein dort gezeichnetes Polygon, zeichnen Sie ihn auch dort. Andernfalls ist er nicht sichtbar. Beachten Sie aber, daß Sie den Z-Buffer keinesfalls ändern dürfen, sonst könnte ein vorne liegender Partikel einen hinteren überdecken. Das darf nicht passieren, da alle Partikel transparent sind.</p>
+		<p>Solche Partikel&shy;objekte können Sie auch mit Polygon&shy;objekten kombinieren, um etwa die Triebwerke eines Raumschiffs mit einer Partikelflamme auszustatten. Die vorge&shy;nommenen Erweiterungen der 3D-Engine bieten interessante Ansätze, mit denen Sie weiter&shy;experimentieren können.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein / Jörg Reitter</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+	<nav class="pagenav">
+		<a rel="prev" href="199901.html">1/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199903.html">3/1999</a>
+	</nav>
+</body>

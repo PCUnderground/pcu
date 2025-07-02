@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Tuning am Grafikmotor (PC Underground, PC Magazin 9/98)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;9/1998. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199808.html">8/1998</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199810.html">10/1998</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/NT</h2>
+		<h1>Tuning am <span class="highlight">Grafikmotor</span></h1>
+		<p class="summary">Die 3D-Engine der letzten Ausgabe erweitern Sie diesmal um eine <span class="highlight">frei bewegliche Kamera.</span> Verschiedene Verfahren ver&shy;bessern zudem die Grafik&shy;ausgabe.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Die in der letzten Ausgabe von PC Magazin (ab S. 234) ent&shy;wickelte 3D-Engine bewegt drei&shy;dimensionale Objekte in jede beliebige Richtung und arbeitet bereits mit einer imagi&shy;nären Kamera. Diese steht aller&shy;dings starr am Nullpunkt des Ko&shy;ordinaten&shy;systems und blickt immer in Richtung der z-Achse. Das werden wir nun ändern.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199809.zip">💾 199809.zip</a>.</div>
+	</aside>
+
+	<section>
+		<p>Halten Sie die Kamera dabei aber stets auf der z-Achse, die auch identisch mit der Blick&shy;richtung sein sollte. Denn nur so proji&shy;zieren Sie die Vertex-Koordinaten leicht vom drei&shy;dimensionalen Raum in die zwei&shy;dimensionale Bild&shy;schirm&shy;ebene.</p>
+		<p>Zuerst ent&shy;wickeln Sie die flexible Position der Kamera. Dazu müssen Sie etwas umdenken: Stellen Sie sich vor, Sie sind die Kamera. Wenn Sie in den Raum sehen und einen Schritt nach links machen, bewegen sich aus Ihrer Sicht alle Dinge nach rechts. Anders gesagt, ver&shy;schiebt sich die ganze Welt vor Ihnen nach rechts. Die Position der Kamera sowie die Stel&shy;lungen der Objekte unter&shy;einander ändern sich dabei prinzip&shy;iell nicht.</p>
+		<p>Diese Be&shy;obachtung inte&shy;grieren Sie recht einfach in das bestehende System. Da Sie die Verschiebung (Translation) der Objekte während der Matrix-Berechnung als letztes berück&shy;sichtigen, brauchen Sie nur die Position der Kamera von der je&shy;weiligen Objekt&shy;position zu subtrahieren</p>
+		<p>Jetzt können Sie Ihre Kamera bewegen, sehen aber nach wie vor nur entlang der z-Achse. Zusätzlich könnten Sie noch die komplette 3D-Szene um den Stand&shy;punkt der Kamera drehen. Dies ginge sehr einfach, da Sie ja nur die Ko&shy;ordinaten der Objekte modi&shy;fiziert haben und die Kamera nach wie vor im Ursprung steht. Sie bräuchten deshalb nur die Objekt-Matrix mit einer Rotations-Matrix zu multi&shy;plizieren.</p>
+		<figure class="floatright">
+			<img src="assets/199809_1.png" width="612" height="640" alt="BEI EINER KAMERA&shy;BEWEGUNG beobachten Sie eine Ver&shy;schiebung der Objekte in die Gegen&shy;richtung.">
+			<figcaption><span>BEI EINER KAMERA&shy;BEWEGUNG</span> beobachten Sie eine Ver&shy;schiebung der Objekte in die Gegen&shy;richtung.</figcaption>
+		</figure>
+		<p>Diese Methode ist aber nicht sehr an&shy;schaulich, weil hier der Rotations&shy;winkel die Blick&shy;richtung bestimmt. Vorzugs&shy;weise sollte die Stellung der Kamera durch ihre eigene Position und durch die Aus&shy;richtung auf einen bestimmten Punkt definiert sein. Die Be&shy;rechnung einer Matrix, die eine 3D-Szene so rotiert, daß die Blick&shy;richtung der Kamera entlang der z-Achse bleibt, erfordert etwas Vektor&shy;arithmetik.</p>
+		<p>Einen drei&shy;dimensionalen Raum spannen Sie aus drei senkrecht auf&shy;einander stehenden Vektoren auf, da diese von&shy;einander unabhängig sind (kein Vektor ist durch eine Kombi&shy;nation der beiden anderen dar&shy;stellbar). Somit können Sie jeden Punkt p in diesem Vektor&shy;raum durch eine Kombi&shy;nation</p>
+		<p>p = a<sub>1</sub> ⋅ x + a<sub>2</sub> ⋅ y + a<sub>3</sub> ⋅ z<br> aus <i>x</i>, <i>y</i> und <i>z</i> beschreiben.
+		</p>
+		<p>Definieren Sie zuerst ein Koordinaten&shy;system für Ihre Kamera, in dem die Kamera immer entlang der z-Achse zeigt. In dieses Koordinaten&shy;system drehen – also projizieren – Sie die Objekte hinein.</p>
+		<pre><code>
+tvector forward;
+tvector up;
+tvector right;
+		</code></pre>
+		<p>Der Vektor <i>forward</i> entspricht der Blick&shy;richtung der Kamera. Sie berechnen ihn aus der Position und dem Zielpunkt (Target) der Kamera. Danach normali&shy;sieren Sie ihn für spätere Be&shy;rechnungen auf die Länge 1:</p>
+		<pre><code>
+forward.x = camera.target.x - camera.position.x;
+forward.y = camera.target.y - camera.position.y;
+forward.z = camera.target.z - camera.position.z;
+normvector(forward);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199809_2.png" width="612" height="640" alt="BEI EINER KAMERA&shy;DREHUNG beobachten Sie eine Rotation der Objekte in die Gegen&shy;richtung.">
+			<figcaption><span>BEI EINER KAMERA&shy;DREHUNG</span> beobachten Sie eine Rotation der Objekte in die Gegen&shy;richtung.</figcaption>
+		</figure>
+		<p>Nun sorgen Sie dafür, daß die Drehung um die Blick&shy;richtung der Kamera korrekt ist. Dies berechnen Sie mit dem Vektor <i>up</i>. Er zeigt in die Richtung, die Sie im Kamera&shy;bild als „oben“ bezeichnen würden. Da Sie nicht wissen, ob er recht&shy;winklig auf dem Vektor <i>forward</i> steht oder nicht, korrigieren Sie ihn später noch. Vorläufig soll folgender Vektor fest vorgegeben sein:</p>
+		<pre><code>
+up.x = 0;
+up.y = 1;
+up.z = 0;
+		</code></pre>
+		<p>Durch das Kreuz&shy;produkt von <i>forward</i> und <i>right</i> erhalten Sie einen Vektor, der senkrecht auf diesen beiden steht. Dieser Vektor kann daher im Kamera-Koordinaten&shy;system nur derjenige sein, der im Bild nach „rechts“ zeigt. Auch diesen Vektor namens <i>right</i> normali&shy;sieren Sie:</p>
+		<pre><code>
+crossproduct(up,forward,right);
+normvector(right);
+		</code></pre>
+		<p>Nachdem Sie nun <i>forward</i> und <i>right</i> kennen, können Sie wiederum einen neuen Vektor <i>up</i> bestimmen. Da dieser senkrecht auf <i>forward</i> und <i>right</i> steht, berechnen Sie ihn erneut mit dem Kreuz&shy;produkt und an&shy;schließendem Normali&shy;sieren:</p>
+		<pre><code>
+crossproduct(forward,right,up);
+normvector(up);
+		</code></pre>
+		<p>Eine kleine Ein&shy;schränkung besteht bei dieser Art der Kamera&shy;berechnung: Sie sind hier davon aus&shy;gegangen, daß das Kreuz&shy;produkt von <i>forward</i> und <i>up</i> den Vektor <i>right</i> ergibt, der recht&shy;winklig auf diesen beiden steht. Die Blick&shy;richtung der Kamera kann aber auch genau nach oben zeigen, also in die gleiche Richtung wie der Vektor <i>up</i>. In diesem Fall liefert Ihnen das Kreuz&shy;produkt für <i>right</i> den Null&shy;vektor <i>&lt;0,0,0&gt;</i>, und das Normali&shy;sieren scheitert somit an einer Division durch 0.</p>
+		<p>Vermeiden Sie bei diesem Kamera&shy;modell also Kamera&shy;fahrten, in denen die Kamera genau nach oben zeigt. Program&shy;mieren Sie für diesen Fall eine Sonder&shy;behandlung, eventuell mit leichter Korrektur der Blick&shy;richtung.</p>
+		<p>Zum Abschluß sollten Sie noch eine freie Drehung der Kamera um die Achse der Blick&shy;richtung, den sogenannten Roll&shy;winkel, einbauen. Drehen Sie dazu den bisher festen Vektor <i>up</i> mit den Werten <i>&lt;0,1,0&gt;</i> um die z-Achse. Dadurch erhalten Sie für <i>up</i>
+		<pre><code>
+up.x = -sin(kamera.roll);
+up.y = cos(kamera.roll);
+up.z = 0;
+		</code></pre>
+		<p>Stellen Sie die Kamera zum Beispiel auf den Kopf, dann steht die 3D-Szene ebenfalls auf dem Kopf.</p>
+		<p>Benutzen Sie diesen Blick&shy;winkel aber mit Fein&shy;gefühl: Wir sind es nicht gewohnt, daß sich unser Sicht&shy;feld dreht und auf dem Kopf steht. In Filmen und Ani&shy;mationen kommt dieser Effekt zu Recht nur sehr sparsam zum Einsatz.</p>
+		<p>Aus den drei soeben gewonnenen Vektoren bauen Sie nun eine Matrix auf, die das Koordinaten&shy;system wie gewünscht abbildet: Dann liegt <i>forward</i> entlang der z-Achse, <i>right</i> entlang der x-Achse und <i>up</i> entlang der y-Achse.<br>
+			<img class="halfscale" src="assets/199809_6.png"><br>
+		</p>
+		<p>Schließ&shy;lich können Sie auch noch den Öffnungs&shy;winkel des (virtuellen) Kamera&shy;objektivs beein&shy;flussen. Die entsprechende Funktion finden Sie im Quell&shy;text von 3dcamera.cpp. Hier ist die Kamera als Klasse tcamera implementiert. Die darin enthaltene Funktion</p>
+		<pre><code>
+tcamera::set_perspective(const float aPerspective)
+		</code></pre>
+		<p>setzt die Perspektive bzw. Brenn&shy;weite der Kamera. Dazu berechnet sie die Projektions&shy;faktoren und das Clipping-Fustrum für das 3D-Clipping neu. Fustrum ist der englische Ausdruck für eine abgestumpfte Pyramide und bezeichnet hier das von der Kamera aus sichtbare Volumen.</p>
+		<p>Um die Kamera auf Ihre 3D-Objekte anzuwenden, multi&shy;plizieren Sie lediglich die Objekt- mit der Kamera-Matrix. So erhalten Sie die end&shy;gültige Abbildung für Ihre Objekte. In 3dengine.cpp erledigt dies die Funktion <i>build_ltm:</i></p>
+		<pre><code>
+void tobject::build_ltm(tcamera * camera)
+{
+	float temp[16];
+	matrix_mul(temp, mrot, mscale);
+	temp[3] += mtrans[3] - camera->position.x;
+	temp[7] += mtrans[7] - camera->position.y;
+	temp[11]+= mtrans[11] - camera->position.z;
+	matrix_mul(ltm, temp, camera->matrix);
+	angle_preserving_matrix_inverse(ltm, iltm);
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Ihre erste 3D-Animation</h2>
+		<p>Da Sie nun sowohl Kamera- als auch Objekt&shy;bewegungen beherrschen, können Sie sich an Ihre erste 3D-Animation wagen. Eine Szene nach Ihren Vor&shy;stellungen entwerfen Sie am einfachsten mit einem 3D-Editor. Neben kommerziellen Programmen gibt es hierfür auch empfehlens&shy;werte Shareware (siehe Textbox „Shareware für 3D-Animationen“ unten).</p>
+		<p>Um eine 3D-Animation zu berechnen, müssen Sie die Objekte nicht für jedes Einzel&shy;bild verschieben. Nur für einige sogenannte Keys geben Sie die Positionen der Kamera und des Ziel&shy;punkts an. Die ent&shy;sprechenden Werte der dazwischen&shy;liegenden Bilder berechnen die meisten Programme durch ein bestimmtes Interpolations&shy;verfahren (häufig werden sogenannte kubische Splines verwendet).</p>
+		<p>Nun machen es Ihnen viele Hersteller nicht leicht, an die von Ihrem Programm erzeugten Daten heranzukommen. Oft sind Datei&shy;formate undokumentiert, oder die Beschreibung ist nur in Form eines – meist sehr teuren – Developer Kit erhältlich. Selbst mit vorliegenden Informationen ist eine vollständige Auswertung meist sehr aufwendig.</p>
+		<figure class="floatleft">
+			<img src="assets/199809_3.png" width="320" height="263" alt="BEISPIELSZENE mit Gouraud Shading">
+			<figcaption><span>BEISPIELSZENE</span> mit Gouraud Shading</figcaption>
+		</figure>
+		<p>Viele Editoren bieten jedoch Funktionen, um Objekt- und Kamera&shy;bewegungen für jedes Bild einzeln vorzuberechnen und als ASCII-Datei zu speichern. Eines dieser Programme ist das schon etwas betagte Programm 3D-Studio R4 der Firma Autodesk. Es speichert bildweise für alle Objekte und Kameras die dazugehörigen Matrizen und Parameter in einer Datei mit der Endung vue. Auch die Beschreibung einer 3D-Szene können Sie als Textdatei speichern und dann leicht auslesen. Als Eigenheit dieser Animations&shy;beschreibung liegen die Trans&shy;formations&shy;matrizen in den vue-Dateien nicht als 4×4-Matrix vor: Rotation und Skalierung beschreibt eine 3×3-Matrix, die Ver&shy;schiebung gibt ein Vektor an.</p>
+		<p>In der erweiterten Version unserer 3D-Engine finden Sie eine Routine, um die Matrix der Objekte direkt zu setzen. Zum Abspielen von vue-Dateien ist dies sehr praktisch.</p>
+		<p>Die Funktion <span class="code">void tobject::setmatrix (float *matrix, float *trans);</span> zerlegt die 3×3-Matrix in ihren Rotations- und Skalierungs&shy;anteil und bereitet die inversen Matrizen für die Licht&shy;berechnung vor.</p>
+	</section>
+
+	<aside>
+		<h2>SHAREWARE FÜR 3D-ANIMATIONEN</h2>
+		<div>
+			<p>Neben Autodesk 3D-Studio gibt es weitere Programme, mit denen Sie einfache 3D-Szenen modellieren und animieren und als Textdatei speichern, zum Beispiel das Programm 4D-Builder.</p>
+			<p>Zur Daten&shy;anpassung an das vue-Format schreiben Sie dann ein kleines Konvertier&shy;programm. Damit Sie sofort loslegen können, finden Sie auf der Heft-CD dieser Ausgabe neben den kompletten Quell&shy;codes der Demo auch das Programm 4D-Builder in der derzeit aktuellen Version 0.96. Unter <a href="https://www.geocities.com/SiliconValley/Network/5884" rel="external nofollow noreferrer">www.geocities.com/SiliconValley/Network/5884</a> bekommen Sie die jeweils neuesten Updates.
+			<p>Auch fertige Objekte und 3D-Szenen finden Sie im Internet. Die Homepage von <a href="https://www.meshmart.org" rel="external nofollow noreferrer">www.meshmart.org</a> bietet neben fertigen 3D-Objekten im 3D-Studio-Format auch Texturen und Hilfs&shy;programme. Außerdem gibt es hier Doku&shy;mentationen für diverse Datei&shy;formate und Links auf weitere Ressourcen.
+		</div>
+	</aside>
+
+	<section>
+		<h2>Flächen realistisch darstellen</h2>
+		<p>Da Sie sich nun frei in 3D-Welten bewegen können, sollten Sie noch den real&shy;istischen Eindruck und die Qualität der Dar&shy;stellung erhöhen. In der letzten Ausgabe des PC Magazin haben Sie bereits eine Routine kennengelernt, um Polygone einfarbig und mit Z-Buffer-Unterstützung zu zeichnen. Nun kommen einfarbige Flächen in der Wirklich&shy;keit aber so gut wie nie vor. Entweder besitzen sie durch die Bestrahlung einer Licht&shy;quelle einen Helligkeits&shy;verlauf, oder sie sind in irgendeiner Art und Weise gekrümmt.</p>
+		<p>Wie Sie wissen, werden in der 3D-Engine auch gekrümmte Flächen durch Polygone angenähert. Um solche Farb&shy;verläufe auf Polygonen zu zeichnen, verwenden Sie das sogenannte Gouraud Shading. Hierzu berechnen Sie die Helligkeits&shy;werte nicht wie bisher für das ganze Polygon, sondern für jeden seiner Eckpunkte.</p>
+		<figure class="floatright">
+			<img src="assets/199809_4.png" width="350" height="223" alt="IM VERGLEICH: die alte 3D-Engine mit Flat Shading und die neue Version mit Gouraud Shading">
+			<figcaption><span>IM VERGLEICH:</span> die alte 3D-Engine mit Flat Shading und die neue Version mit Gouraud Shading</figcaption>
+		</figure>
+		<p>Die bereits bekannte Formel</p>
+		<p><i>Licht = (Normalenvektor O Lichtvektor)</i><br>
+			zeigt aber, daß Sie für jeden Eckpunkt eine eigene Normale benötigen. Diese erhalten Sie, indem Sie für jeden Eckpunkt die Normalen aller Flächen addieren, die diesen Eckpunkt enthalten. Den resultierenden Vektor normalisieren Sie anschließend.</p>
+		<p>Die Helligkeitswerte (Gouraud-Intensitäten) interpolieren Sie nun genauso über das Polygon, wie Sie es mit dem Kehrwert des Z-Buffer-Werts getan haben. Dadurch erhalten Sie einen linearen Farb&shy;verlauf auf dem Polygon, der runde Flächen wie etwa eine Kugel auch wirklich rund erscheinen läßt.</p>
+	</section>
+
+	<section>
+		<h2>Realistische Oberflächen schaffen</h2>
+		<p>Wenn Sie einen drei&shy;dimensionalen Körper aus Holz oder Marmor modellieren, besitzt jedes Polygon des Körpers neben verschiedenen Helligkeits&shy;werten auch eine für das Material typische Oberflächen&shy;struktur. Sie könnten eine solche Oberfläche in viele kleine Polygone mit verschiedenen Farben zerlegen, um die Struktur dieser Materialien nachzuahmen. Die Zahl der Polygone würde bei dieser Methode allerdings ins Unermeßliche steigen. Deshalb benutzen Sie hier das sogenannte Texture-Mapping.</p>
+		<p>Stellen Sie sich vor, Sie schneiden aus einer flexiblen Tapete ein Stück heraus, dehnen es auf die richtige Größe aus und kleben es auf eine Fläche. Genauso verfahren Sie beim Texture-Mapping: Sie nehmen die sogenannte Texture-Map und projizieren sie auf das Polygon. Verwenden Sie als Texture-Map das Bild einer Marmorplatte, erhalten Sie ein marmoriertes 3D-Objekt. Damit die Polygon&shy;routine weiß, welcher Teil des Bilds auf ein Polygon projiziert werden soll, speichern Sie diese Information in den sogenannten Texture-Mapping-Koordinaten u und v. Zwei Koordinaten reichen deshalb aus, weil die Texture-Map zwei&shy;dimensional ist. Jeder Eckpunkt eines Polygons erhält diese beiden Koordinaten.</p>
+		<p>Beim Zeichnen der Polygone mit Texturen interpolieren Sie die Koordinaten <i>u</i> und <i>v</i> über das Polygon – analog der Helligkeits&shy;inter&shy;polation beim Gouraud Shading. Immer wenn Sie ein Pixel zeichnen, lesen Sie den entsprechenden Bildpunkt der Texture-Map (Texel) aus und setzen ihn dann unter Berück&shy;sichtigung der Gouraud-Intensität.</p>
+		<figure class="floatleft">
+			<img src="assets/199809_5.png" width="311" height="170" alt="SO PROJIZIEREN SIE die Texture-Map auf ein Polygon.">
+			<figcaption><span>SO PROJIZIEREN SIE</span> die Texture-Map auf ein Polygon.</figcaption>
+		</figure>
+		<p>In dieser Implementation verwenden Sie nur Texturen mit 256 Farben und einer Auflösung von 256 x 256 Pixeln. In den meisten Fällen ist das mehr als genug, außerdem gewinnen Sie dadurch an Geschwindigkeit: Sie können nun eine Shading-Tabelle für die Texturen verwenden und mit dem Farbwert des Bildpunkts und der Helligkeit einfach die resultierende Farbe auslesen. Die Auflösung der Textur wurde so gewählt, daß ein Texel möglichst schnell und einfach im Speicher zu adressieren ist. Die horizontalen und vertikalen Inkremente berechnen Sie also wie folgt:</p>
+		<pre><code>
+d = ((double)(x0 - x2) / 65536.0 *
+	(double)(y1 - y2) /65536.0 -
+	(double)(x1 - x2) /65536.0 *
+	(double)(y0 - y2) /65536.0);
+if (d==0.0) return;
+
+id = 1.0 / d;
+double y12 = (double)(y1 - y2) / 65536.0;
+double y02 = (double)(y0 - y2) / 65536.0;
+
+tex_delta_u = ((
+	(double)(u0 - u2) * y12 -
+	(double)(u1 - u2) * y02) * id);
+
+tex_delta_v = ((
+	(double)(v0 - v2) * y12 -
+	(double)(v1 - v2) * y02) * id);
+
+gouraud_delta = ((
+	(double)(g0 - g2) * y12 -
+	(double)(g1 - g2) * y02) * id);
+		</code></pre>
+		<p>Die innere Schleife zum Zeichnen der Scanlines sieht inzwischen folgendermaßen aus:</p>
+		<pre><code>
+for(i = 0; i &lt; breite; i++)
+{
+	// Z-Buffer Vergleich
+	if ((z &gt;&gt; 16) > zbuffer[i + x1])
+	{
+		// Pixel zeichnen
+		vbuffer[i + x1] =
+		// Lesen der Shading-Tabelle
+		// mit Gouraud-Intensität
+			palette[((g &gt;&gt; 8) &amp; 65280) +
+		// und Texelfarbwert
+			* (texture + (u &gt;&gt; 16)
+			+ ((v &gt;&gt; 16) << 8))];
+		// Z-Buffer-Wert aktualisie-
+		// ren
+		zbuffer[i + x1] = (z &gt;&gt; 16);
+	}
+	// horizontale Werte
+	// aktualisieren
+	u += tex_delta_u;
+	v += tex_delta_v;
+	g += gouraud_delta;
+	z += zbuffer_d;
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Subpixel-Genauigkeit</h2>
+		<p>Um die Bewegung der Polygone auf dem Bildschirm weicher und weniger sprung&shy;haft erscheinen zu lassen, verwenden Sie das sogenannte Subpixel-Verfahren. Hierbei verschieben Sie die Start&shy;werte der an den Polygon&shy;kanten zu interpolierenden Werte ein wenig. Da Sie diese Startwerte nur an den Eck&shy;punkten der Polygone setzen und ansonsten interpolieren, verlangen auch nur die Eckpunkte eine Subpixel-Korrektur.</p>
+		<p>Um einen sinn&shy;vollen Wert für diese Verschiebung zu berechnen, ermitteln Sie den Betrag, der der y-Koordinate des entsprechenden Eckpunkts auf die nächste ganze Zahl fehlt. Sie berechnen diesen Korrektur&shy;wert <i>prestep</i> aus
+		<span class="code">prestep = ceil(Y) - Y;</span>
+		Da <i>Y</i> in Fixpunkt&shy;arithmetik vorliegt, verwendet die Polygon&shy;routine statt der C-Funktion <i>ceil</i> zum Aufrunden eine eigene Routine. Die korrigierten Werte erhalten Sie, indem Sie das Produkt aus <i>prestep</i> und <i>x_inkrement</i> auf den ent&shy;sprechenden Wert addieren, bevor Sie das Polygon zeichnen:</p>
+		<pre><code>
+x_startwert = x_startwert + prestep * x_inkrement;
+		</code></pre>
+		<p>Dasselbe gilt auch für alle anderen Interpolations&shy;werte.</p>
+	</section>
+
+	<section>
+		<h2>Subtexel-Genauigkeit</h2>
+		<p>Nun haben Sie eine Korrektur für die Polygon&shy;kanten durchgeführt. Eine weitere Optimierung, die eine Fortführung von Subpixel darstellt und darauf aufbaut, ist das Subtexel-Verfahren. Wie der Name schon vermuten läßt, vermindern Sie damit Sprünge in der Textur. Hier korrigieren Sie die horizontalen Start&shy;werte für die innere Schleife.</p>
+		<p>Da Sie die horizontalen Start&shy;werte für jede Scanline neu berechnen, müssen Sie die Subtexel-Korrektur vor dem Zeichnen jeder Scanline durchführen. Abgesehen davon berechnen Sie die Korrektur analog – den Korrektur&shy;faktor leiten Sie aus der x-Koordinate der Scanline her:</p>
+		<pre><code>
+prestep = ceil(X) - X;
+u_startwert = u_startwert + prestep * u_inkrement;
+v_startwert = v_startwert + prestep * v_inkrement;
+		</code></pre>
+		<p>Diese beiden Verfahren verwenden Sie genauso beim Gouraud Shading und Z-Buffering, um auch hier eine möglichst flüssige Animation zu berechnen.</p>
+		<p>Nun haben Sie eine schnelle Polygon&shy;routine mit vielen Features geschrieben. Die Verbesserungen zeigt eindrucksvoll das Bild auf der vorher&shy;gehenden Seite. Links sehen Sie Ludwig van Beethoven mit dem Flat Shading der letzten Ausgabe, rechts die optimierte Darstellung mit Gouraud Shading. Diese gerenderte Szene besteht aus knapp 5000 Einzel&shy;polygonen!</p>
+		<p>Um mehr aus Ihrem PC herauszuholen, ersetzen Sie die innere Schleife zum Zeichnen der Scanlines durch eine ent&shy;sprechende Assembler-Routine. Diese ist in der Polygon&shy;routine <i>tpolygon.cpp</i> optional enthalten. Wenn Sie selbständig Erweiterungen an der 3D-Engine vornehmen möchten, haben wir noch ein paar Vorschläge für Sie.</p>
+	</section>
+
+	<section>
+		<h2>Korrekte Perspektive</h2>
+		<p>Wie Sie bereits aus dem PC-Under&shy;ground-Beitrag der letzten Ausgabe wissen, interpolieren Sie beim Z-Buffering statt z dessen Kehr&shy;wert, um eine perspektivisch korrekte Darstellung zu erhalten. Beim Texture-Mapping und Gouraud Shading können Sie ähnlich verfahren: Statt u und v sowie der Gouraud-Intensität verwenden Sie einfach die Werte <i>u/z</i>, <i>v/z</i> und <i>Gouraud/z</i>. Da Sie mit Fixpunkt&shy;arithmetik arbeiten, müssen Sie auf einen korrekten Zahlen&shy;bereich achten.</p>
+		<p>Um wieder die reinen Werte zu erhalten, erfordert diese Methode allerdings für jedes Pixel eine Division dieser drei Werte durch <i>1/z</i> (diesen Kehr&shy;wert haben Sie bereits vom Z-Buffering). Da dies sehr viel Rechen&shy;zeit benötigt, wenden Sie die perspektivische Korrektur nur alle 4, 8, oder 16 Pixel einer Scanline an und inter&shy;polieren dazwischen – wie bisher – linear.</p>
+	</section>
+	<section>
+		<h2>Environment-Mapping</h2>
+		<p>Beim so&shy;genannten Environment-Mapping können Sie die Umgebung eines Objekts relativ leicht auf den Polygonen spiegeln. Der Trick dabei ist, daß es sich hier auch „nur“ um eine Variante des Texture-Mapping handelt. Die Koordinaten <i>u</i> und <i>v</i> werden vor jedem Zeichnen des Objekts anhand der Eckpunkt&shy;normalen des Polygons neu berechnet. Als Texture-Map verwenden Sie ein Bild der Umgebung dieses Objekts – etwa ein vorberechnetes Bild der 3D-Szene aus der Sicht des Objekts in Richtung des Betrachters. Ebenfalls sehr interessante Effekte ergibt ein beliebiges Bild mit verschiedenen helleren und dunkleren Bereichen.
+		<p>Die Texture-Mapping-Koordinaten berechnen Sie aus den gedrehten Eckpunkt&shy;normalen mit</p>
+		<pre><code>
+u = normale.x / normale.z + 128;
+v = normale.y / normale.z + 128;
+		</code></pre>
+		<p>Achten Sie darauf, daß die resultierenden Werte <i>u</i> und <i>v</i> im Bereich zwischen <i>0</i> und <i>255</i> liegen, um nicht über den Rand der Textur zu springen.</p>
+	</section>
+
+	<section>
+		<h2>Phong-Shading</h2>
+		<p>Als nächste Erweiterung können Sie als Environment-Map einen Farbverlauf wie im ersten Artikel von PC Underground (Ausgabe 7/98, ab S. 228) für die Lichtquelle benutzen. Dadurch erhalten Sie eine Licht&shy;schattierung, die dem sogenannten Phong Shading (ein aufwendigeres Shading-Verfahren für Polygone) sehr nahe kommt. Dabei stellen Sie mit dem entsprechenden Farb&shy;verlauf sowohl Helligkeits&shy;übergänge als auch sogenannte Specular Highlights dar. Diese Highlights sind Spiegelungen einer Licht&shy;quelle auf einem Objekt.</p>
+		<p>Sie kennen sicher die kleinen, sehr hellen Punkte auf beleuchteten Billardkugeln, die nichts anderes als das Spiegelbild einer Lampe sind. Diese Highlights erhalten Sie, indem Sie einen sehr hohen Helligkeitsanstieg um die Mitte der Environment-Map erzeugen. Diese Phong-Shading-Approximation können Sie nach Wunsch auch wieder mit Texture-Mapping kombinieren.</p>
+		<p>Echtes Phong Shading ist hingegen etwas komplizierter. Im Gegensatz zum Gouraud Shading inter&shy;polieren Sie hier statt der Intensitäten die Normalen&shy;vektoren. Diese normieren Sie noch und berechnen erst daraus die Helligkeits&shy;werte der entsprechenden Pixel. Dabei bestimmen Sie durch lineare Inter&shy;polation zuerst die normierten Normalen entlang der Kanten. Anschließend berechnen Sie alle übrigen im Polygon-Inneren entlang jeder Scanline.</p>
+		<p>Da Sie dieses Verfahren explizit auf jeden einzelnen Punkt anwenden müssen, beansprucht es viel Rechen&shy;zeit. Dafür erhalten Sie damit sehr realistische Ergebnisse.</p>
+		<p>Unser Ausflug in die Welt der 3D-Grafik ist hier nun vorerst zu Ende. Mit Ihrem erlernten Wissen können Sie die 3D-Engine selbständig erweitern und eigene Animationen berechnen – oder eine komplett neue Grafik-Engine programmieren.</p>
+		<p>In der nächsten Ausgabe dreht sich alles um die sogenannten Bitmap-Effekte. Damit verzerren und rotieren Sie Grafiken in Echtzeit und programmieren Effekte wie Wasser&shy;oberflächen und Tunnel.</p>
+	</section>
+	<footer>
+		<p>Rüdiger Pein</p>
+		<p>© 1998 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199808.html">8/1998</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199810.html">10/1998</a>
+	</nav>
+</body>

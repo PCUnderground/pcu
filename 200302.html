@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Im Strahlenkranz (PC Underground, PC Magazin 2/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;2/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200301.html">1/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200303.html">3/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Echtzeit-Raytracing, Teil 1</h2>
+		<h1>Im <span class="highlight">Strahlenkranz</span></h1>
+		<p class="summary">Mit der Rechenleistung heutiger Hardware lässt sich Raytracing in Echtzeit durchführen. Wir zeigen Ihnen die <span class="highlight">Techniken und Tricks</span>. Setzen Sie Grafik-Hardware mit OpenGL richtig ein.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Trotz der schnell zunehmenden Leistung moderner 3D-Hardware gibt es immer noch zahlreiche Verfechter des Raytracings. Experten arbeiten an Raytracing-Hardware, wobei aus dem Hochschul&shy;bereich wichtige Impulse kommen: <a href="https://graphics.cs.uni-sb.de/RTRT/" rel="external nofollow noreferrer">http://graphics.cs.uni-sb.de/RTRT/</a>.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200302.zip">💾 200302.zip</a>.</div>
+	</aside>
+
+	<section>
+		<p>Hierbei werden Dreiecke mit Multiprozessor-Rechnern oder Rechen-Clustern dargestellt. Die Vorteile beim Raytracing liegen im einfachen Algorithmus, in der Beherrsch&shy;barkeit von sehr großen 3D-Szenen mit mehreren hundert Millionen Dreiecken und in der vergleichs&shy;weise leichten Programmierung von Oberflächen-Shadern: Damit lassen sich Spiegelungen, Transparenz und Schatten&shy;effekte darstellen. In diesem Artikel lernen Sie die Methoden und Techniken kennen, um auf Ihrem Computer Raytracing-Szenen mit klassischen geometrischen Primitiven wie Ebene, Kugeln und Zylinder zum Leben zu erwecken.</p>
+		<figure class="large">
+			<img src="assets/200302_1.png" width="630" height="330" alt="VOM BETRACHTER AUS wird durch jeden Pixel des Bildschirms ein Strahl geschossen.">
+			<figcaption><span>VOM BETRACHTER AUS</span> wird durch jeden Pixel des Bildschirms ein Strahl geschossen.</figcaption>
+		</figure>
+		<p>Der klassische Raytracing-Algorithmus ist rekursiver Natur. Er beginnt damit, Strahlen von der Betrachter&shy;position durch den Bildschirm zu schießen, um den Farbwert des Lichts, das aus dieser Richtung zum Betrachter gelangt, zu bestimmen.</p>
+		<p>Entlang dieser Halbgeraden berechnen Sie die Schnittpunkte mit allen Objekten der Szene und wählen den nächst&shy;liegenden Schnittpunkt zum Betrachter aus. Für einen getroffenen Oberflächen&shy;punkt berechnen Sie eine lokale Beleuchtung wie nach dem Phong-Modell. Lichtquellen der Szene, die andere Objekte verdecken können, sowie Material&shy;eigenschaften beeinflussen die Berechnung. Wenn die Oberfläche spiegelnde Eigenschaften besitzt oder teilweise transparent ist, ruft sich der Raytracing-Algorithmus rekursiv auf, um den Farbbeitrag dieser Lichtstrahlen zu berechnen.</p>
+		<figure class="large">
+			<img src="assets/200302_2.jpg" width="840" height="624" alt="PRIMÄRSTRAHLEN (BLAU) reflektieren (rot) an Objekten: Auch Schattentests (gelb) sind Schnittpunktberechnungen.">
+			<figcaption><span>PRIMÄRSTRAHLEN (BLAU)</span> reflektieren (rot) an Objekten: Auch Schatten&shy;tests (gelb) sind Schnittpunkt&shy;berechnungen.</figcaption>
+		</figure>
+		<p>Der Vorteil des Raytracings liegt darin, dass die Beleuchtungs&shy;berechnung und die Spiegelungs- und Transparenz&shy;effekte frei programmierbar sind. Damit erreichen Sie Effekte wie das Bumpmapping mit weniger Aufwand als bei 3D-Grafikkarten.</p>
+		<p>Wie berechnen Sie die Strahlen, die Sie in die 3D-Szene schießen? Zunächst definieren Sie eine virtuelle Kamera durch ihre Position (<i>pos</i>), den Punkt, auf den sie blickt (<i>to</i>), den Up-Vektor (<i>up</i>) und den Öffnungswinkel (<i>fov</i>). Damit können Sie die Sichtpyramide aus dem ersten Bild aufspannen. Die benötigten Vektoren <i>z, right</i> und <i>up</i> berechnen Sie mit</p>
+		<pre><code>
+z = to - from;
+right = z x up;
+up = z x right;
+		</code></pre>
+ 		<p><i>x</i> ist das Kreuzprodukt. Die Vektoren werden anschließend normalisiert, und <i>right</i>- und <i>up</i>-Vektor werden noch mit <i>tan(FOV)</i> bzw. <i>tan(FOV/aspectRatio)</i> skaliert. Ein Strahl vom Betrachter in die 3D-Szene durch den Pixel mit den Koordinaten (<i>x,y</i>) besitzt den Startpunkt <i>pos</i> und die Richtung <i>dir</i>. Mit <i>width</i> und <i>height</i> bezeichnen Sie die Größe des Bildschirms:</p>
+		<pre><code>
+dir = z + right *
+(2 * x / width - 1.0) + up * (2 * y / height - 1.0);
+		</code></pre>
+		<p>Den Code für die virtuelle Kamera finden Sie in der Datei <i>RTCamera.h</i> auf der Heft-CD. Dort befindet sich auch eine Routine, um die 2D-Position eines Punkts im Raum zu berechnen. Diese ist sehr sinnvoll, weil Sie damit 2D-Bounding-Boxes bestimmen.</p>
+		<p>Wenn Sie eine Auflösung von 640 x 480 Pixeln in einer Szene mit 20 Objekten verwenden und durch jeden Pixel des Bildschirms einen Strahl schießen, bestimmen Sie mit 640*480*20=6144000 Schnittpunkt&shy;berechnungen nur die zuerst getroffenen Oberflächen. Diese Schnittpunkt&shy;berechnungen der Primärstrahlen lassen sich mehrfach optimieren. Sie können die Zahlen der benötigten Strahlen reduzieren, und Sie können die Schnittpunkt&shy;berechnungen verbessern.</p>
+	</section>
+
+	<section>
+		<h2>Screen Space Quadtree</h2>
+		<p>Der benötigte Rechenaufwand hängt von der Auflösung des Bildes ab. Nur können Sie die Auflösung nicht beliebig verschlechtern, wenn eine bestimmte Darstellungs&shy;qualität erhalten bleiben soll. Aber Sie können Bereiche des Bilds, in denen kein Objekt oder dieselbe Oberfläche zu sehen ist, gröber abtasten.</p>
+		<p>Das einfache Prinzip: Beginnen Sie damit, für jeden Block von 8-x-8-Pixeln (oder einer anderen initialen Größe) einen Strahl zu berechnen. Anschließend können Sie feststellen, ob dieser Block eine feinere Abtastung – also mehr berechnete Strahlen – benötigt oder ob die Information ausreicht, um interpolierte Farbwerte zu berechnen. Wenn das der Fall ist, werden die Farbwerte der Ecken des 8-x-8-Blocks interpoliert und keine weiteren Strahlen mehr berechnet.</p>
+		<p>Jetzt müssen Sie nur eine Lösung finden, damit Sie nicht dieselben Strahlen mehrmals berechnen wie bei der Unterteilung. Weiterhin gilt es, passende Methoden der Unterteilung und Interpolation zu entwickeln. Zunächst soll uns die folgende Struktur genügen, um die Informationen eines berechneten Strahls zu speichern:</p>
+		<pre><code>
+typedef struct
+{
+	U32 flag;
+	COLOR lighting;
+} TRACEDPOINT;
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200302_7.jpg" width="272" height="272" alt="MIT 2D BOUNDING BOXES lassen sich viele unnötige Primärstrahlen und Schnittpunktberechnungen vermeiden.">
+			<figcaption><span>MIT 2D BOUNDING BOXES</span> lassen sich viele unnötige Primärstrahlen und Schnittpunktberechnungen vermeiden.</figcaption>
+		</figure>
+		<p>Diese Struktur wird für einen Primärstrahl durch Raytracing ausgefüllt. Außer dem Farbwert speichern Sie im <i>flag</i>-Wert die Information, anhand der Sie entscheiden, ob ein Block weiter unterteilt wird oder ob die Farb&shy;interpolation genügt. Darin sind beispielsweise ein Identifier codiert, der die getroffene Oberfläche repräsentiert, sowie die Information, ob sich der getroffene Oberflächen&shy;punkt im Schatten einer Lichtquelle befindet. Später können Sie diese Struktur erweitern, beispielsweise um diffuse und spekulare Farbwerte, Textur-Koordinaten oder Fogging-Parameter.</p>
+		<p>Schicken Sie durch jeden Pixel maximal einen Strahl. Dazu legen Sie eine Tabelle mit einem Zeiger für jeden Pixel auf <i>TRACEDPOINT</i>-Strukturen an. Wenn noch kein Strahl für einen Pixel berechnet wird, enthält der entsprechende Eintrag einen <i>NULL</i>-Pointer, sonst einen Zeiger auf die Struktur mit den berechneten Informationen. Um zu vermeiden, dass Sie für jeden Pixel Speicher anfordern müssen, legen Sie sich einen genügend großen Pool von <i>TRACEDPOINT</i>-Strukturen an:</p>
+		<pre><code>
+TRACEDPOINT tracedPointPool[X * Y];
+TRACEDPOINT *traceHash[ X * Y];
+TRACEDPOINT *pool =tracePointPool;
+		</code></pre>
+		<p>Die folgende Methode ruft die rekursive Raytracing-Funktion auf und speichert die entsprechenden Informationen pro Pixel:</p>
+		<pre><code>
+void evaluate(int x, int y)
+{
+	int o = x + y * XRES;
+	if(traceHash[o])
+		return;
+
+	// new entry
+	TRACEDPOINT *n = pool++;
+	// Strahl mit Ursprung+Richtung
+	RAY ray = ...;
+	raytrace(&amp;ray, n, 0, x, y);
+	traceHash[o] = n;
+}
+		</code></pre>
+		<p>Damit tasten Sie den Bildschirm für jeden Block einmal ab:</p>
+		<pre><code>
+for(y=0; y &lt; YRES; y += BLOCKSIZE)
+	for(x=0; xflag == p2-&gt;flag &amp;&amp;
+		p2-&gt;flag == p3-&gt;flag &amp;&amp;
+		p3-&gt;flag == p4-&gt;flag))
+	{
+		// Block zum Zeichnen markieren
+		return;
+	}
+
+U32 hSize = size &gt;&gt; 1;
+
+// einen TRACEDPOINT dazwischen
+// bestimmen (durch Raytracing oder Interpolation)
+if(p1-&gt;flag != p2-&gt;flag)
+	evaluate(x + hSize, y);
+else
+	interpolate(p1, p2, x + hSize, y);
+
+// selbiges für p2-p4, p3-p4
+// und p1-p3 Kante !
+...
+
+// Mittelpunkt durch Raytracing
+evaluate(x + hSize,y + hSize);
+// rekursiv auf Sub-Blöcke
+traceBlock(x, y, hSize);
+traceBlock(x + hSize, y, hSize);
+traceBlock(x, y + hSize, hSize);
+traceBlock(x + hSize, y + hSize, hSize);
+		</code></pre>
+		<p>Im obigen Code tauchte eine neue Funktion auf: Alternativ zu <i>evaluate(...)</i> gibt es <i>interpolate(...)</i>. Diese Funktion erzeugt aus zwei <i>TRACEDPOINT</i>-Strukturen eine neue Struktur für gegebene Koordinaten durch Interpolation. Des Sinn dahinter ist, weitere Raytracing-Berechnungen einzusparen. Die nächsten vier Bilder verdeutlichen dies.</p>
+		<p>Dunklere Pixel wurde durch Raytracing berechnet, hellere durch Interpolation, was viel Rechenzeit spart:</p>
+		<pre><code>
+void interpolate(TRACEDPOINT *s1,
+	TRACEDPOINT *s2, int xd, int yd)
+{
+	int o = xd + yd * XRES;
+	if(traceHash[o])
+		return;
+
+	// neuer TRACEDPOINT
+	TRACEDPOINT *dst = pool ++;
+	dst-&gt;flag = s1-&gt;flag;
+	dst-&gt;lighting = (s1-&gt;lighting +
+		s2-&gt;lighting) * 0.5;
+	traceHash[o] = dst;
+}
+		</code></pre>
+	</section>
+
+	<aside>
+		<h2>FLOATING POINT TRICKS</h2>
+		<div>
+			<p>Wenn Sie den Sourcecode durchsehen, sehen Sie an einigen Stellen Optimierungen, die die interne Repräsentation der IE-EE-Float-Variablen ausnutzt. Floats bestehen aus 32 Bit, wobei das oberste das Vorzeichen-Bit ist. Weiterhin sind 8 Bit für den Exponenten und 23 Bit für die Mantisse reserviert.</p>
+			<p>Vergleichs&shy;operationen mit Floating-Point-Werten sind oft langsam. Wenn es sich z.B. um einen Vorzeichentest handelt, können Sie auf die Variable als Integer-Wert zugreifen und stattdessen mit der Integer-Pipeline den Vergleich durchführen. Dazu das Makro:</p>
+			<pre><code>
+#define SIR(x) ((signed int&amp;)x)
+#define IR(x) ((unsigned int&amp;)x)
+float test = -1.0f;
+if(SIR(test) &lt; 0) // true
+			</code></pre>
+			<p>Alternativ können Sie bei einem Vorzeichentest mit einer AND-Verknüpfung direkt das Vorzeichenbit testen:</p>
+			<pre><code>
+if(IR(test) &amp; 0x80000000) // true
+			</code></pre>
+			<p>Mit diesem Trick bestimmen Sie auch den Absolutwert eines Floats:</p>
+			<pre><code>
+IR(test) = IR(test) &amp; 0x7fffffff;
+			</code></pre>
+			<p>Ähnlich vergleichen Sie zwei Floating-Point-Werte. Sofern einer oder beide Werte größer Null sind, vergleichen Sie sie per Integer-Repräsentation:</p>
+			<pre><code>
+float a, b;
+if(a &lt; b)
+oder
+if(IR(a) &lt; IR(b))
+			</code></pre>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Raytracing und First Hit Optimization</h2>
+		<figure class="floatright">
+			<img src="assets/200302_3.png" width="474" height="476" alt="ZUERST BERECHNEN SIE einen Strahl pro 8x8-Block: Rot zeigt Objekt 1 getroffen, grün Objekt 2.">
+			<figcaption><span>ZUERST BERECHNEN</span> SIE einen Strahl pro 8x8-Block: Rot zeigt Objekt 1 getroffen, grün Objekt 2.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200302_4.png" width="475" height="474" alt="EIN ERSTER UNTERTEILUNGSSCHRITT grenzt die Grenze ab, heller gefärbte Pixel sind durch Interpolation statt Raytracing bestimmt.">
+			<figcaption><span>EIN ERSTER UNTERTEILUNGSSCHRITT</span> grenzt die Grenze ab, heller gefärbte Pixel sind durch Interpolation statt Raytracing bestimmt.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200302_5.jpg" width="474" height="472" alt="DER ZWEITE UNTERTEILUNGSSCHRITT resultiert in mehreren fertigen Quadraten.">
+			<figcaption><span>DER ZWEITE UNTERTEILUNGSSCHRITT</span> resultiert in mehreren fertigen Quadraten.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200302_6.png" width="470" height="471" alt="DIE FINALE UNTERTEILUNG des 8x8-Blocks: Statt 64 Raytracing-Berechnungen reichten 25 mit 18 Interpolationen.">
+			<figcaption><span>DIE FINALE UNTERTEILUNG</span> des 8x8-Blocks: Statt 64 Raytracing-Berechnungen reichten 25 mit 18 Interpolationen.</figcaption>
+		</figure>
+		<p>Die <i>raytrace</i>-Funktion erledigt das komplette rekursive Raytracing. Sie finden den vollständigen dokumentierten Sourcecode auf der Heft-CD. Wichtig bei Echtzeit-Raytracing ist, dass Sie keine Berechnungen unnötig mehrfach ausführen und zeitaufwändige Operationen, wie Vektor&shy;normalisierung oder Normalen&shy;bestimmung, erst berechnen, wenn sie benötigt werden. Da es darum geht, Rechenzeit zu sparen und nicht Speicherplatz, ist es sinnvoll, spezielle Routinen beispielsweise für Schatten&shy;strahlen oder Raytracing bei Rekursions&shy;tiefe <i>0</i> (also mit Primärstrahlen) zu schreiben. Diese Aktion verschlingt einen großen Teil der Rechenleistung.</p>
+		<p>Hier setzt die <i>First Hit Optimization</i> an. Einige Berechnungen wie die Schnittpunkt&shy;berechnung mit Kugeln lassen sich vereinfachen, wenn alle Strahlen vom selben Ursprung – in diesem Fall der Betrachter&shy;position – ausgehen. Solche konstanten Faktoren oder Vektoren berechnen Sie für jedes Objekt der Szene nach einer Änderung der Betrachter&shy;parameter und verwenden diese bei der Schnittpunkt&shy;berechnung mit Primärstrahlen. Ein einfaches Beispiel für solche Konstanten ist der Vektor vom Betrachter zu einem Kugelmittel&shy;punkt und dessen Länge.</p>
+		<p>Eine weitere sehr sinnvolle Optimierung für den First Hit Case sehen Sie im nächsten Bild. Sie können für die meisten geometrischen Primitive, wie Kugel, Kegel oder Quader eine 2D-Bounding-Box berechnen. Das ist ein Rechteck auf dem Bildschirm (begrenzt durch die linke obere und rechte untere Ecke), das den Bereich möglichst eng umschließt, in dem ein Objekt zu sehen ist. Bevor Sie also für einen Pixel und ein Objekt einen Schnittpunkt testen, prüfen Sie, ob der Pixel innerhalb der Bounding Box liegt.</p>
+		<p>Der Raytracing Code befindet sich in der Sourcecode-Datei <i>raytrace.cpp</i>. Die geometrischen Primitive sind von der Klasse <i>RTObject (RTObject.h)</i> abgeleitet. Ihre optimierten Schnittpunkt-, Bounding-Box-Berechnungen und Vorberechnungs&shy;routinen befinden sich in <i>RTPlane.cpp/h, RTSphere.cpp/h</i> und in <i>RTBox.cpp/h</i>.</p>
+	</section>
+
+	<section>
+		<h2>Shadow Cache</h2>
+		<p>Beim Shadow Cache handelt es sich um eine sehr einfache Optimierung. Sehr aufwändig sind beim Raytracing die Schattentests, denn für jeden Schnittpunkt mit einer Oberfläche müssen Sie die Anzahl der Objekte mit der Anzahl der Lichtquellen multiplizieren. Dies können Sie etwas optimieren, weil nicht interessant ist, welches Objekt getroffen wird, sondern nur, ob irgendeins die Lichtquelle verdeckt.</p>
+		<p>Aber es geht noch besser. Der Trick beim Shadow Cache: Wurde der Schattenstrahl eines zuletzt getroffenen Oberflächen&shy;punkts zu einer Lichtquelle von Objekt <i>A</i> abgeblockt, wird beim nächsten Schattentest dieser Lichtquelle wieder zuerst überprüft, ob Objekt <i>A</i> den Schattenstrahl schneidet. Für jede Lichtquelle speichern Sie einen Zeiger auf ein Objekt. Bei einem Schattentest für diese Lichtquelle testen Sie zuerst, ob sich der Schattenstrahl mit diesem Objekt schneidet.</p>
+		<p>Existiert ein Schnittpunkt, sind Sie mit nur einer Schnittpunkt&shy;berechnung fertig. Existiert dieser nicht, müssen Sie die Strahlen auf Schnittpunkte mit anderen Objekten untersuchen. Wurde ein anderes geschnitten, wird der Shadow-Cache-Zeiger der Lichtquelle auf dieses Objekt gesetzt.</p>
+	</section>
+
+	<section>
+		<h2>OpenGL</h2>
+		<p>Was hat OpenGL mit Raytracing zu tun? Mit OpenGL können Sie die Blöcke, die Sie durch das Raytracing bzw. das Unterteilen der Blöcke erhalten haben, schnell zeichnen. Das Zeichnen könnten Sie auch per Software erledigen, aber wenn Sie die Vertex-Daten geschickt generieren, ist die OpenGL-Variante mit Hardware-Unterstützung deutlich schneller. Als Vertex-Daten benötigen Sie zum einen die Eckpunkte der Blöcke, zum anderen die dazugehörigen Farbwerte. Für das Rendering verwenden Sie am besten die OpenGL Vertex und Color Arrays und zeichnen mit <i>glDrawElements(...)</i>. Die Daten umfassen dann je zwei Integer-Werte als Koordinaten und zwei Float-Werte für die Farb&shy;information pro Eckpunkt:</p>
+		<pre><code>
+U32 *pVertexArray = new U32[XRES * YRES * 2];
+VERTEX3D *pColorArray = new VERTEX3D[...];
+		</code></pre>
+		<p>Jetzt erweitern Sie die <i>evaluate(...)</i>- und <i>interpolate(...)</i>-Funktion so, dass immer, wenn eine neue <i>TRACEDPOINT</i>-Struktur angelegt wird, ein neuer Vertex an die obigen Listen angehängt wird:</p>
+		<pre><code>
+...
+pVertexArray[nVertices * 2 + 0] = x;
+pVertexArray[nVertices * 2 + 1] = y;
+pColorArray[nVertices] = n-&gt;lighting;
+...
+		</code></pre>
+		<p>Außerdem müssen Sie für jede Bildschirm&shy;koordinate den Index des dazugehörigen Eckpunkts wissen. Dazu verwenden Sie ein weiteres Array:</p>
+		<pre><code>
+// init
+U32 *indexTable = new U32[XRES * YRES];
+
+// in evaluate und interpolate:
+...
+indexTable[o] = nVertices;
+nVertices++;
+...
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200302_8.jpg" width="635" height="475" alt="DAS BEISPIELPROGRAMM zeigt Primitive wie Quader und Kugeln im besten Licht.">
+			<figcaption><span>DAS BEISPIELPROGRAMM</span> zeigt Primitive wie Quader und Kugeln im besten Licht.</figcaption>
+		</figure>
+		<p>Jetzt gilt es noch, die Indizes zu generieren, die Sie für das Rendering benötigen. Je vier Indizes stellen die Eckpunkte eines Blocks dar. Diese Indizes generieren Sie in der <i>traceBlock</i>-Funktion. Im obigen Code-Auszug dieser Funktion befindet sich bereits der Kommentar, der die entsprechende Stelle markiert. Hier speichern Sie die vier Indizes, die Sie für jeden der Eckpunkte aus der <i>indexTable</i> lesen. Sie speichern die Folge der Indizes in einem separaten Array, um alle Blöcke mit einem OpenGL-Funktions&shy;aufruf zu zeichnen.</p>
+		<pre><code>
+U32 nBlockIndex = 0;
+U32*pBlockIndex = new U32[XRES * YRES * 4];
+...
+pBlockIndex[nBlockIndex++] =
+	indexTable[ofs1];
+
+pBlockIndex[nBlockIndex++] =
+	indexTable[ofs2];
+
+pBlockIndex[nBlockIndex++] =
+	indexTable[ofs4];
+
+pBlockIndex[nBlockIndex++] =
+	indexTable[ofs3];
+		</code></pre>
+		<p>Damit haben Sie eine sehr elegante und performante Lösung, um den OpenGL-Output zu erzeugen. Das Rendering erfolgt mit den Aufrufen:</p>
+		<pre><code>
+glVertexPointer(2, GL_INT, 0, pVertexArray);
+glColorPointer(3, GL_FLOAT, 0, pColorArray);
+
+glEnableClientState(GL_VERTEX_ARRAY);
+glEnableClientState(GL_COLOR_ARRAY);
+
+glDrawElements(GL_QUADS, nBlockIndex,
+	GL_UNSIGNED_INT, pBlockIndex);
+
+glDisableClientState(GL_COLOR_ARRAY);
+glDisableClientState(GL_VERTEX_ARRAY);
+		</code></pre>
+		<p>Der Code, um die Blöcke rekursiv zu teilen und zu zeichnen, befindet sich in der Datei <i>quadtree.cpp/h</i>.</p>
+		<figure class="large">
+			<img src="assets/200302_9.jpg" width="635" height="475" alt="PRIMITIVE WIE QUADER erscheinen bei Beleuchtung und mit Fantasie wie Schluchten im Hochhausdschungel.">
+			<figcaption><span>PRIMITIVE WIE QUADER</span> erscheinen bei Beleuchtung und mit Fantasie wie Schluchten im Hochhausdschungel.</figcaption>
+		</figure>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Nähere Informationen zum Thema:</b></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.pouet.net/prod.php?which=5624" rel="external nofollow noreferrer">http://www.pouet.net/prod.php?which=5624</a></p>
+		<p class="footnote"><a href="https://www.oroboro.com/rafael/project/rtrtfaqtext.html" rel="external nofollow noreferrer">http://www.oroboro.com/rafael/project/rtrtfaqtext.html</a></p>
+		<p class="footnote"><a href="https://www.geocities.com/jamisbuck/raytracing.html" rel="external nofollow noreferrer">http://www.geocities.com/jamisbuck/raytracing.html</a></p>
+		<p class="footnote">Glassner: „Introduction to Raytracing“ auf <a href="https://www.glassner.com/andrew/writing/books/irt.htm" rel="external nofollow noreferrer">www.glassner.com/andrew/writing/books/irt.htm</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200301.html">1/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200303.html">3/2003</a>
+	</nav>
+</body>

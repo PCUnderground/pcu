@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>GeForce, OpenGL und Spiegeleffekte (PC Underground, PC Magazin 9/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;9/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200208.html">8/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200210.html">10/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Gespiegeltes, gebrochenes Licht</h2>
+		<h1>GeForce, OpenGL und <span class="highlight">Spiegeleffekte</span></h1>
+		<p class="summary">Spiegeln will gelernt sein. Mit ein wenig mathematischem und physikalischem Hintergrund&shy;wissen entlocken Sie Ihrer GeForce-Grafikkarte mit OpenGL realistische Spiegelungs- und Licht&shy;brechungseffekte.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Regelmäßige PC-Underground-Leser kennen die Grundlagen zu Environment Mapping und Rendering von Spiegelungen. Mit dieser Ausgabe erweitern Sie diese Techniken um die Echtzeit&shy;darstellung von Lichtbrechung. Sie sehen, wie verschiedene Materialien Licht reflektieren und brechen. Diese Eigenschaften nutzen Sie, um Ihre 3D-Objekte realistisch wirken zu lassen. Um optimale Performance zu erreichen, verwenden Sie die OpenGL Vertex Shaders, Register Combiners und Cubemaps, die GeForce-Grafikkarten unterstützen.</p>
+		<figure class="floatright">
+			<img src="assets/200209_1.jpg" width="319" height="162" alt="DIESE VEKTOREN sind für die Reflexion wichtig.">
+			<figcaption><span>DIESE VEKTOREN</span> sind für die Reflexion wichtig.</figcaption>
+		</figure>
+		<p>Grundlagen liefert die Geometrie der Reflexion. Das Bild oben zeigt die im Folgenden beschriebenen Vektoren in ihrem Zusammenhang. Wichtig für das Rendering von Spiegelungs&shy;effekten sind die Oberflächen&shy;normale <i>N</i>, der Vektor zur Lichtquelle <i>I</i>, zum Betrachter <i>V</i> und der Halfway- bzw. Halb-Vektor <i>H</i>, den Sie mit der Formel</p>
+		<pre><code>
+H = (I + V) / | I + V |
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200209_2.jpg" width="319" height="277" alt="SO SETZT SICH DIE RICHTUNG eines gespiegelten Vektors zusammen.">
+			<figcaption><span>SO SETZT SICH DIE RICHTUNG</span> eines gespiegelten Vektors zusammen.</figcaption>
+		</figure>
+		<p>berechnen. Alle Vektoren sind normiert. Einen reflektierten Vektor zu einem beliebigen Vektor <i>X</i> an der Oberfläche mit der Normalen <i>N</i> berechnen Sie mit der Formel</p>
+		<pre><code>
+R(X) = X - 2*(X dot N)*N
+		</code></pre>
+		<p>Der Wert <i>dot</i> steht für das Skalarprodukt.</p>
+		<p>Bei dieser Formel gilt: Einfallswinkel gleich Ausfallswinkel. Unser Beispiel beschreibt eine ideale Reflexion, weil der Strahl auf einen planaren, perfekten Spiegel trifft.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200209.zip">💾 200209.zip</a>.</div>
+	</aside>
+
+	<section>
+		<p>Die ideale Lichtbrechung folgt dem Snell’schen Gesetz. Lichtbrechung tritt an der Grenzfläche zweier Medien (etwa Luft und Wasser) auf. Dabei passiert ein Lichtstrahl nicht einfach die Grenzfläche, sondern ändert auch seine Richtung. Diese setzt die Richtung des einfallenden Lichtstrahls zu der des gebrochenen in Zusammenhang. Die Richtungen hängen auch von der Brechzahl der Medien ab. Die Brechzahl ist ein Maß, wie stark Licht abgelenkt werden kann. Wasser hat eine höhere Brechzahl als Luft.</p>
+		<figure class="large">
+			<img src="assets/200209_3.png" width="571" height="521" alt="DAS SNELL’SCHE GESETZ berechnet die Lichtbrechung.">
+			<figcaption><span>DAS SNELL’SCHE GESETZ</span> berechnet die Lichtbrechung.</figcaption>
+		</figure>
+		<p>Wenn ein Strahl von einem Medium <i>A</i> ins Medium <i>B</i> eindringt, gilt:</p>
+		<pre><code>
+eta = (Brechzahl Medium A) / (Brechzahl Medium B)
+sin(theta_i)/sin(theta_t) = eta
+		</code></pre>
+		<p>Die Richtung des gebrochenen Strahls berechnen Sie wie folgt:</p>
+		<pre><code>
+IdotN = - I * N
+		</code></pre>
+		<p>Wenn der Term</p>
+		<pre><code>
+(1 - eta2 * (1 - IdotN2))
+		</code></pre>
+		<p>kleiner Null ist, liegt eine Totalreflexion vor. Dabei existiert kein gebrochener Strahl, weil das Licht an der Oberfläche reflektiert wird. Dieses Phänomen beobachten Sie auch an den Rändern von Luftblasen unter Wasser. Berechnen Sie einfach den resultierenden Vektor mit</p>
+		<pre><code>
+T = eta * I + (eta * IdotN -
+	sqrt(1 - eta2 *(1 - IdotN2))) * N
+		</code></pre>
+		<p>Mit den Richtungen der Lichtstrahlen aus Spiegelung und Lichtbrechung können Sie mit der Grafik-Hardware die Farbwerte bestimmen. Zuvor ein Gesetz der Physik, das Sie vereinfacht einsetzen: Das Fresnel’sche-Gesetz beschreibt, wie die Licht&shy;intensitäten aus Reflexion und Refraktion (Brechung) die sichtbare Farbe ergeben. Ein Beispiel: An einem sonnigen Tag betrachten Sie die lackierten Teile eines sauber polierten Autos. Wenn Sie senkrecht auf Flächen blicken, sehen Sie die Farbe des Lacks. Wenn Sie aber in einem sehr flachen Winkel auf eine lackierte Partie sehen, sehen Sie weniger die Farbe als ein Spiegelbild. Bei flachen Winkeln spiegeln solche Flächen eben.</p>
+		<p>Der Fresnel-Term für unpolari&shy;siertes Licht bestimmt den Bruchteil des gespiegelten Lichts, das der Betrachter wahrnimmt, abhängig von der Wellenlänge <i>lambda</i> des Lichts:</p>
+		<pre><code>
+F(lambda) = 0.5 * (g - c)<sup>2</sup> / (g + c)<sup>2</sup> *
+	(1 + [c(g + c) - 1]<sup>2</sup> /[c(g - c) + 1]<sup>2</sup>)
+		</code></pre>
+		<p>mit</p>
+		<pre><code>
+c = cos(theta_i) = L dot H,
+g2 = eta(lambda)<sup>2</sup> + c2 - 1
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200209_4.jpg" width="549" height="430" alt="DIE FRESNEL REFLECTANCE für Metall und für Glas">
+			<figcaption><span>DIE FRESNEL REFLECTANCE</span> für Metall und für Glas</figcaption>
+		</figure>
+		<p>Wir wollen an dieser Stelle nur den Fresnel-Term in einer Näherung betrachten, da die exakte Berechnung nicht für Echtzeit-Rendering einzusetzen und für den optischen Effekt auch nicht notwendig ist. Betrachten Sie dazu die zwei Fresnel-Reflectance-Kurven im Bild.</p>
+		<p>Um den Fresnel-Effekt in einem Vertex Shader einfach und schnell simulieren zu können, verwenden Sie eine simple Näherung, die für Glas und andere nicht metallische Materialien einsetzbar ist:</p>
+		<pre><code>
+F = Fresnelkonstante * ((1 - (I dot N)) ^ p)
+		</code></pre>
+		<p><i>p</i> ist ein Exponent, im Beispiel&shy;programm ist <i>p = 2</i>.</p>
+		<p>Diese wenigen einfachen Formeln genügen für beachtliche Resultate, wie die Screenshots unseres Beispiel&shy;programms beweisen..</p>
+		<p>Einen wesentlichen Beitrag dazu leisten die Cubemap-Features der modernen Grafikkarten. Sie können die Umgebung eines 3D-Objektes in sechs Texturen repräsentieren, die Sie sich wie einen aufgefalteten Würfel vorstellen können.</p>
+		<figure class="large">
+			<img src="assets/200209_5.jpg" width="472" height="353" alt="DIE CUBEMAP-TEXTUREN nehmen die Umgebung eines 3D-Objekts auf.">
+			<figcaption><span>DIE CUBEMAP-TEXTUREN</span> nehmen die Umgebung eines 3D-Objekts auf.</figcaption>
+		</figure>
+		<p>Die 3D-Hardware kann diese Texturen zusammen adressieren, wobei Sie diese als Environment Textures verwenden können. Die Adressierung der Texel dieser Texturen erfolgt über einen 3D-Vektor, was optimal für Ihre Spiegelungen und Licht&shy;brechungen ist. Aus der Richtung eines Lichtstrahls bekommen Sie mit den Cubemaps den entsprechenden Farbwert! Ausgabe 4/02 behandelt ab S. 206 die notwendigen Initialisierungen, wobei er sich auf das Vertex Programm und die Register Combiner konzentriert.</p>
+		<p>Als erstes legen Sie die Cubemap Texture mit Skybox-Texturen an, die die Umgebung des 3D-Objekts beinhalten. Als nächstes widmen Sie sich der Entwicklung des Vertex- Programms. Ein Vertex-Programm (Ausgabe 02/02, S. 191) übergeben Sie so an OpenGL:</p>
+		<pre><code>
+unsigned int vpFresnelCubemap;
+const unsigned char
+	vpFresnelCubemapTxt [] = "...";
+
+// Vertex Programm erzeugen...
+glGenProgramsNV(1, &amp;vpFresnelCubemap);
+// ... auswählen und übergeben
+glBindProgramNV(GL_VERTEX_PROGRAM_NV, vpFresnelCubemap);
+glLoadProgramNV(GL_VERTEX_PROGRAM_NV, vpFresnelCubemap,
+	strlen((char*)vpFresnelCubemapTxt), vpFresnelCubemapTxt);
+
+// und aktivieren
+glEnable(GL_VERTEX_PROGRAM_NV);
+		</code></pre>
+		<p>Als Parameter können Sie einem Vertex-Programm die OpenGL-Matrizen oder feste Parameter übergeben. Unser Beispiel&shy;programm benötigt folgende Daten:</p>
+		<pre><code>
+// OpenGL Matrizen
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 0,
+	GL_MODELVIEW_PROJECTION_NV, GL_IDENTITY_NV);
+
+glTrackMatrixNV(GL_VERTEX_PROGRAM_ NV, 4,
+	GL_MODELVIEW, GL_INVERSE_TRANSPOSE_NV);
+
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 8,
+	GL_MODELVIEW, GL_IDENTITY_NV);
+
+// enthält inverse Kameramatrix
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 12,
+	GL_TEXTURE, GL_IDENTITY_NV);
+
+// Betrachterpos.
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	20, 0.0, 0.0, 0.0, 1.0);
+
+// div.Konstanten
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	23, 0.0, 1.0, 2.0, 3.0);
+		</code></pre>
+		<p>Als weitere Konstanen, die während der Laufzeit geändert werden können, verwenden Sie:</p>
+		<pre><code>
+// Brechzahl
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	22, eta, eta * eta, 0.0f, 0.0f);
+
+// Fresnelkonstante
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	21, fresnel, fresnel, fresnel,1.0f);
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200209_6.jpg" width="808" height="627" alt="METALLISCHE OBERFLÄCHEN spiegeln nahezu unabhängig vom Winkel zwischen Betrachtervektor und Normale.">
+			<figcaption><span>METALLISCHE OBERFLÄCHEN</span> spiegeln nahezu unabhängig vom Winkel zwischen Betrachtervektor und Normale.</figcaption>
+		</figure>
+		<p>Jetzt führen wir Ihnen Schritt für Schritt das Vertex-Programm vor, das in <i>vpFresnelCubemapTxt</i> steht. Zunächst transformieren Sie die Vertex-Koordinaten aus dem Objectspace in die homogenen Koordinaten des Clipspace. Dazu benötigen Sie die Modelview-Projection Matrix, die sich in den Vertex-Programm-Parametern <i>c[0]</i> bis <i>c[4]</i> befindet:</p>
+		<pre><code>
+!!VP1.0
+DP4 o[HPOS].x, c[0], v[OPOS];
+DP4 o[HPOS].y, c[1], v[OPOS];
+DP4 o[HPOS].z, c[2], v[OPOS];
+DP4 o[HPOS].w, c[3], v[OPOS];
+		</code></pre>
+		<p>Damit haben Sie die notwendige Arbeit für die Geometrie&shy;transformation geleistet. Jetzt geht es daran, die Texture-Koordinaten für die Cubemaps zu berechnen. Diese Koordinaten entsprechen den Richtungen des Reflexions- und Transmissions&shy;strahls. Für diese Berechnungen bringen Sie zunächst die Normalen und die Vertex-Positionen in den <i>Eye Space</i> (Koordinaten&shy;system, in dem sich der Betrachter bei <i>(0, 0, 0, 1)</i> befindet):</p>
+		<pre><code>
+DP3 R5.x, c[4], v[NRML];
+DP3 R5.y, c[5], v[NRML];
+DP3 R5.z, c[6], v[NRML];
+DP4 R0.x, c[8], v[OPOS];
+DP4 R0.y, c[9], v[OPOS];
+DP4 R0.z, c[10], v[OPOS];
+DP4 R0.w, c[11], v[OPOS];
+		</code></pre>
+		<p>Den Vektor von der Vertexposition zum Betrachter erhalten Sie durch Subtraktion <i>(-R0!)</i> mit</p>
+		<pre><code>
+#R0 = c[20] - R0
+ADD R0, -R0, c[20];
+		</code></pre>
+		<p>Diesen gilt es zu normieren, wozu die Vertex-Programme die richtigen Befehle anbieten:</p>
+		<pre><code>
+DP3 R8.w, R0, R0;
+# R8.w = Länge2
+RSQ R8.w, R8.w;
+#R8.w=1.0 / sqrt(R8.w)
+MUL R8, R0, R8.w;
+# R8 = V
+		</code></pre>
+		<p>Nach diesen abge&shy;schlossenen Vor&shy;berechnungen bestimmen Sie den Verlauf des gebrochenen Strahls. Im Folgenden sehen Sie die schrittweise Berechnung der obigen Formel:</p>
+		<pre><code>
+# R0 = NdotI
+DP3 R0.x, R5, -R8;
+
+# R1.x = 1 - NdotI * NdotI
+MAD R1.x, -R0.x, R0.x, c[23].y;
+
+# R1.x = eta<sup>2</sup> * (1 - NdotI * NdotI)
+MUL R1.x, R1.x, c[22].y;
+
+# R1.x = 1 - eta<sup>2</sup> * (1 - NdotI * NdotI)
+ADD R1.x, c[23].y, -R1.x;
+
+# R2.x = sqrt(R1.x)
+RSQ R2.x, R1.x;
+
+# 1.0 / sqrt(R1.x)
+RCP R2.x, R2.x; # sqrt(R1.x)
+
+# R2.x = eta * NdotI + sqrt(R1.x)
+MAD R2.x, c[22].x, R0.x, R2.x;
+
+# R2 = N * R2.x
+MUL R2, R5, R2.x;
+
+# R2 = eta * I + R2
+MAD R2, c[22].x, -R8, R2;
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200209_7.jpg" width="808" height="627" alt="DAS GLASOBJEKT ZEIGT die Lichtbrechungen.">
+			<figcaption><span>DAS GLASOBJEKT ZEIGT</span> die Lichtbrechungen.</figcaption>
+		</figure>
+		<p>Die Berechnung des gespiegelten Strahls gestaltet sich deutlich einfacher, da Sie nur eine Vektor&shy;skalierung und -addition durchführen müssen:</p>
+		<pre><code>
+# R0 = 2N
+MUL R0, R5, c[23].z;
+
+# R3 = 2N * NdotI + V
+DP3 R4.w, R5, R8;
+MAD R3, R4.w, R0, -R8;
+		</code></pre>
+		<p>Jetzt müssen Sie die resultierenden Vektoren <i>R2</i> und <i>R3</i> nur noch mit der inversen Kamera-Matrix multiplizieren, um die korrekten Cubemap-Textur-Koordinaten zu erhalten:</p>
+		<pre><code>
+DP3 o[TEX0].x, c[12], R2;
+DP3 o[TEX0].y, c[13], R2;
+DP3 o[TEX0].z, c[14], R2;
+DP3 o[TEX1].x, c[12], R3;
+DP3 o[TEX1].y, c[13], R3;
+DP3 o[TEX1].z, c[14], R3;
+		</code></pre>
+		<p>Die letzte Aufgabe des Vertex-Programms ist die Approximation des Fresnel-Terms. Auch hier verwenden Sie die obige Formel und setzen Sie um:</p>
+		<pre><code>
+ADD R4.w, c[23].y,-R4.w;
+# 1 - VdotN
+MUL R4.w, R4.w, R4.w; # ()<sup>2</sup>
+MUL o[COL0],R4.w, c[21];
+# k*(1-VdotN)<sup>2</sup>
+END;
+		</code></pre>
+		<p>Das Vertex-Programm berechnet also aus den Eingabedaten (Vertex&shy;koordinaten und -Normalen) die homogenen Clip&shy;koordinaten, die Textur-Koordinaten und den Fresnel-Term, der in der Primärfarbe <i>(COL0)</i> gespeichert ist.</p>
+		<figure class="large">
+			<img src="assets/200209_8.jpg" width="808" height="627" alt="DAS PFERD STELLT EINE weitere Materialeigenschaft vor.">
+			<figcaption><span>DAS PFERD STELLT</span> EINE weitere Materialeigenschaft vor.</figcaption>
+		</figure>
+		<p>Jetzt gilt es, die berechneten Daten sinnvoll einzusetzen, aus den Farbwerten, den Cubemaps und dem Fresnel-Term die endgültigen Farbwerte zu berechnen. Am einfachsten erledigen Sie diese Aufgabe, wenn Sie die <i>NVParse</i>-Bibliothek für Register Combiners verwenden (Ausgabe 07/02, S. 175).</p>
+		<p>Es gibt verschiedene Optionen, die Material&shy;eigenschaften zu bestimmen. Die einfachsten Varianten sind entweder eine reine Spiegelung, wie bei metallischen Gegenständen oder eine reine Lichtbrechung. Die dazugehörigen Register Combiners (die den Fresnel-Term nicht verwenden!) sehen wie folgt aus:</p>
+		<pre><code>
+// nur Lichtbrechung
+nvparse(
+	"!!RC1.0 \n"
+	"out.rgb = tex0; \n"
+);
+
+// Metall
+nvparse(
+	"!!RC1.0 \n"
+	"out.rgb = tex1; \n"
+);
+		</code></pre>
+		<p>Wenn Sie einen gläsernen Gegenstand darstellen wollen, bestimmt der Fresnel-Term die Gewichtung der beiden Farben, also eine lineare Kombination:</p>
+		<pre><code>
+// color = fresnel * reflect +
+// (1-fresnel) * refract
+!!RC1.0
+{
+	rgb
+	{
+		discard =
+			tex0 * unsigned_invert(col0);
+		spare0 = tex1 * col0;
+		spare1 = sum();
+	}
+}
+
+out.rgb = spare1;
+		</code></pre>
+		<p>Sie können dem Glas auch eine Eigenfarbe verpassen. Dazu benötigen Sie einen Combiner mehr, mit dem Sie die <i>tex0</i> Farbe mit einer Konstante mischen:</p>
+		<pre><code>
+!!RC1.0
+const0 = (0.8, 0.7, 0.4, 1.0);
+{
+	rgb
+	{
+		discard = const0;
+		spare0 = tex0;
+		spare1 = sum();
+		scale_by_one_half();
+	}
+}
+
+{
+	rgb
+	{
+		discard= spare1 * unsigned_invert(col0);
+		spare0 = tex1*col0;
+		spare1 = sum();
+	}
+}
+
+out.rgb = spare1;
+		</code></pre>
+		<p>Als letzte Variante hier im Text rendern Sie farbige 3D-Objekte mit einer Fresnel-Spiegelung, indem Sie <i>tex0</i> durch eine Konstante ersetzen. Alternativ verwenden Sie statt der Cubemap-Textur in der ersten Texture-Stage herkömmliches Textur-Mapping, um den Farbwert zu bestimmen. In diesem Fall passen Sie das Vertex-Programm so an, dass der gebrochene Lichtstrahl nicht berechnet wird. Stattdessen werden die Textur-Koordinaten, die Ihr 3D-Objekt dann mit sich bringt, einfach durchgereicht.</p>
+	</section>
+
+	<section>
+		<h2>Zusammenbau</h2>
+		<p>Um alle bisher beschriebenen Teile in der Renderloop zusammen&shy;zufassen, muss dies eine bestimmte Abfolge einhalten. Zu Beginn setzen Sie die Kamera&shy;transformation, deren Matrix Sie invertieren müssen. Die inverse Matrix wird vom obigen Vertex-Programm und beim Zeichnen der Skybox benötigt.</p>
+		<pre><code>
+glClear(GL_COLOR_ BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+glMatrixMode(GL_MODELVIEW);
+glLoadIdentity();
+
+// Kamera Transformation
+glRotatef(...);
+
+//KameraMatrix holen+invertieren
+glGetFloatv(GL_MODELVIEW_MATRIX, cameraMatrix);
+InverseMatrixAnglePreserving(cameraMatrix,
+	cameraMatrixInverse);
+		</code></pre>
+		<p>Dann zeichnen Sie die Skybox, die Sie gleich mit den Cubemaps rendern. Verwenden Sie die Normalen eines 3D-Objektes per OpenGL als Textur-Koordinaten. Damit ersparen Sie sich zusätzlichen Aufwand für das Rendern einer klassischen Skybox. Rendern Sie eine Skysphere, also eine Kugel und keinen Würfel, die aber denselben optischen Effekt wie eine Skybox hat:</p>
+		<pre><code>
+// deaktivieren von Vertex RCs und Z-Buffer
+glDisable(GL_VERTEX_PROGRAM_NV);
+glDisable(GL_REGISTER_COMBINERS_NV);
+glDisable(GL_DEPTH_TEST);
+
+// CubemapTexture -&gt;einer Stage
+glActiveTextureARB(GL_TEXTURE1_ARB);
+glDisable(GL_TEXTURE_CUBE_MAP_ARB);
+
+glActiveTextureARB(GL_TEXTURE0_ARB);
+glBindTexture(GL_TEXTURE_CUBE_ MAP_ARB, cubeMap);
+glEnable(GL_TEXTURE_CUBE_MAP_ARB);
+
+// Text-koordinate
+glTexGeni
+//s. Quellcode...
+		</code></pre>
+		<p>Anschließend zeichnen Sie das 3D-Objekt, für das Sie jetzt noch eine beliebige Transformation in der Modelview-Matrix durchführen können. Aktivieren Sie die Cubemaps für die Texturen Stages <i>0</i> und <i>1</i> und aktualisieren Sie die Textur-Matrix analog zum obigen Code der Skybox bzw. Skysphere. Mit zwei Funktionen können Sie die Parameter für das Vertex Programm, das Brechzahl&shy;verhältnis und die Konstante für die Fresnel-Approximation ändern und anschließend zeichnen Sie das 3D-Objekt.</p>
+		<p>Unser Beispiel&shy;programm kann 3D-Objekte aus ASCII-Dateien laden. Das Zeichnen erfolgt mit einer zuvor angelegten OpenGL Display List, um relativ performantes Rendering zu erhalten.</p>
+		<pre><code>
+void setRefraction(float eta)
+//s. Quellcode
+void setFresnel(float fresnel)
+//s. Quellcode
+
+setFresnel(2.0f);
+setRefraction(1.1f);
+
+object-&gt;drawObject();
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200209_9.jpg" width="808" height="627" alt="IM KÖRPER VERSCHIEBEN sich die Farben durch Wellenlängenabhängige Brechzahlen.">
+			<figcaption><span>IM KÖRPER VERSCHIEBEN</span> sich die Farben durch Wellenlängenabhängige Brechzahlen.</figcaption>
+		</figure>
+		<p>Sie können mit den obigen Funktionen noch weitere wichtige Lichtbrechungs&shy;effekte darstellen. Wenn Sie sich an das Snell’sche Gesetz und die Fresnel-Formel erinnern, fällt auf, dass die Brechzahl von Medien von der Wellenlänge des Lichtes abhängig ist. Vereinfacht betrachtet, setzt sich das Farbbild auf Ihrem Monitor aus Licht von drei Wellenlängen zusammen: Rotes, grünes und blaues Licht deckt bei additiver Farbmischung den Farbraum ab. Sie können das endgültige Bild aus drei einzelnen Renderpasses – für jede Grundfarbe einen – zusammen&shy;setzten.</p>
+		<pre><code>
+glDepthFunc(GL_LEQUAL);
+
+// rot
+glColorMask(GL_TRUE, GL_FALSE;
+	GL_FALSE, GL_FALSE);
+
+setRefraction(1.10f);
+object-&gt;drawObject();
+
+// grün + blau
+//s. Quellcode
+		</code></pre>
+		<p>Für jeden Renderpass können Sie eine eigene Brechzahl festlegen und erhalten Prismeneffekte wie im Bild oben.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200208.html">8/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200210.html">10/2002</a>
+	</nav>
+</body>

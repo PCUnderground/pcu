@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Guter Ton (PC Underground, PC Magazin 9/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;9/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200008.html">8/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200010.html">10/2000</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>DirectSound und DirectMedia</h2>
+		<h1>Guter <span class="highlight">Ton</span></h1>
+		<p class="summary">Statten Sie Ihre Programme mit Hilfe der DirectX-Komponente DirectSound so mit 3D-Klängen aus, dass sich ein Spieler <span class="highlight">am PC wie in einer Spielhölle fühlt.</span></p>
+	</header>
+
+	<section>
+		<h3>C. Dachsbacher/O. Käferstein</h3>
+		<p>Als Programmierer können Sie optische Reize mit akustischen Signalen untermalen. Schöpfen Sie das Arsenal der Audio&shy;funktionen in DirectX7 aus, um eine Demo, ein Spiel oder eine Multimedia-Anwendung zu bereichern. DirectX unterscheidet dabei zwei Komponenten: <i>DirectSound</i> und <i>DirectMusic</i>.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200009.zip">💾 200009.zip</a>.</div>
+	</aside>
+
+	<section>
+		<p>Mit der API (Application Programming Interface) <i>DirectSound</i> können Sie Wave-Daten abspielen und aufnehmen. <i>DirectSound</i> verschiebt Sound in den Ausgabepuffer der Soundkarte. <i>DirectSound</i> beschleunigt die Hardware und lässt sie auf die Sound-Hardware zugreifen. Bei diesem Zugriff bleibt die Kompatibilität zu den Gerätetreibern gewahrt.</p>
+		<p>Die zweite Audio&shy;komponente, <i>DirectMusic</i>, ist der Teil des DirectX-Systems, der Musik ausgibt. <i>DirectMusic</i> arbeitet nicht mit Wave-Daten, sondern mit auf Nachrichten basierenden Musikdaten. Dazu gehören MIDI-Dateien (Musical Instrument Digital Interface), die die MIDI-Hardware oder ein Software-Synthesizer in hörbare Wave-Daten umwandeln muss.</p>
+		<p><i>DirectMusic</i> kann nicht nur MIDI-Dateien abspielen, sondern Musik auch während der Laufzeit eines Programms komponieren, zumindest generieren. Das Verfahren basiert nicht auf einem Klang variierenden Algorithmus, sondern auf Elementen, die ein Musiker vorgibt. Dabei unterstützt ihn der <i>DirectMusic</i>-Producer, eine weitere Komponente von DirectX. <i>DirectMusic</i> greift auf Akkordfolgen, vorgegebene Musikstile und Klangmuster zurück, um dynamisch auf Ereignisse reagieren zu können. Damit beleben Sie ein Computerspiel mit einer satten Klangkulisse.</p>
+	</section>
+
+	<section>
+		<h2>Direct Sound</h2>
+		<p>DirectX versucht, mit wenig Rechenzeit auszukommen. Die Komponente <i>DirectSound</i> nutzt dazu die Sound-Hardware, ohne dass Sie Details der Hardware kennen müssen. Programme, die Sie mit <i>DirectSound</i> ausstatten, klingen schon auf einfachen Soundkarten gut. Wenn eine Soundkarte mit ihren Treibern zusätzliche Effekte bietet, nutzt <i>DirectSound</i> diese ebenfalls. <i>DirectSound</i> kann sogar Effekte ansteuern, die beim Erscheinen einer derzeitigen <i>DirectSound</i>-Version noch nicht bekannt sind.</p>
+		<figure class="floatright">
+			<img src="assets/200009_2.png" width="347" height="261" alt="DIESE ARCHITEKTUR verbindet die Soundhardware mit einer Win32-Applikation.">
+			<figcaption><span>DIESE ARCHITEKTUR</span> verbindet die Soundhardware mit einer Win32-Applikation.</figcaption>
+		</figure>
+		<p>Ohne <i>DirectSound</i> einzusetzen, kann Windows mit seinen herkömmlichen Funktionen Wave-Dateien erklingen lassen. Dazu spielen <i>PlaySound</i> und <i>WaveOut</i> Sound oder Audiostream ab.</p>
+		<p><i>DirectSound</i> sprechen Sie über das <i>IDirectSound</i>-Interface an. Sound Buffers und 3D-Sound-Effekte können Sie auch mit den Interfaces <i>IDirectSoundBuffer, IDirectSound3DBuffer</i> und <i>IDirectSound3DListener</i> verändern.</p>
+		<p>Mit dem <i>IDirectSoundNotify</i>-Interface versenden Sie Signale. Hat der Sound Buffer eine Playback-Position erreicht, können Sie automatisch ein Signal verschicken lassen.</p>
+		<p>So steuern Sie <i>DirectSound</i> an: Suchen Sie ein geeignetes Ausgabegerät, oder verwenden Sie das vom Benutzer gewählte Standard&shy;ausgabegerät. Wenn Sie ein spezielles Gerät suchen oder mehrere Geräte verwenden wollen, müssen Sie – wie immer bei DirectX – die Funktion <i>EnumerationCallback</i> ansteuern:</p>
+		<pre><code>
+// Callback Funktion
+BOOL CALLBACK DSEnumProc(
+	LPGUID lpGUID,
+	LPCTSTR lpszDesc,
+	LPCTSTR lpszDrvName,
+	LPVOID lpContext)
+{
+	// Wertvorgabe in lpContext
+	LPGUID lpTemp = NULL;
+
+	if(lpGUID != NULL)
+	{
+		// Gerät gefunden Info speichern
+		lpTemp = malloc(sizeof(GUID));
+		memcpy(lpTemp, lpGUID, sizeof(GUID));
+	}
+
+	return TRUE;
+}
+		</code></pre>
+		<p>Um mehrere Geräte aufzuzählen, starten Sie mit:</p>
+		<pre><code>
+if FAILED(DirectSoundEnumerate(
+	(LPDSENUMCALLBACK)DSEnumProc, lpContext))
+{
+	// Fehler
+}
+		</code></pre>
+		<p>Nachdem Sie sich für ein <i>DirectSound</i>-Gerät entschieden haben, initialisieren Sie es. Die Funktion</p>
+		<pre><code>
+HRESULT WINAPIDirectSoundCreate(LPCGUID lpcGuid,
+	LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);
+		</code></pre>
+		<p>erzeugt und initialisiert das <i>IDirectSound</i>-Interface. Wenn Sie statt des Zeigers auf einen <i>Globally Unique Identifier</i> (GUID) einen Nullpointer angeben, wählen Sie das Standard&shy;ausgabegerät. Dieses hat der Benutzer in der System&shy;steuerung eingetragen. Im zweiten Parameter übergeben Sie die Adresse eines Zeigers auf ein <i>DirectSound</i>-Objekt, das Sie mit dem Funktions&shy;aufruf erzeugen wollen. Der dritte Parameter muss <i>0</i> sein.</p>
+		<p>Nach der Initialisierung müssen Sie – wie stets bei DirectX-Geräten – den Kooperations&shy;level festlegen. Bei Spielen wollen Sie sicher sein, dass kein anderes Programm Soundeffekte im Hintergrund abspielt. Wählen Sie den <i>DSSCL_EXCLUSIVE</i>-Level. Damit kann nur die Anwendung das Direct-Sound-Gerät verwenden, die gerade aktiv im Vordergrund ist. Mit <i>DSSCL_PRIORITY</i> können Sie auch das Soundformat festlegen.</p>
+		<p>Damit steht das Grundgerüst für unser Beispiel&shy;programm. Den Kooperations&shy;level setzen Sie mit der Funktion</p>
+		<pre><code>HRESULT SetCooperativeLevel(HWND hwnd, DSSCL_PRIORITY);</code></pre>
+		<p><i>DirectSound</i> legt von Haus aus einen primären Buffer an, in dem die Sounddaten aufgehoben und an die Soundkarte geschickt werden. Legen Sie dessen Format fest. Geben Sie folgende Codezeilen ein, um auf den Buffer zugreifen zu können:</p>
+		<pre><code>
+LPDIRECTSOUND _ds;
+
+if(FAILED(::DirectSoundCreate(NULL, &amp;_ds, NULL)))
+	return false;
+
+if(FAILED(_ds-&gt;SetCooperativeLevel(hwnd, DSSCL_PRIORITY)))
+	return false;
+
+if(FAILED(hr = _ds-&gt;CreateSoundBuffer(&amp;dsbd,
+	&amp;pDSBPrimary, NULL)))
+		return hr;
+
+// Primärer Buffer
+WAVEFORMATEX wfx;
+ZeroMemory(&amp;wfx, sizeof(WAVEFORMATEX));
+wfx.wFormatTag = WAVE_FORMAT_PCM;
+wfx.nChannels = 2;
+wfx.nSamplesPerSec = 22050;
+wfx.wBitsPerSample = 16;
+wfx.nBlockAlign =
+	wfx.wBitsPerSample / 8 * wfx.nChannels;
+wfx.nAvgBytesPerSec =
+	wfx.nSamplesPerSec * wfx.nBlockAlign;
+
+if(FAILED(
+	hr = pDSBPrimary-&gt;SetFormat(&amp;wfx)))
+		return hr;
+		</code></pre>
+		<p>Danach geben Sie den primären Buffer wieder frei:</p>
+		<pre><code>SAFE_RELEASE(primary);</code></pre>
+		<p>Im nächsten Schritt fordern Sie einen <i>DirectSound</i>-Buffer an, in dem Sie Ihre Wave-Daten speichern und ausgeben. Ein solcher sekundärer Sound Buffer nimmt entweder einen einzelnen Soundeffekt auf, oder sein Inhalt ändert sich laufend. Sie können den Klang in einer Endlosschleife hören oder nur einmal abspielen.</p>
+		<p>Mit Buffers können Sie Daten auch stückweise einlesen (streamen). Das erledigt unser Beispielcode, der eine MP3-Datei über DirectMedia in <i>DirectSound</i> umleitet. Die Sounds von mehreren sekundären Sound Buffers können Sie mischen, indem Sie mehrere gleichzeitig abspielen. Sie können je nach Rechenzeit beliebig viele Soundeffekte gleichzeitig abspielen. Die Latenzzeit von <i>DirectSound</i> beginnt mit dem Zeitpunkt, zu dem das Abspielen startet, und endet, wenn Sie etwas hören (etwa 20 Millisekunden). Die Verzögerung ist so kurz, dass Sie in einem Spiel einen Soundeffekt starten und gleichzeitig die zugehörige Animation auf dem Bildschirm beginnen können. Sie wird nur größer (bis etwa 100 oder 150 Millisekunden), wenn <i>DirectSound</i> spezielle Hardware-Features mit Software-Routinen emulieren muss.</p>
+		<p>Zu diesem Zweck füllen Sie die <i>DSBUFFERDSC</i>-Struktur mit Informationen über den gewünschten <i>DirectSound</i>-Buffer aus und lassen sich einen Buffer erzeugen. Als Resultat erhalten Sie einen Zeiger auf das <i>IDirectSoundBuffer</i>-Interface, mit dem Sie den Buffer modifizieren und abspielen können:</p>
+		<pre><code>
+PCMWAVEFORMAT pcmwf;
+DSBUFFERDESC dsbdesc;
+HRESULT hr;
+
+// Wave Format Struktur
+memset(&amp;pcmwf, 0, sizeof(PCMWAVEFORMAT));
+pcmwf.wf.wFormatTag = WAVE_FORMAT_PCM;
+pcmwf.wf.nChannels = 2;
+pcmwf.wf.nSamplesPerSec = 22050;
+pcmwf.wf.nBlockAlign = 4;
+pcmwf.wf.nAvgBytesPerSec =
+	pcmwf.wf.nSamplesPerSec * pcmwf.wf.nBlockAlign;
+pcmwf.wBitsPerSample = 16;
+
+// DSBUFFERDESC Struktur füllen
+memset(&amp;dsbdesc, 0, sizeof(DSBUFFERDESC));
+dsbdesc.dwSize = sizeof(DSBUFFERDESC);
+
+//Default: Pan,Volume,Frequency
+dsbdesc.dwFlags = DSBCAPS_CTRLPAN |
+	DSBCAPS_CTRLVOLUME |
+	DSBCAPS_CTRLFREQUENCY;
+
+// 3 Sekunden langer Buffer
+dsbdesc.dwBufferBytes =
+	3 * pcmwf.wf.nAvgBytesPerSec;
+
+dsbdesc.lpwfxFormat = (LPWAVEFORMATEX)&amp;pcmwf;
+// und Buffer erzeugen
+hr = _ds-&gt;lpVtbl-&gt;CreateSoundBuffer(lpDirectSound,
+	&amp;dsbdesc, _dsbuf, NULL);
+if(SUCCEEDED(hr))
+{
+	// Interface ist *_dsbuf
+	return TRUE;
+}
+else
+{
+	// Fehler !
+	*_dsbuf= NULL;
+	return FALSE;
+}
+		</code></pre>
+		<p>Nun haben Sie alle Strukturen angelegt und ausgefüllt (allokiert), um Sounds abzuspielen. Sie sind damit in der Lage, die Wave-Daten in den sekundären Buffer zu schreiben. Um auf den Buffer zuzugreifen und anderen Tasks den Zugriff zu verweigern, wenden Sie einen Lock-Befehl auf den Buffer an:</p>
+		<pre><code>
+VOID *mem1, *mem2;
+DWORD sz1, sz2;
+
+if(FAILED(_dsbuf-&gt;Lock(0, 0,
+	&amp;mem1, &amp;sz1, &amp;mem2,
+	&amp;sz2, DSBLOCK_ENTIREBUFFER)))
+		return false;
+		</code></pre>
+		<p>Diese Zeilen greifen ab der aktuellen Zeigerposition auf den Buffer zu. Als Rückgabe bekommen Sie zwei Zeiger (<i>mem1</i> und <i>mem2</i>) und zu jedem die Anzahl der Bytes über die Größe des korres&shy;pondierenden Speicher&shy;bereichs.</p>
+		<p>Warum bekommen Sie zwei Speicher&shy;bereiche bei diesem einen Buffer? Wenn Sie den Buffer <i>loopen</i>, also endlos abspielen, springt er jedesmal zum Anfang zurück. <i>DirectSound</i> erledigt das für Sie: Sie bekommen einen ersten Speicher&shy;bereich für den Teil des Sounds, der von der aktuellen Position bis zum Bufferende reicht, und einen eventuellen zweiten, der vom Anfang des Buffers bis zur aktuellen Position geht.</p>
+		<p>In den Speicher können Sie mit dem Format (8, 16 oder 32 Bit) hinein&shy;schreiben, das Sie für den Buffer festgelegt haben. Danach geben Sie den Buffer wieder frei:</p>
+		<pre><code>_dsbuf-&gt;Unlock(mem1, sz1, mem2, sz2);</code></pre>
+		<p>Nun können Sie den Buffer abspielen. Dazu verwenden die Interfaces die Methode <i>::Play():</i></p>
+		<pre><code>
+HRESULT IDirectSoundBuffer::Play(
+	DWORD dwReserved1,
+	DWORD dwPriority,
+	DWORD dwFlags
+);
+		</code></pre>
+		<p>Der vorgegebene erste Parameter muss <i>0</i> sein, der zweite gibt die Prioriät an, wie Sie den Soundeffekt abspielen wollen. Dabei ist <i>0</i> die niedrigste und <i>0xffffffff</i> die höchste Priorität. Sie ist wichtig für den Direct-Sound-Voice-Manager, der bei hoher System&shy;auslastung Sounds höchster Priorität bevorzugt.</p>
+		<p>Die Flags wählen Sie in der Hilfefunktion des DirectX-SDK. Mit <i>DSBPLAY_LOOPING</i> lassen Sie Klänge aus dem Buffer endlos abspielen. Andere Flags verwenden Sie, um 3D-Sounds anzusteuern.</p>
+		<p>Mit <i>DirectSound</i> entlocken Sie Spielen, Demos und Multimedia-Anwendungen die richtigen Töne. Für einfachere Applikationen reichen <i>PlaySound</i>- und <i>WaveOut</i>-Befehle.</p>
+	</section>
+
+	<section>
+		<h2>3D-Sound mit DirectSound</h2>
+		<p>Wer eine entsprechende Soundkarte mit Verstärker und Lautsprechern besitzt, kann mit <i>DirectSound</i> Klänge im Raum frei positionieren: Der 3D-Sound platziert den Hörer (<i>Listener</i>) und die Sound-Effekte (Sound-Buffer) beliebig in den Raum. Für den Hörer können Sie weitere Eigenschaften, wie die Stärke des Doppler&shy;effektes, festlegen. Für die Schallquellen können Sie die Abstrahl&shy;richtung bestimmen.</p>
+		<p>Wenn Sie 3D-Sound verwenden wollen, legen Sie dies mit dem Format des primären Buffers mit <i>DSBCAPS_CTRL3D</i> fest:</p>
+		<pre><code>
+ZeroMemory (&amp;dsbdesc, sizeof(DSBUFFERDESC));
+dsbdesc.dwSize = sizeof(DSBUFFERDESC);
+dsbdesc.dwFlags = DSBCAPS_CTRL3D | DSBCAPS_PRIMARYBUFFER;
+if(FAILED(hr = _ds-&gt;CreateSoundBuffer(&amp;dsbdesc,
+	&amp;pDSBPrimary, NULL)))
+		return hr;
+		</code></pre>
+		<p>Greifen Sie auf das Interface zu, mit dem Sie die Attribute für den Hörer festlegen. Dazu rufen Sie die <i>QueryInterface</i>-Methode vom Objekt des primären Buffers auf:</p>
+		<pre><code>
+// Listener
+LPDIRECTSOUND3DLISTENER pDSListener = NULL;
+if(FAILED(
+	hr = pDSBPrimary-&gt;QueryInterface(
+		IID_IDirectSound3DListener,
+		(VOID**)&amp;pDSListener)
+	))
+		return hr;
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200009_1.png" width="453" height="295" alt="MIT DEM BEISPIELPROGRAMM drehen Sie an den Parametern, um Sound aus allen Richtungen zu hören.">
+			<figcaption><span>MIT DEM BEISPIELPROGRAMM</span> drehen Sie an den Parametern, um Sound aus allen Richtungen zu hören.</figcaption>
+		</figure>
+		<p>Das Listener-Interface stellt Ihnen die Methoden vor, mit denen Sie die entsprechenden Attribute setzen können.</p>
+		<p>Diese Attribute sind zum Beispiel Faktoren wie Doppler-, Rolloff- oder Distanzeffekt, der Lautstärken&shy;änderungen für verschiedene Entfernungen beschreibt, sowie Position, Geschwindig&shy;keit und Blickrichtung der Hörers. Die Ortsangaben bestimmen Sie mit 3D-Koordinaten. Hier die Positionierung eines Listeners:</p>
+		<pre><code>
+pDSListener-&gt;SetPosition(0, 0, 1, DS3D_IMMEDIATE);
+pDSListener-&gt;SetVelocity(0, 1, 0, DS3D_IMMEDIATE);
+pDSListener-&gt;SetOrientation(0, 1, 0, 0, 0, 1, DS3D_IMMEDIATE);
+		</code></pre>
+		<p>Mit dem <i>DS3D_IMMEDIATE</i>-Flag legen Sie fest, dass die Zustands&shy;änderungen sofort übernommen werden. Das kostet Rechenzeit. Wollen Sie mehrere Änderungen vornehmen, aber keine Rechenzeit vergeben, verwenden Sie das <i>DS3D_DEFERRED</i>-Flag und rufen am Ende aller Änderungen</p>
+		<pre><code>HRESULT IDirectSound3DListener::CommitDeferredSettings()</code></pre>
+		<p>auf, um sie wirksam werden zu lassen.</p>
+		<p>Nun fehlt Ihnen noch ein sekundärer Sound Buffer, der 3D-Sound unterstützt. Dazu legen Sie <i>DirectSound</i>-Buffer an und setzen wie beim primären Buffer das <i>DSBCAPS_CTRL3D</i>-Flag. Über einen Query-Interface-Aufruf bekommen Sie wieder ein <i>DirectSound3DBuffer</i>-Objekt:</p>
+		<pre><code>
+// sekundärer Buffer
+LPDIRECTSOUNDBUFFER pDSBuffer = NULL;
+
+// 3D-Sound Buffer
+LPDIRECTSOUND3DBUFFER g_pDS3DBuffer = NULL;
+if(FAILED(hr = _ds-&gt;CreateSoundBuffer(&amp;dsbd,
+	&amp;pDSBuffer, NULL)))
+return hr;
+
+// Get the 3D buffer from the 2.
+if(FAILED(hr = pDSBuffer-&gt;QueryInterface(
+	IID_IDirect
+	Sound3DBuffer,
+	(VOID**)&amp;pDS3D
+	Buffer)))
+		return hr;
+		</code></pre>
+		<p>Das <i>IDirectSound3DBuffer-</i> stellt Ihnen wie das Listener-Interface Methoden zur Verfügung, die Schallquelle zu positionieren oder die Abstrahl&shy;richtung festzulegen. Sie können den Schall (Buffer) auch automatisch immer in gleicher Position zum Hörer platzieren. <i>DirectSound</i> interpretiert die Ortsangaben für den Buffer dann als relative Koordinaten. Dazu nehmen Sie folgenden Codeausschnitt:</p>
+		<pre><code>
+// 3D Buffer Attribute
+DS3DBUFFER dsBufferParams;
+dsBufferParams.dwSize = sizeof(DS3DBUFFER);
+pDS3DBuffer-&gt;GetAllParameters(&amp;dsBufferParams);
+dsBufferParams.dwMode = DS3DMODE_HEADRELATIVE;
+pDS3DBuffer-&gt;SetAllParameters(&amp;dsBufferParams,
+	DS3D_IMMEDIATE);
+		</code></pre>
+		<p>Den Buffer können Sie wie die sekundären Buffer mit der <i>Play</i>-Methode abspielen, ohne sich weiter um den 3D-Sound kümmern zu müssen. <i>DirectSound</i> übernimmt die Arbeit für Sie. Ein Beispiel finden Sie im DirectX7-SDK, das Sie mit den Parametern experimentieren lässt.</p>
+	</section>
+
+	<section>
+		<h2>Streaming von MP3 aus Direct Media</h2>
+		<p>Unser Beispiel&shy;programm auf der Heft-CD nutzt die Vorteile, die das DirectX-DirectMedia-Bundle bietet: Es bringt einen DirectMedia-AudioStream (<i>wav,mp3, wma</i>) dazu, seine <i>RAW</i>-Daten DirectSound zu liefern.</p>
+		<figure class="floatright">
+			<img src="assets/200009_3.png" width="265" height="248" alt="SIE SEHEN IN DIESER HIERARCHIE den Aufbau von Multimedia-Streams.">
+			<figcaption><span>SIE SEHEN IN DIESER HIERARCHIE</span> den Aufbau von Multimedia-Streams.</figcaption>
+		</figure>
+		<p>Diese können Sie in einen <i>DirectSound</i>-Buffer kopieren und damit alles anstellen, was das <i>DirectSound</i> Buffer-Interface bietet. Da Sie viele Klassen aus dem <i>DirectSound</i>- und <i>DirectMedia</i>-SDK einsetzen, sollten Sie häufiger einen Blick in die Hilfedateien von DirectX-7 werfen. Die DirectMedia-Hierarchie zeigt die Verbindung von Win32-Applikationen mit der Sound-Hardware.</p>
+		<p>Um auf die DirectMedia-COM-Objekte zuzugreifen, aktivieren Sie die COM-Schnittstelle für die Applikation:</p>
+		<pre><code>CoInitialize(NULL);</code></pre>
+		<p>Anschließend benötigen Sie einen <i>IMultiMediaStream</i>, der in der Klassen&shy;hierarchie von DirectMedia den höchsten Level eines Streaming-Objekts darstellt. Dieses kann mehrere MediaStreams aufnehmen wie Audio und Video:</p>
+		<pre><code>IMultiMediaStream *pMMStream;</code></pre>
+		<p>Als Nächstes brauchen Sie einen <i>IAMMultiMediaStream</i>, der die Schnittstelle zu den Stream-Funktionen darstellt. Der Vorteil dieses Interfaces: Es generiert die DirectMedia-Filter selbst. Diese benötigen Sie, um die Dateien abzuspielen oder anzuzeigen.</p>
+		<pre><code>IAMMultiMediaStream *pAMStream;</code></pre>
+		<p>Den DirectMedia Filter bekommen Sie auch wieder über die COM-Schnittstelle via <i>CoCreateInstance</i>. Dieses liefert Ihnen ein Object des <i>CLSID</i>-Eintrags.</p>
+		<pre><code>
+CoCreateInstance(CLSID_AMMultiMediaStream, NULL,
+	CLSCTX_INPROC_SERVER,
+	IID_IAMMultiMediaStream,
+	(void **)&amp;pAMStream);
+		</code></pre>
+		<p>Initialisieren Sie den DirectMedia-Stream. Lassen Sie den Lesezugriff (<i>STREAMTYPE_READ</i>) und den zum Dateityp gehörigen Filter automatisch abrufen:</p>
+		<pre><code>
+pAMStream-&gt;Initialize(STREAMTYPE_READ,
+	AMMSF_NOGRAPHTHREAD, NULL);
+		</code></pre>
+		<p>Teilen Sie DirectMedia über die <i>AddMediaStream</i>-Methode mit, was Sie mit dem Stream vorhaben. Diese bekommt einen Pointer zu einem Media-Stream-Objekt als ersten Parameter. Um den Default-Renderer (die Standard&shy;funktion, um die Daten aus dem Stream zu extrahieren) nutzen zu können, tragen Sie für den ersten Parameter den Wert <i>0</i> ein. Zudem brauchen Sie die <i>PurposeID</i> (MSPID) <i>Audio</i>. Den optionalen Parameter für <i>New Stream</i> lassen Sie auf dem Wert <i>0</i>.</p>
+		<pre><code>
+pAMStream-&gt;AddMediaStream(NULL,
+	&amp;MSPID_PrimaryAudio,
+	AMMSF_ADDDEFAULTRENDERER, NULL);
+		</code></pre>
+		<p>Nach den Einstell&shy;arbeiten für den MediaStream öffnen Sie die Klangdatei.</p>
+		<pre><code>pAMStream-&gt;OpenFile(pszFileName, AMMSF_RUN);</code></pre>
+		<p>Übergeben Sie den COM-Objekten Unicode-Strings. Dazu wandeln Sie den eingehenden Dateinamen über <i>MultiByteToWideChar</i> in dieses Format um.</p>
+		<pre><code>
+WCHAR wszName[_MAX_PATH];
+MultiByteToWideChar(CP_ACP, 0,
+	argv[1], -1, wszName,
+	sizeof(wszName) / sizeof(wszName[0]));
+		</code></pre>
+		<p>Probieren Sie die Audio&shy;funktionen des MediaStream aus. Dazu machen Sie aus dem <i>IAMMultiMediaStream</i> wieder einen <i>IMultiMediaStream</i>.</p>
+		<pre><code>pMMStream = pAMStream;</code></pre>
+		<p>Jetzt können Sie den fertig initialisierten MediaStream bei DirectMedia abholen.</p>
+		<pre><code>
+IMediaStream *pStream;
+pMMStream-&gt;GetMediaStream(MSPID_PrimaryAudio,
+	&amp;pStream);
+		</code></pre>
+		<p>Da der Multimedia-Stream auch ein <i>AVI</i>- oder <i>MPEG</i>-Video sein kann, fordern Sie nur dessen Audioteil an.</p>
+		<pre><code>
+IAudioMediaStream *pAudioStream;
+pStream-&gt;QueryInterface(IID_IAudioMediaStream,
+	(void **)&amp;pAudioStream);
+		</code></pre>
+		<p>Den Audiotrack fragen Sie nach seinem Format und erhalten eine fertig ausgefüllte <i>WAVEFORMATX</i>-Struktur:</p>
+		<pre><code>
+WAVEFORMATEX wfx;
+pAudioStream-&gt;GetFormat(&amp;wfx);
+		</code></pre>
+		<p>Jetzt fehlt Ihnen nur noch der Zugriff auf die Audiodaten. Diesen erlangen Sie wieder über die COM-Schnittstelle:</p>
+		<pre><code>
+IAudioData *pAudioData;
+CoCreateInstance(CLSID_AMAudioData, NULL,
+	CLSCTX_INPROC_SERVER, IID_IAudioData,
+	(void **)&amp;pAudioData);
+		</code></pre>
+		<p>Somit haben Sie ein <i>IAudioData</i>-Interface, das von einem <i>IMemoryInterface</i> abgeleitet wurde. Dieses ist in der Lage, Daten in einem von Ihnen ansprechbaren Speicher abzulegen.</p>
+		<pre><code>
+#define DATA_SIZE 8192
+PBYTE pMyBuffer = new PBYTE[DATA_SIZE];
+pAudioData-&gt;SetBuffer(DATA_SIZE, pMyBuffer, 0);
+pAudioData-&gt;SetFormat(&amp;wfx);
+		</code></pre>
+		<p>Teilen Sie Ihrem Audio-Stream per <i>CreateSample</i>-Methode mit, wo und wie Sie die entpackten Daten abholen wollen. Der erste Übergabe&shy;parameter ist Ihr erzeugtes Audiodata-Objekt, in dem die Samples abgelegt werden. Die Flags sind in der jetzigen Version nicht spezifiziert, deshalb setzen Sie sie auf den Wert <i>0</i>. Der dritte Parameter ist ein <i>IAudioStreamObject</i>, über das Sie später auf die Update-Funktion zugreifen. Diese signalisiert, dass Daten abzuholen sind.</p>
+		<pre><code>
+IAudioStreamSample *pSample;
+pAudioStream-&gt;CreateSample(pAudioData, 0, &amp;pSample);
+		</code></pre>
+		<p>Nun brauchen Sie noch ein Event, über das das Audio-Interface Ihrem Programm mitteilen kann, dass neue Daten vorliegen. Sie können dann die Update-Funktion benutzen, die das <i>IAudioStreamSample</i> vom <i>IMemoryData</i>-Interface geerbt hat.</p>
+		<pre><code>
+HANDLE hEvent = CreateEvent(FALSE, NULL, NULL, FALSE);
+
+loop:
+
+HRESULT hr = pSample-&gt;Update(0, hEvent, NULL, 0);
+if(FAILED(hr) || MS_S_ENDOFSTREAM == hr ) {
+	break;
+}
+		</code></pre>
+		<p>Wenn Ihr Event eintritt, können Sie die aktuellen Sound-Daten im Buffer abholen und an den <i>DirectSound</i>-Buffer schicken.</p>
+		<pre><code>
+WaitForSingleObject(hEvent, INFINITE);
+DWORD dwLength;
+pAudioData-&gt;GetInfo(NULL, NULL, &amp;dwLength);
+ds_streambuffer.write(dwLength, pBuffer);
+
+goto loop;
+		</code></pre>
+		<p>Die Vorteile dieser Methode für Streambuffer sind folgende: DirectMedia kümmert sich darum, die Daten aufzubereiten und zu entpacken. Außerdem extrahiert DirectMedia die Audiostreams aus allen ihm bekannten Videoformaten.</p>
+	</section>
+
+	<section>
+		<h2>Ausblick auf Version 8</h2>
+		<p>Unser Beispiel&shy;programm und die des DirectX-SDKs bieten eine Grundlage für weitere Experimente und einen professionellen Einsatz von <i>DirectSound</i>. Wenn Sie sich für <i>DirectMusic</i> interessieren, sollten Sie einen Blick in den <i>DirectMusic</i>-Producer riskieren, den Sie im SDK etwas versteckt im Verzeichnis <i>essentls\dmusprod</i> finden. Die noch nicht veröffent&shy;lichte Version 8 von DirectX wird <i>DirectSound</i> und <i>DirectMusic</i> verschmelzen. Die dann entstehende Komponente soll <i>DirectAudio</i> heißen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200008.html">8/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200010.html">10/2000</a>
+	</nav>
+</body>

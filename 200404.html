@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Windows für Individualisten (PC Underground, PC Magazin 4/2004)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;3/2004. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200403.html">3/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200406.html">6/2004</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Windows-Hooks und GDI-Funktionen</h2>
+		<h1>Windows für <span class="highlight">Individualisten</span></h1>
+		<p class="summary">Mit einfach zu erlernenden Techniken können Sie Ihren Windows Programmen eine ganz persönliche Note geben. Wir zeigen Ihnen, was Sie mit <span class="highlight">Windows-Hooks und GDI-Funktionen</span> erreichen können.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200404_1.jpg" width="455" height="250" alt="Bunt: Unser Beispielprogramm zeigt transparente Pull-down-Menüs mit Windows Hooks.">
+			<figcaption><span>Bunt: Unser Beispielprogramm</span> zeigt transparente Pull-down-Menüs mit Windows Hooks.</figcaption>
+		</figure>
+		<p>Gelangweilt klickt der Anwender alltägliche Windows-Dialoge ungelesen weg. Doch Sie gestalten in Ihrem Programm Fenster und Dialoge so, dass Ihnen die Aufmerksamkeit sicher ist. Dazu verwenden Sie GDI Funktionen (Graphics Device Interface), um beliebig transparente Fenster zu erzeugen und Windows-Hooks, um Window-Messages abzufangen, zu modifizieren und so ein verändertes Verhalten oder Aussehen zu erreichen.</p>
+		<p>Windows-Hooks sind ein Mechanismus, mit dem eine Funktion beliebige Events wie Nachrichten, Mausbewegungen oder Tastendrücke abfangen kann, bevor sie an eine Applikation gesendet werden. Die Funktion kann auf diese Events reagieren und in manchen Fällen sie modifizieren oder verwerfen. Solche so genannten Filter&shy;funktionen werden unterschieden nach dem Typ von Events, die Sie beeinflussen wollen. Solche Funktionen müssen Sie durch ein Programm <i>installieren</i> – im Englischen wird von <i>attach</i> geredet. Für ein und denselben Typ wie einen Maus-Hook können Sie mehrere Filter&shy;funktionen installieren. Es ergibt sich eine Kette von Funktionen: am Anfang der Kette steht die neueste, am Ende die älteste Funktion. Tritt das Event ein, ruft Windows die erste Funktion auf. Die Filter&shy;funktionen müssen das jeweils nächste Element der Kette, bzw. die letzte Filterfunktion die erste, also Original-Routine aufrufen.</p>
+		<p>Hooks setzen Sie mit den Funktionen <i>SetWindowHookEx</i> und <i>UnhookWindowsHookEx</i>. Die Tabelle zeigt die verschiedenen Typen von Hooks und die jeweiligen Konstanten für die obigen Methoden.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200404.zip">💾 200404.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Einhaken und Window Messages</h2>
+		<p>Um Ihnen die Anwendung des Hook-Mechanismus zu demonstrieren, führen wir Sie hier durch die wichtigen Schritte unseres Beispiel&shy;programms. Dieses installiert eine Filterfunktion, die die Window-Messages abfangen soll – nicht für alle Fenster, sondern für die Pulldown-Menüs der eigenen Applikation.</p>
+		<p>Zu Beginn des Programms, in der <i>WinMain</i>-Funktion, wird eine Fensterklasse registriert und ein Fenster mit einem Menü generiert. Dieses bekommt – wie jedes Fenster – eine <i>Message-Handler</i>-Funktion, um auf Aktionen des Benutzers und Windows-Nachrichten zu reagieren. Wenn eine Anwendung ein Fenster öffnet, wird diese Funktion mit der <i>WM_CREATE</i>-Message aufgerufen. Darin wird ein Client-Fenster angelegt und ein Hook installiert:</p>
+		<pre><code>
+static HHOOK hHookID = 0;
+hHookID = SetWindowsHookEx(WH_CALLWNDPROC,
+	HookCallWindowProc, 0,
+	GetWindowThreadProcessId(hWnd,0));
+		</code></pre>
+		<p>Der erste Parameter ist die Konstante, die bestimmt, dass der Hook vom Typ <i>Window Messages</i> ist. Der zweite gibt die Adresse der Hook-Funktion an, zu der wir gleich kommen, und der dritte Parameter ist <i>0</i>, wenn sich diese Funktion im Code Segment des aktuellen Threads (Ihres Programms) befindet. Der letzte Parameter gibt die Prozess ID an, für die der Hook wirksam sein soll.</p>
+		<p>Die zweite hier wichtige Message des Message-Handlers ist <i>WM_DESTROY</i>. In diesem Fall wird der Hook wieder aus der Filterfunktion-Kette entfernt:</p>
+		<pre><code>
+if(hHookID)
+	UnhookWindowsHookEx(hHookID);
+		</code></pre>
+		<p>Anschließend werfen Sie einen genaueren Blick auf die Hook-Filterfunktion, deren Kopf wie folgt definiert ist:</p>
+		<pre><code>
+LRESULT CALLBACK HookCallWindowProc(int nCode,
+	WPARAM wP, LPARAM lP)
+{
+	CWPSTRUCT cwps;
+	LONG handle;
+	CHAR szClass[128];
+		</code></pre>
+		<p>Wenn der <i>nCode</i>- Parameter den Wert <i>HC_ACTION</i> enthält, interpretieren Sie den Wert des <i>lP</i>-Parameters als Zeiger auf eine <i>CPWSTRUCT</i>. Diese Struktur enthält alle Parameter einer Window-Message:</p>
+		<pre><code>
+typedef struct tagCWPSTRUCT
+{
+	LPARAM lParam;
+	WPARAM wParam;
+	UINT message;
+	HWND hwnd;
+} CWPSTRUCT;
+		</code></pre>
+		<p>Also kopieren Sie die Nachricht:</p>
+		<pre><code>
+if(nCode == HC_ACTION)
+{
+	CopyMemory(&amp;cwps, (void*)lP,
+		sizeof(CWPSTRUCT));
+		</code></pre>
+		<p>So analysieren und reagieren Sie anschließend auf die Nachricht, wenn sie ein Fenster anlegen soll:</p>
+		<pre><code>
+switch(cwps.message)
+{
+	case WM_CREATE:
+		GetClassName(cwps.hwnd, szClass,127);
+		if(lstrcmpi(szClass, „#32768“) == 0)
+		{
+			handle = SetWindowLong(cwps.hwnd,
+				GWL_WNDPROC,
+				(LONG)SubClassWindowProc);
+			SetProp(cwps.hwnd,
+				"OldWindowProcedure",
+				(HANDLE)handle);
+		}
+
+		break;
+}
+		</code></pre>
+		<p>Wenn ein Fenster erzeugt wird, enthält die Nachrichten-Struktur die <i>WM_CREATE</i>-Message. Pull-down-Menüs erkennen Sie daran, dass der Klassenname <i>#32768</i> lautet. In diesem Fall verbiegen Sie den Zeiger des Window-Message-Handlers für dieses neue Pull-down-Menü auf die Funktion <i>SubClassWindowProc(...)</i>, die Sie selbst definieren. Sie speichern die Adresse des normalen Message-Handler mit der <i>SetProp(...)</i>-Methode. Die Adresse können Sie zu jedem Zeitpunkt wieder abfragen, da sie mit dem <i>HWND</i> des Pull-down-Menüs assoziiert ist. Zuletzt rufen Sie noch die nächste Funktion der Filterkette auf:</p>
+		<pre><code>
+return CallNextHookEx((HHOOK)WH_CALLWNDPROC,
+	nCode, wParam, lParam);
+}
+		</code></pre>
+		<p>Als nächstes beschäftigen Sie sich mit der neu installierten Fenster&shy;funktion für die Pull-down-Menüs Ihrer Applikation. Fenster-Attribute wie Transparenz können Sie hinzufügen, wenn Sie die SubClassWindowProc(...) Funktion mit der <i>WM_CREATE</i>-Message aufrufen. Unser Fall soll das Aussehen anderweitig modifizieren und den Hintergrund der Menüs mit einem Farbverlauf versehen.</p>
+		<p>Dazu bearbeiten Sie die <i>WM_PAINT</i>-Nachricht. Das Prinzip ist folgendermaßen: Wenn eine <i>WM_PAINT</i>-Nachricht eintrifft, fangen Sie diese ab und erzeugen sich zuerst zwei Device Kontexts und Bitmaps, die die Größe des Menü-Fensters besitzen:</p>
+		<pre><code>
+HDC tempHDC, tempHDC2;
+RECT rect;
+HBITMAP bitmap, bitmap2;
+
+GetClientRect(hWnd, &amp;rect);
+tempHDC = CreateCompatibleDC(NULL);
+bitmap = CreateCompatibleBitmap(
+	GetDC(GetDesktopWindow()),
+	rect.right, rect.bottom);
+
+tempHDC2 = ...;
+bitmap2 = ...;
+
+SelectObject(tempHDC, bitmap);
+SelectObject(tempHDC2, bitmap2);
+		</code></pre>
+		<p>In eine Bitmap (<i>bitmap2</i>) zeichnen Sie einen Farbverlauf, wobei Ihnen z.B. die <i>CreateSolidBrush(..)- und FillRect(..)</i>-GDI-Funktionen helfen. Im anderen Bitmap (<i>bitmap</i>) möchten Sie ein Bild des Originialmenüs darstellen. Dazu bedienen Sie sich eines Tricks! Es gibt eine Window-Message (<i>WM_PRINTCLIENT</i>), die für das Drucken von Fenster&shy;inhalten gedacht ist. Diese zeichnet den Inhalt des Fensters (oder Pull-down-Menüs) in einen beliebigen Device-Kontext. Also verwenden Sie diese Methode, um sich vom Original-Message-Handler das Menü in das Bitmap bzw. den assoziierten Device-Kontext zeichnen zu lassen:</p>
+		<pre><code>
+// alter Message Handler
+WNDPROC oldWindowProc =
+	(WNDPROC)GetProp(hWnd, "OldWindowProcedure");
+
+// Bitmap löschen mit Menuhintergrund
+FillRect(tempHDC, &amp;rect,
+	(HBRUSH)GetSysColor(COLOR_MENU));
+
+CallWindowProc(oldWindowProc, hWnd,
+	WM_PRINTCLIENT, (LPARAM)tempHDC,
+	PRF_CLIENT | PRF_CHECKVISIBLE);
+		</code></pre>
+		<p>Der letzte Parameter enthält Flags, die angeben, dass Sie den Fensterinhalt darstellen und auf Sichtbarkeit prüfen. Jetzt kopieren Sie die Bitmap mit dem Menü über die Bitmap mit dem Farbverlauf. Dabei stanzen Sie die Menü-Hintergrund&shy;farbe aus, damit Sie nur die Pixel, die Teile des Menüs enthalten, überschreiben:</p>
+		<pre><code>
+TransparentBlt(tempHDC2, rect.left,
+	rect.top, rect.right - rect.left,
+	rect.bottom - rect.top, tempHDC,
+	rect.left, rect.top, rect.right - rect.left,
+	rect.bottom - rect.top,
+	GetSysColor(COLOR_MENU));
+		</code></pre>
+		<p>Jetzt ist das Menü wie geplant gezeichnet und Sie können es auf den Bildschirm kopieren:</p>
+		<pre><code>
+BitBlt(GetDC(hWnd), rect.left,
+	rect.top, rect.right rect.left,
+	rect.bottom - rect.top, tempHDC2,
+	0, 0, SRCCOPY);
+		</code></pre>
+		<p>Nachdem Sie die Device-Kontexts und Bitmaps wieder freigegeben haben, müssen Sie Windows noch mitteilen, dass der Fensterbereich fertig gezeichnet wurde:</p>
+		<pre><code>
+ValidateRect(hWnd, &amp;rect);
+
+return 0;
+		</code></pre>
+		<p>Wenn Sie die Funktion mit Rückgabewert <i>0</i> verlassen, haben Sie die <i>WM_PAINT</i>-Nachricht somit abgefangen, d.h. es werden keine weiteren Hook-Filter&shy;funktionen oder Message-Handler aufgerufen.</p>
+		<p>Genauso, wie Sie mit <i>ValidateRect(..)</i> angeben, dass ein Bereich gezeichnet wurde, müssen Sie dafür sorgen, dass Teile des Menüs, die neu gezeichnet werden müssen, entsprechend bearbeitet werden. Dies ist der Fall, wenn entweder ein neues Menüelement mit der Maus oder Tastatur ausgewählt wird. Die beiden entsprechenden Nachrichten fangen Sie ab und sorgen dafür, dass das Menü vollständig neu gezeichnet wird. Allerdings geben Sie die Nachricht weiter, da die Internas, z.B. welches Element selektiert wurde, sonst nicht aktualisiert werden:</p>
+		<pre><code>
+case WM_KEYDOWN:
+case 0x1e5:
+	GetClientRect(hWnd,&amp;rect);
+	InvalidateRect(hWnd,&amp;rect,false);
+	return CallWindowProc(...);
+		</code></pre>
+	</section>
+
+	<aside>
+		<h2>Filterfunktionstypen</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Funktion</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>WH_CALLWNDPROC</td><td>Window Messages von SendMessage(...) verschickt</td></tr>
+					<tr><td>WH_CBT</td><td>System Aktionen für Computer Based Training</td></tr>
+					<tr><td>WH_DEBUG</td><td>Verhindert den Aufruf anderer Filter</td></tr>
+					<tr><td>WH_FOREGROUNDIDLE</td><td>Wird bei Idle der Vordergrund-Applikation aufgerufen</td></tr>
+					<tr><td>WH_GETMESSAGE</td><td>Für Nachrichten von oder für <i>GetMessage(...)</i> und <i>PeekMessage</i></td></tr>
+					<tr><td>WH_JOURNALPLAYBACK</td><td>Wiedergabe von Tastatur- oder Maus-Events</td></tr>
+					<tr><td>WH_JOURNALRECORD</td><td>Aufzeichnen von Tastatur- oder Maus-Events</td></tr>
+					<tr><td>WH_KEYBOARD</td><td>Bearbeiten, Modifizieren oder Verwerfen von Tastatur-Events</td></tr>
+					<tr><td>WH_MOUSE</td><td>Bearbeiten, Modifizieren oder Verwerfen von Maus-Events</td></tr>
+					<tr><td>WH_MSGFILTER</td><td>Bearbeiten oder Modifizieren von Nachrichten für Dialog/Message Boxes, Scroll Bars oder Menüs von Applikationen</td></tr>
+					<tr><td>WH_SYSMSGFILTER</td><td>wie oben nur für das System, nicht für Applikationen</td></tr>
+					<tr><td>WH_SHELL</td><td>Aktionen von Top-Level-Fenstern (Erzeugen, Zerstören)</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Transparente Fenster</h2>
+		<figure class="large">
+			<img src="assets/200404_3.jpg" width="707" height="319" alt="Der etwas andere About Dialog: Per Pixel-Transparenz erstaunen den Anwender plakative Effekte mit Layered Windows.">
+			<figcaption><span>Der etwas andere About Dialog:</span> Per Pixel-Transparenz erstaunen den Anwender plakative Effekte mit Layered Windows.</figcaption>
+		</figure>
+		<p>Zuvor haben wir bereits erwähnt, dass Sie Ihre Pull-down-Menüs auch transparent gestalten können. Dazu bietet Windows 2000 und XP entsprechende Funktionalität. Die entsprechenden Methoden, um diese Funktionen zu nutzen, sind in der Bibliothek <i>User32.DLL</i> enthalten. Diese müssen Sie, unter Umständen je nach SDK-Version, selbst definieren und aus der DLL mit <i>GetProcAdress(..)</i> laden (siehe Beispiel&shy;programm). Die beiden Funktionen sind <i>SetLayeredWindowAttributes</i> und <i>UpdateLayeredWindow</i>. Mit ersterer können Sie ein Fenster ganz einfach transparent machen wie z.B. Pull-down-Menüs:</p>
+		<pre><code>
+case WM_CREATE:
+	SetWindowLong(hWnd, GWL_EXSTYLE,
+		GetWindowLong(hWnd,GWL_EXSTYLE) |
+		WS_EX_LAYERED);
+
+	SetLayeredWindowAttributes(hWnd, 0,
+		200, LWA_ALPHA);
+
+	break;
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200404_2.jpg" width="327" height="169" alt="Kontext-Menüs: Die <i>WH_CALLWNDPROC</i>-Hooks greifen auch hier ein.">
+			<figcaption><span>Kontext-Menüs:</span> Die <i>WH_CALLWNDPROC</i>-Hooks greifen auch hier ein.</figcaption>
+		</figure>
+		<p>Mit <i>SetWindowLong(..)</i> fügen Sie dem Fenster das <i>WS_EX_LAYERED</i>-Attribut hinzu. Dieses ist Vorraussetzung für transparente Fenster. Mit dem zweiten Aufruf ist das Fenster schon transparent! Aufwändiger, aber flexibler, gestaltet sich die Verwendung von <i>UpdateLayeredWindow</i>. Hiermit können Sie ein Fenster erzeugen, wobei Sie für jeden Pixel einen anderen Transparenz&shy;wert angeben können!</p>
+		<p>Analog zur <i>WM_CREATE</i>-Message werden an den Dialog Message Handler <i>WM_INITDIALOG</i>-Nachrichten versendet. Auf diese reagieren Sie, indem Sie das <i>_EX_LAYERED</i>-Attribut setzen. Jetzt können Sie ein Bitmap erstellen, das die Farben und die Transparenz enthält. Im Beispiel erzeugen Sie zuerst Device-Kontexts und eine Bitmap mit dem Pixelformat des Desktops:</p>
+		<pre><code>
+GetClientRect(hDlg, &amp;rect);
+HDC dcScreen = GetDC(NULL);
+HDC dcMemory = CreateCompatibleDC(dcScreen);
+bmp = CreateCompatibleBitmap(
+	GetDC(GetDesktopWindow()),
+	rect.right, rect.bottom);
+		</code></pre>
+		<p>Anschließend erzeugen oder laden Sie ein 32-Bit-Image (mit Alpha Kanal) in den Speicher. Dazu verwenden Sie einen Speicher&shy;bereich und einen <i>BITMAPINFOHEADER</i>, der das interne Bild- und Pixelformat beschreibt. Dieses Bild kopieren Sie dann in den Device-Context <i>dcMemory</i>, wobei der Wert <i>256</i> exemplarisch als Größe des Bitmaps dient:</p>
+		<pre><code>
+DWORD image[256 * 256];
+BITMAPINFO *bitmapinfo = ?;
+SetDIBitsToDevice(...);
+		</code></pre>
+		<p>Jetzt können Sie die Attribute des Fensters mit <i>UpdateLayeredWindow setzen</i>, wobei Sie bitte weitere Ausführungen im Web beachten: <a href="https://msdn.microsoft.com/library/en-us/gdi/bitmaps_3b3m.asp" rel="external nofollow noreferrer">http://msdn.microsoft.com/library/en-us/gdi/bitmaps_3b3m.asp</a>.</p>
+		<p>Zu den Attributen zählt auch die Position und Größe des Fensters, der Ursprung der Bitmap (<i>srcPointer</i>) und natürlich die Beschreibung, wie die Farb- und Transparenz&shy;werte zu verarbeiten sind:</p>
+		<pre><code>
+BLENDFUNCTION blendPixelFunction =
+{
+	AC_SRC_OVER, 0, 255, AC_SRC_ALPHA
+};
+		</code></pre>
+		<p>Dabei bedeutet <i>AC_SRC_ALPHA</i>, dass das Bild Alpha-Werte besitzt. Beachten Sie dabei, dass die API mit <i>premultiplied alpha</i> arbeitet, d.h. die Farbwerte multiplizieren Sie vorab mit dem Alpha-Wert. Dabei interpretieren Sie Alpha-Werte zwischen <i>0</i> und <i>255</i> als Zahlen zwischen <i>0</i> und <i>1</i>. <i>AC_SRC_OVER</i> ist die momentan einzig unterstützte Blending Operation, die das Quellbild (das Fenster) über das Zielbild (Hintergrund) legt. Legen Sie also die restlichen Attribute fest und rufen Sie die Funktion <i>UpdateLayeredWindow</i> auf.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2004 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Info:</b></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://msdn.microsoft.com" rel="external nofollow noreferrer">http://msdn.microsoft.com</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200403.html">3/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200406.html">6/2004</a>
+	</nav>
+</body>

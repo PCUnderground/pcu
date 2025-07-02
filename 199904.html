@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Am laufenden Band (PC Underground, PC Magazin 4/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;4/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199903.html">3/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199905.html">5/1999</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/NT</h2>
+		<h1>Am <span class="highlight">laufenden</span> Band</h1>
+		<p class="summary">Einfacher Text paßt kaum zu bunten Grafikeffekten. Deshalb animieren Sie Laufschriften <span class="highlight">in vielen Variationen.</span></p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Laufschriften – englisch Scroller genannt – kennen Sie aus dem alltäglichen Leben. Im Abspann von Kinofilmen, in News-Tickern und auf Werbetafeln ziehen wandernde Zeichen Ihre Aufmerksamkeit auf sich. Selbst Informationen, die eigentlich nicht auf die Anzeigetafel oder den Bildschirm passen, schieben Sie mit dieser Methode in Lesege&shy;schwindigkeit weiter.</p>
+		<p>Wir schreiben hier zunächst einen einfachen Lauftext, den wir dann um zusätzliche Gimmicks wie Bewegungen und Spiegelungen erweitern. Außerdem erfahren Sie, wie Sie den Effekt der legendären <i>Star-Wars</i> Laufschrift mit sehr einfachen Mitteln nachbilden. Zum Abschluß dieser Ausgabe integrieren Sie diese Effekte in ein Programm, mit dem Sie animierte Texte als ausführbare <i>exe</i>-Datei weitergeben können.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Erste holprige Schritte</h2>
+		<p>Die einfachsten Scroller sind wirklich primitiv: Sie schieben lediglich eine Reihe kleiner Bilder mit Buchstaben über den Bildschirm. Unter Windows erzeugen Sie mit TrueType-Fonts zwar schnell Schriften, als Grundlage für Demo-Scroller haben diese allerdings einen entscheidenden Nachteil: Sie sind alle einfarbig.</p>
+		<p>Aus diesem Grund stellen wir Ihnen zunächst eine kleine C++-Klasse vor, mit der Sie auf einfache Weise Texte, Buchstaben und Laufschrift in Ihre Demos einbauen. Die Klasse <i>Font</i>, die Sie aus <i>font.cpp</i> und <i>font.h</i> generieren, verwaltet Position und Größe einzelner Zeichen in einer Bitmap. Zudem stellt sie Funktionen zur Verfügung, mit denen Sie Zeichen oder auch ganze Zeichenketten schnell und flexibel darstellen.</p>
+		<p>Die Implemen&shy;tierung der Klasse selbst ist etwas kompliziert. Wenn Sie daran interessiert sind, sehen Sie sich den gut kommentierten Quellcode auf der Heft-CD an.</p>
+		<p>Einfacher und interessanter ist da schon die Benutzung:</p>
+		<pre><code>Font *myFont = new Font(„chars.bmp“);</code></pre>
+		<p>So initialisieren Sie eine Instanz der <i>Font</i>-Klasse. Als Parameter übergeben Sie den Namen der Bitmap, die die Buchstaben enthält. Die <i>Font</i>-Klasse kann nur mit 256-Farben-Bitmaps umgehen.</p>
+		<p>Pixel mit dem Wert <i>0</i> haben eine spezielle Bedeutung: Sie werden beim Zeichnen ausgelassen. Damit können Sie Bereiche der Buchstaben transparent gestalten.</p>
+		<figure class="floatleft">
+			<img src="assets/199904_1.png" width="160" height="88" alt="IN DER DATEI CHAR.BMP legen Sie den Font als Bitmap ab.">
+			<figcaption><span>IN DER DATEI CHAR.BMP</span> legen Sie den Font als Bitmap ab.</figcaption>
+		</figure>
+		<p>Mit folgenden Zeilen setzen Sie den Clipping-Bereich:</p>
+		<pre><code>myFont-&gt;SetClipping(0, 0, SCREEN_X, SCREEN_Y);</code></pre>
+		<p>Die Routinen zum Zeichnen von Texten verfügen alle über ein eingebautes Clipping. Sie brauchen sich also keine Sorgen zu machen, daß Texte, die länger als der Bildschirm sind, zu Fehlern führen.</p>
+		<p>Legen Sie nun eine Tabelle an, die die Plazierung der Buchstaben in der Bitmap beschreibt. Jede Zeile der Tabelle entspricht einer Zeile Zeichen in der Bitmap. Vergleichen Sie dazu das folgende Array mit der Abbildung links.</p>
+		<pre><code>
+static char *fonttable[] =
+{
+	„abcdefghij“,
+	„klmnopqrst“,
+	„uvwxyz „,
+	„0123456789“,
+	„?’.,!“,
+	NULL
+}
+
+myFont->SetFontMetric(fonttable, 16, 18);
+		</code></pre>
+		<p>Die Routine <i>SetFontMetric</i> erwartet als Parameter diese Tabelle sowie die Maße des Rasters, in dem die Buchstaben angeordnet sind. Möchten Sie keine festen Raster verwenden, definieren Sie die Zeichen einzeln. Dazu benutzen Sie die Funktion <i>SetCharMetric</i>. Wir empfehlen jedoch, von vornherein die Buchstaben im Raster zu plazieren. Das spart eine Menge Arbeit.</p>
+		<p>Wenn Sie soweit sind, können Sie losscrollen:</p>
+		<pre><code>
+unsigned char *text = "Dies ist ein Lauftext";
+while(DemoRunning)
+{
+	//Hintergrund kopieren
+	memcpy(screen, hintergrund2, SCREEN_Y * SCREEN_X * 2);
+
+	//Scroller darüber zeichnen
+	//(30 Pixel/sec verschieben)
+
+	int x = SCREEN_X-
+		((GetDemoTime() - StartZeit) * 30) / 1000;
+	myFont->Print(screen,palette, SCREEN_X, text, x, 120);
+
+	//... und Bild darstellen
+	BlitGraphic(screen);
+}
+		</code></pre>
+		<p>Wenn Sie diesen Code ausführen, stellen Sie fest, daß die Laufschrift ruckelt. Das liegt an der ungleich&shy;mäßigen Verschiebung der Laufschrift. Eine gleichmäßige Bewegung erhalten Sie nur, wenn Sie pro Bildaufbau die Laufschrift immer um den gleichen Betrag verschieben. Leider können Sie dagegen wenig machen, da Windows keine brauchbaren Methoden zur Synchroni&shy;sation mit der Grafikkarte anbietet. Mit GDI (Graphics Device Interface) haben Sie keine Chance zu erfahren, wann die Videokarte das Bild neu aufgebaut hat.</p>
+		<p>Unter DirectDraw sieht es da etwas besser aus. Der Aufruf von <i>BlitGraphic</i> stellt sicher, daß Sie nicht mehr Bilder pro Sekunde darstellen, als die Bildwieder&shy;holfrequenz des Monitors zuläßt, der am Rechner angeschlossen ist.</p>
+		<p>Aber auch dies hilft Ihnen nur bedingt weiter: Sie wissen ja nicht, ob der Benutzer seinen Monitor mit niedrigen 50 oder mit 90 Hz oder mehr betreibt. Sie können nun zwar sicher sein, daß die Laufschrift nicht mehr ruckelt – dafür haben Sie aber keine Kontrolle mehr darüber, wie schnell der Scroller läuft.</p>
+		<p>Da Sie also nicht viel gegen dieses Manko ausrichten können, sorgen Sie am besten dafür, daß der Fehler nicht so auffällt. Dazu gestalten Sie die Bewegung der Buchstaben etwas komplizierter. Das Auge des Betrachters verliert dadurch die Orientierung und nimmt das Ruckeln weniger stark wahr.</p>
+	</section>
+
+	<section>
+		<h2>Elegant hüpfende Zeichen</h2>
+		<p>Diese Idee möchten wir Ihnen mit einem Scroller demonstrieren, der die Höhe der einzelnen Buchstaben anhand einer Tabelle verändert:</p>
+		<pre><code>
+for(char *zeichen = aText; *zeichen; zeichen++)
+{
+	//Zeichen sichtbar?
+	if((x + (signed)aFont->info[*zeichen].w) &gt;= 0)
+	{
+		//Höhe berechnen
+		int hoehe = y-bewegungs_tabelle[x &amp; 1023];
+		//Zeichen zeichnen
+		aFont->DrawChar
+			(dest, palette, SCREEN_X,
+			*zeichen, x, hoehe);
+	}
+	//bis über den rechten Rand hinaus fortfahren
+	x += aFont->info[*zeichen].w + 2;
+	if(x &gt; SCREEN_X) return;
+}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199904_2.png" width="320" height="258" alt="DIE AUF- UND ABBEWEGUNG der Buchstaben verschleiert das lästige Ruckeln.">
+			<figcaption><span>DIE AUF- UND ABBEWEGUNG</span> der Buchstaben verschleiert das lästige Ruckeln.</figcaption>
+		</figure>
+		<p>Dieser Code-Ausschnitt entspricht weitgehend der Methode <i>Print</i> der <i>Font</i> Klasse. Allerdings ist die Höhe der Buchstaben nun abhängig von der x-Koordinate. Der Scroller zeichnet den Text also nicht mehr in eine Zeile, sondern versetzt jeden Buchstaben etwas in der Höhe. Dadurch vermeiden Sie zwar nicht das Ruckeln, aber es ist nicht mehr ganz so störend. Sie finden den kompletten Code zu den beweglichen Laufschriften in den Dateien <i>sinscrol.cpp</i> und <i>sinscrol.h</i>.</p>
+		<p>Sie können jetzt Ihrer Fantasie freien Lauf lassen und schöne Bewegungen und Erweiterungen programmieren. Als Anregung finden Sie bei den Quellcodes zum Artikel eine Laufschrift, die aussieht, als würde sie von einer spiegelglatten Oberfläche reflektiert.</p>
+	</section>
+
+	<section>
+		<h2>Laufschrift mit Perspektive</h2>
+		<p>Einen wahrlich klassischen Effekt bietet der sogenannte <i>Star-Wars</i>-Scroller. Wie im Vorspann der gleichnamigen Filme schiebt sich eine Laufschrift in den (Welt-)Raum und verschwindet dann langsam – immer dunkler werdend – im Nichts. Der <i>Star Wars</i>-Scroller ist ein Paradebeispiel für die gekonnte Anwendung zweier Haupttechniken der Computergrafik: Tabellen und lineare Interpolation.</p>
+		<p>Dabei benutzen Sie eine Bitmap-Datei, die den gewünschten Text enthält. Entweder Sie füllen die Bitmap zur Laufzeit mit den Font-Routinen, oder Sie erledigen dies vorher mit einem Zeichen&shy;programm wie Paint Shop Pro.</p>
+		<p>Hauptaufgabe des Scrollers ist es, die einzelnen Zeilen der Bitmap-Textur auf unter&shy;schiedliche Breiten zu skalieren. Im Prinzip ist das nichts anderes als eine vereinfachte Form des Texture-Mappings (Abbildung einer Textur auf ein Objekt). Nur brauchen Sie sich hier lediglich um eine Achse – die x-Achse – zu kümmern.</p>
+		<p>Die nötigen Streckungen berechnen Sie sehr effizient mit Fixed-Point-Zahlen. Sind Sie mit dieser Methode nicht vertraut, erklären wir Ihnen hier kurz die Grundlagen: Nehmen Sie an, Sie haben eine Zeile Bilddaten in einem Array gespeichert. Diese Zeile sei 256 Pixel breit. Um sie auf eine Länge von 100 Pixeln zu verkleinern, lassen Sie einige Pixel aus.</p>
+		<p>Hierfür benutzten Sie die Technik der Fixed-Point-Berechnung. Ein Code, der Ihr Problem löst, sieht so aus:</p>
+		<pre><code>
+for(int x=0; x &lt; 100; i++)
+	Zielbitmap[i] = Textur[(x * 256) / 100];
+		</code></pre>
+		<p>Das funktioniert sehr gut, aber Sie haben pro Pixel eine Multiplikation und eine Division zu berechnen. Insbesondere Divisionen sind „sehr teuer“, was den Rechenaufwand und somit die Geschwindigkeit betrifft. Daher entfernen Sie die Division aus der Schleife:</p>
+		<pre><code>
+int Steigung=100 / 256;
+int Start = 0;
+for(int x=0; x &lt; 100; i++)
+{
+	Zielbitmap[i] = Textur[Start];
+	Start = Start + Steigung;
+}
+		</code></pre>
+		<p>Dieser Code wäre erheblich schneller – er funktioniert aber nicht, da die Variable <i>Steigung</i> ein Integer ist und der Wert der Division eine Fließkommazahl.</p>
+		<p>Der Trick der Fixed-Point-Zahlen ist es, die Genauigkeit der Integer-Werte zu erhöhen, indem Sie einige Bits der Zahl für die Nachkomma&shy;stellen nutzen. Die Umwandlung von Integer in das Fixed-Point-Format geschieht durch eine einfache Multiplikation und Division. Die Fixed-Point-Variante in unserem Beispiel sieht dann so aus:</p>
+		<pre><code>
+int Steigung = (65535 * 100) / 256;
+int Start = 0;
+for(int x=0; x &lt; 100; i++)
+{
+	Zielbitmap[i] = Textur[Start/65536];
+	Start = Start + Steigung;
+}
+		</code></pre>
+		<p>Der Faktor 65536 wurde mit Bedacht gewählt. Er entspricht dem Wert 2<sup>16</sup>, denn Multi&shy;plikationen und Divisionen mit Potenzen von 2 führt die CPU durch einfache Bit-Shift-Befehle sehr schnell aus.</p>
+		<p>Zusätzlich teilt dieser Wert eine Integer-Zahl in genau zwei Hälften: 16 Bit für den ganzzahligen Teil und 16 Bit für die Nachkomma&shy;stellen. Zugunsten der erhöhten Genauigkeit verlieren Sie 16 Bit im Wertebereich Ihres Integers.</p>
+		<p>Das Format von Fixed-Point-Zahlen wird gerne mit Doppelpunkten angegeben. Im Beispiel haben Sie es mit dem weit verbreiteten 16:16-Fixed-Point-Format zu tun. Aber auch andere Formate wie 8:24 sind häufig anzutreffen. Die Zahl vor dem Doppelpunkt gibt die Anzahl der Bits für den ganzzahligen Wert an, die dahinter&shy;stehende für die Genauigkeit-Bits. So viel zur Skalierung mit Hilfe von Fix-Point-Zahlen.</p>
+		<p>Auch die Breite der einzelnen Zeilen bekommen Sie ohne großen Aufwand: Es gibt einen Fluchtpunkt, in dem die Laufschrift verschwindet. Die Zeilen darunter werden zunehmend breiter. Alle diese Daten können Sie vor dem Zeichnen berechnen und in einer Tabelle speichern. Im Beispiel&shy;programm erledigt dies die Funktion <i>calculate_scroller_table</i> in der Datei <i>StarScrol.cpp</i>.</p>
+		<p>Für die Darstellung auf dem Bildschirm bleibt nicht mehr viel zu rechnen übrig. Aus der Tabelle lesen Sie zeilenweise alle Informationen wie Breite, Startposition und die Position in der Textur aus und zeichnen den Text mit einer einfachen Schleife auf den Monitor. Der Scroll-Effekt kommt zustande, indem Sie bei jedem Bildaufbau die Textur etwas nach oben schieben. Im Beispielcode haben wir 32 Paletten berechnet und lassen damit den Scroller – je weiter er sich dem Fluchtpunkt nähert – dunkler werden. Da Sie die Scroller-Bitmap beim Zeichnen sowieso von 8 Bit in 16 Bit umwandeln, macht dies zeitlich kaum einen Unterschied.</p>
+		<p>Werfen Sie am besten einen Blick auf die Funktion <i>StarwarsScroller</i> im Modul <i>StarScrol.cpp</i>. Dort finden Sie noch einige Tricks, die den Scroller etwas schneller machen. So merkt sich die Routine in einer Tabelle, welche Zeilen der Textur schwarz sind und nicht interpoliert werden müssen.</p>
+	</section>
+
+	<section>
+		<h2>Bilineare Interpolation des Scrollers</h2>
+		<figure class="floatright">
+			<img src="assets/199904_4.png" width="302" height="136" alt="DANK LINEARER INTERPOLATION erhält das gesuchte Pixel die Farbe Hellgrau.">
+			<figcaption><span>DANK LINEARER INTERPOLATION</span> erhält das gesuchte Pixel die Farbe Hellgrau.</figcaption>
+		</figure>
+		<p>Sehen Sie sich den <i>Star-Wars</i>-Scroller genau an: Im unteren Bildbereich werden die Buchstaben stark vergrößert. Dadurch ergeben sich unschöne Kanten, die den Eindruck stark beein&shy;trächtigen. Diesem Problem begegnen Sie mit einer Technik, deren Name im Zeitalter der 3D-Grafikkarten jedem bekannt sein dürfte: der bilinearen Interpolation. Das Prinzip ist schnell programmiert: Beim Auslesen der Textur-Pixel mit der Fixed-Point-Berechnung kommt es immer vor, daß Sie ein Pixel nicht genau treffen, denn während der Umrechnung von Fixed-Point auf Integer werfen Sie die Information des Nachkomma&shy;anteils ja einfach weg.</p>
+		<p>In der Skizze auf der nächsten Seite ist das linke Pixel weiß, das rechte schwarz. Ein Punkt, der zwischen beide Pixel fällt, sollte vorzugsweise die Farbe Grau erhalten.</p>
+		<p>Mit ein wenig Mathematik ist dies kein Problem. Bei der Umwandlung in Integer verlieren Sie durch die Division einen Betrag, der im Prinzip die exakte Position zwischen den beiden Pixeln angibt. Diesen Wert extrahieren Sie aus der Fixed-Point-Zahl, indem Sie den ganzzahligen Teil ausmaskieren. Bei 16:16-Zahlen genügt eine <i>Und</i>-Verknüpfung mit der Maske 65535.</p>
+		<p>Den interpolierten Wert erhalten Sie in Pseudo-Code dann wie folgt:</p>
+		<pre><code>
+a = Wert des Pixels bei [x]
+b = Wert des Pixels bei [x+1]
+wert = Nachkomma-Anteil der
+Fixed-Point-Zahl
+Punkt = a + ((b - a) * wert) / 65536
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199904_3.png" width="320" height="271" alt="BEIM STAR-WARS-SCROLLER verschwindet die Schrift perspektivisch im Nichts.">
+			<figcaption><span>BEIM STAR-WARS-SCROLLER</span> verschwindet die Schrift perspektivisch im Nichts.</figcaption>
+		</figure>
+		<p>Dies ist jedoch erst eine einfache lineare Interpolation. Für eine bilineare – also zwei&shy;dimensionale – Interpolation, wie sie bei 3D-Karten üblich ist, bilden Sie zwischen vier Punkten einen Mittelwert.</p>
+		<p>Dazu führen Sie drei lineare Inter&shy;polationen durch, denn Sie suchen einen Wert, der sowohl zwischen zwei Texturzeilen als auch zwischen zwei Spalten liegt. Interpolieren Sie also beide Zeilen einzeln mit dem Nachkomma&shy;anteil der x-Koordinate. Die beiden Ergebnisse interpolieren Sie mit der y-Koordinate:</p>
+		<pre><code>
+int xfixed = X-Koordinate im 16:16-Format
+int yfixed = Y-Koordinate im 16:16-Format
+int x = xfixed / 65536;
+int y = yfixed / 65536;
+
+a = texture[x][y] //oben links
+b = texture[x + 1][y] //oben rechts
+c = texture[x][y + 1] //unten links
+d = texture[x + 1][y + 1] //unten rechts
+
+wert_oben = linear(a, b, xfixed &amp; 65535);
+wert_unten = linear(c, d, xfixed &amp; 65535);
+
+wert = linear(wert_oben,
+	wert_unten, yfixed &amp; 65536)
+		</code></pre>
+		<p>Drei lineare Inter&shy;polationen pro Pixel verbrauchen eine Menge Zeit, aber das Ergebnis ist deutlich besser: Der Scroller sieht wesentlich runder aus, und die durch Interpolation entstandenen Kanten sind verschwunden.</p>
+		<p>Beachten Sie, daß Interpolation nur dort Sinn macht, wo Sie eine Textur vergrößern – bei unserem Scroller also nur im unteren Bildschirm&shy;bereich. Beim Verkleinern wenden Sie das Interpolieren besser nicht an. Statt dessen empfiehlt sich hier MIP-Mapping, um die Qualität – und auch die Geschwindigkeit – Ihrer Routinen zu erhöhen.</p>
+	</section>
+
+	<aside>
+		<h2>STEUERCODES FÜR DEN LETTER-WRITER</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Code</th><th>Parameter</th><th>Funktion</th></tr>
+				</thead>
+				<tbody>
+					<tr><td><i>COLORx</i></td><td>–</td><td>Setzt vordefinierte Zeichenfarbe x (x = 1-8)</td></tr>
+					<tr><td><i>FLASHx</i></td><td>–</td><td>Setzt vordefinierte blinkende Zeichenfarbe x (x = 1-8)</td></tr>
+					<tr><td><i>FADE</i></td><td>Helligkeit (0-255)</td><td>Blendet auf bestimmte Helligkeit um</td></tr>
+					<tr><td><i>FSPEED</i></td><td>Geschwindigkeit</td><td>Setzt Geschwindigkeit folgender <i>FADE</i>-Aufrufe</td></tr>
+					<tr><td><i>SPEED</i></td><td>Geschwindigkeit (0-255)</td><td>Setzt Geschwindigkeit der Zeichenbewegung</td></tr>
+					<tr><td><i>DELAY</i></td><td>Dauer in msec (0-255)</td><td>Wartet zwischen Erscheinen zweier Zeichen</td></tr>
+					<tr><td><i>CLRSCR</i></td><td>–</td><td>Löscht Bildschirm und setzt Cursor links oben</td></tr>
+					<tr><td><i>MOVE</i></td><td>Anzahl der Zeichen</td><td>Bewegt Cursor um bestimmte Zeichenzahl weiter</td></tr>
+					<tr><td><i>MOVE1_2</i></td><td>–</td><td>Setzt Cursor ein halbes Zeichen nach rechts </td></tr>
+					<tr><td><i>NEWLINE</i></td><td>–</td><td>Setzt Cursor auf Beginn der nächsten Zeile</td></tr>
+					<tr><td><i>FEED1_2</i></td><td>–</td><td>Setzt Cursor eine halbe Zeile nach unten</td></tr>
+					<tr><td><i>PAUSEx</i></td><td>– </td><td>Wartet x Sekunden (x = 1-4)</td></tr>
+					<tr><td><i>EOT</i></td><td>–</td><td>„End of Text“, beendet Programm</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Fliegende Buchstaben</h2>
+		<p>Früher war es Mode – vor allem auf dem Commodore 64 –, <i>readme</i>-Dateien und Nachrichten in Form eigener Programme zu verbreiten. Diese sogenannten Letter-Writer zeigten einen Text auf besondere Art und Weise an. So flogen die Buchstaben zunächst an den Ort, an dem sie stehen sollten, und der Text konnte blinken oder seine Farbe ändern.</p>
+		<p>Mit Ihrem Wissen über Laufschriften schreiben Sie nun auch so einen Textbetrachter. Bei <i>Flying Letters</i> – so der Name unseres Letter-Writers – erscheint der Text zunächst Buchstabe für Buchstabe. Danach fliegen die einzelnen Zeichen an ihren Platz.</p>
+		<p>Den genauen Ablauf beeinflussen Sie dabei über Steuercodes, die Sie in den Text einfügen. Sie können die Farben ändern, die Zeichen blinken lassen, die Flug&shy;geschwindigkeit und die Zeit zwischen dem Erscheinen der neuen Zeichen festlegen, den Text genau positionieren oder das Bild ein- und ausblenden.</p>
+		<p>Um diese Funktionalität zu bieten, benötigen Sie Variablen für<br>
+		• die Position des (unsichtbaren) Cursors auf dem Bildschirm,<br>
+		• die aktuell gesetzte Zeichenfarbe,<br>
+		• die verbleibende Zeit einer eventuellen Pause,<br>
+		• die Verzögerung zwischen zwei Zeichen,<br>
+		• die Geschwindigkeit der Zeichen,<br>
+		• die gewünschte Helligkeit, auf die Sie umblenden möchten,<br>
+		• die Geschwindigkeit des Umblendens sowie<br>
+		• den aktuellen Helligkeits&shy;wert.</p>
+		<p>Weiterhin müssen Sie natürlich die auf dem Bildschirm sichtbaren Schriftzeichen verwalten. Dazu speichern Sie, um welches Zeichen es sich handelt, sowie dessen Farbe. Zudem benötigen Sie die Zielposition, die Bewegungs&shy;richtung dorthin und natürlich die aktuelle Position.</p>
+		<p>Die dazugehörigen Struktur&shy;definitionen in C finden Sie im Listing am Ende des Artikels. In der Hauptschleife überprüft <i>Flying Letters</i> zuerst, ob eine Pause eingehalten werden soll. Ist das der Fall, zieht es so lange die seit dem letzten Schleifen&shy;durchlauf vergangene Zeit von der verbliebenen Pausenzeit ab, bis diese kleiner oder gleich Null ist.</p>
+		<p>Ist keine Pausen&shy;anweisung vorhanden, liest das Programm das jeweils nächste Zeichen und untersucht, ob es ein Textzeichen oder ein Steuercode ist. Dabei nutzt es die Tatsache, daß alle Buchstaben, Zahlen und die Sonderzeichen aus dem eigens erstellten Zeichensatz einen ASCII-Code kleiner als 128 besitzen. Die „oberen“ 128 Zeichen dienen deshalb als Steuercodes. Die verschiedenen Codetypen (Ablaufsteuer-, Farb- und Pausencode) unterscheiden Sie anhand vordefinierter Bitmasken.</p>
+		<p>Nachdem der Letter-Writer den nächsten Wert aus den Daten gelesen hat, prüft er zuerst, ob es sich um das <i>EOT</i>-Kommando handelt. In diesem Fall gibt er die angeforderten Ressourcen frei und beendet den Programmlauf. Alle anderen Steuercodes identifizieren Sie mit einem Ausdruck wie</p>
+		<pre><code>if ((code & STEUERCODE) == STEUERCODE)</code></pre>
+		<p>Haben Sie den Code zum Beispiel als einen Ablauf&shy;steuercode erkannt, können Sie mit folgender Konstruktion</p>
+		<pre><code>switch (code) { case ... }</code></pre>
+		<p>direkt die Auswirkungen programmieren. Bei einem Farb- oder Pausencode benötigen Sie keine spezielle Fall&shy;unterscheidung, wenn Sie die Konstanten so wie in unserem Beispiel definieren. In diesem Fall berechnen Sie die Farbnummer oder die Pausenlänge direkt aus dem Wert.</p>
+		<p>Konnten Sie keinen Steuercode ausmachen, handelt es sich sicher um ein Zeichen, das am Bildschirm erscheinen soll. In diesem Fall tragen Sie die entsprechenden Daten – Zielposition, Farbe, Bewegungs&shy;richtung usw. – in das nächste freie Zeichen&shy;konstrukt ein und erhöhen dessen Zähler. Für die Startposition des Zeichens verwendet das Beispiel&shy;programm eine von der Zeit abhängige Sinus-/Cosinus-Funktion.</p>
+		<p>Nun bleiben noch zwei Aufgaben in der Hauptschleife des Letter-Writers, die auch ausgeführt werden, wenn eine Pause vorliegt. Die erste Aufgabe ist natürlich das Weiterbewegen der Zeichen und das Zeichnen an der neuen Position. Davor löschen Sie den Bildschirm.</p>
+		<p>Die Zeichen sollten sich – unabhängig von der Rechner&shy;geschwindigkeit und eventueller Verzögerungen durch das Betriebssystem – gleichmäßig schnell bewegen. Deshalb berechnen Sie mit der Prozedur <i>GetDemoTime()</i> aus der verwendeten Grafik&shy;bibliothek <i>demosys.cpp</i> die verstrichene Zeit seit dem letzten Weiterbewegen der Zeichen. Dadurch erhalten Sie einen Faktor für den Richtungs&shy;vektor jedes Zeichens, den Sie dann auf die aktuelle Position aufsummieren. Hat ein Zeichen seine Zielposition erreicht, stellen Sie nur noch sicher, daß es jedesmal an der entsprechenden Stelle gezeichnet wird.</p>
+		<p>Die zweite Aufgabe ist das Ein- und Ausblenden der Helligkeit – das sogenannte Fading. Helligkeits&shy;änderungen führen Sie geschickt durch, indem Sie die Einträge der Palette modifizieren, die Sie zum Zeichnen der Zeichen benutzen. Die Paletten&shy;einträge sind – jeweils für Rot, Grün und Blau – das Produkt der aktuellen Helligkeit mit dem entsprechenden Wert in der zuvor im Programm definierten Farbtabelle.</p>
+		<p>Die momentane Helligkeit berechnen Sie einfach: Der Steuercode <i>FADE</i> informiert Sie über den angestrebten Helligkeits&shy;wert. Da Sie den aktuellen Wert ebenfalls kennen, wissen Sie auch, ob Sie ihn erniedrigen oder erhöhen müssen.</p>
+		<p>Sie führen also eine Addition bzw. Subtraktion der aktuellen <i>Fade</i>-Variablen mit dem durch <i>FSPEED</i> festgelegten Betrag durch, solange Sie die Zielhelligkeit nicht erreicht haben. Den Faktor für die Berechnung der Farbpalette erhalten Sie nach einer Division dieses <i>Fade</i>-Werts durch 256, da der Wertebereich aufgrund des <i>char</i>-Arrays von <i>0</i> bis <i>255</i> und nicht von <i>0.0</i> bis <i>1.0</i> reicht.</p>
+	</section>
+
+	<section>
+		<h2>Kleiner Aufwand, große Wirkung</h2>
+		<p>Um Ihren Text zu animieren, editieren Sie lediglich ein Konstantenfeld. Im Programm finden Sie das konstante Array <i>„char *WRITE[]“</i>, in dem Sie sowohl Text als auch den Ablauf festlegen. Normalen Text geben Sie in Anführungs&shy;zeichen an, die Konstanten der Steuercodes finden Sie in der Tabelle auf S. 262 mit einer Kurz&shy;beschreibung aufgelistet.</p>
+		<p>Generell existieren zwei Arten von Steuercodes: Die einfachen Befehle mit festgelegter Wirkung fügen Sie wie gewöhnliche Zeichenketten ein. Die übrigen Kommandos verlangen einen Parameter, mit dem Sie bestimmte Eigenschaften wie die Geschwindig&shy;keit beim Ein- und Ausblenden festlegen. Dieser Parameter folgt direkt auf den Steuerbefehl, eine Zahl wie 123 geben Sie dabei als <i>„(char)123“</i> an. Ein einfacher Text, der ein blinkendes <i>PC Underground</i> auf den Bildschirm fliegen läßt, sieht dann so aus:</p>
+		<pre><code>
+char *WRITE[] =
+{
+	//Zeichengeschwindigkeit = 80
+	SPEED, (char*)80,
+	//Zeichenverzögerung = 80
+	DELAY, (char*)80,
+	//2,5 Zeilen nach unten
+	NEWLINE, NEWLINE, FEED1_2,
+	//3 Zeichen nach rechts
+	MOVE, (char*)3,
+	//blinkende Farbe und Text
+	FLASH1, “PC Underground“,
+	//3 Sekunden Pause
+	PAUSE3,
+	//mit Geschwindigkeit 4
+	FSPEED, (char*)4,
+	//nach Schwarz (0) abblenden
+	FADE, (char*)0,
+	//dazu 3 Sekunden warten
+	PAUSE3,
+	//Writer beenden
+	EOT
+};
+		</code></pre>
+		<p>Um auf die einzelnen Zeichen zugreifen zu können, konvertiert der Letter-Writer dieses Array aus Zeigern vor dem Start in eine Zeichenkette</p>
+		<pre><code>char *array</code></pre>
+		<p>Durch diesen Umweg können Sie die Steuercodes direkt als Strings im Text eingeben und müssen nicht spezielle Sonderzeichen benutzen.</p>
+		<p>Ab der nächsten Ausgabe startet PC Magazin eine mehrteilige Serie zum Thema Spiele-Programmierung. Viele der hier gezeigten Effekte wenden Sie dort in einem richtigen Spiel an.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein / Burkhard Müller</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199903.html">3/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199905.html">5/1999</a>
+	</nav>
+</body>

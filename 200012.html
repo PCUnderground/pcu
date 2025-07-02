@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Polygonnetze in Vollendung (PC Underground, PC Magazin 12/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;12/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200011.html">11/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200102.html">02/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>3D-Grafiken fürs Internet optimieren</h2>
+		<h1><span class="highlight">Polygonnetze</span> in Vollendung</h1>
+		<p class="summary">In der Computergrafik kommen häufig detaillierte Dreiecksnetze vor. Aus diesen Dreiecksnetzen <span class="highlight">gestalten Sie feine und grobe 3D-Modelle</span>.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Beim Rendering von 3D-Modellen ist es hilfreich, ein Modell in mehreren Auflösungs&shy;stufen zu betrachten oder während der Ansicht (on the fly) beliebige Detailstufen davon zu erzeugen. Bei Objekten, die weiter vom Betrachter entfernt sind, genügen grobe Darstellungen, da die Details wegen der begrenzten Bildschirm&shy;auflösung nicht mehr sichtbar sind.</p>
+		<p>Detaillierte 3D-Modelle transportieren Sie über Netzwerke oder via Internet, indem Sie das Dreiecksnetz „progressiv“ übertragen: Mit den bereits übertragenen Daten erzeugen Sie eine Art Vorschau auf das fertige Modell. Die Vorschau wird so lange verfeinert, bis das Original&shy;dreiecksnetz wiederher&shy;gestellt ist. Eine Anwendung der progressiven Übertragung kennen viele, die <i>JPEG</i>-Dateien im Internet betrachten. Zuerst sehen Sie ein grobes Bild. Mit fort&shy;schreitender Übertragung erkennen Sie Details. Am einfachsten lassen sich 3D-Modelle progressiv übertragen und anzeigen, indem Sie verschiedene Detailstufen anlegen, die Sie unabhängig voneinander übertragen. Schöner und effizienter ist es, ein grobes Netz und Informationen zu übertragen, die von sich aus Details herausarbeiten.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200012.zip">💾 200012.zip</a>.</div>
+	</aside>
+
+	<section>
+		<p>Um Dreiecksnetze zu speichern, verwenden Programmierer meist die Struktur <i>Naive Shared Vertex</i>. Diese speichert eine Liste von Knoten und eine für Dreiecke mit jeweils drei Indizes auf Knoten.</p>
+		<p>Sofern diese Darstellung keine Attribute wie Textur&shy;koordinaten oder Vertex-Normalen berücksichtigt, braucht die Information der Topologie ungefähr doppelt so viel Speicherplatz wie die der Geometrie. Diese Abschätzung gilt bei genügend großen Netzen. Die Topologie ordnet Vertizes den Kanten und Polygonen zu. Die Geometrie&shy;information begnügt sich mit den Koordinaten der Vertizes.</p>
+		<p>Im Verlauf der Reduktion von Dreiecksnetzen berechnen Sie vergröberte 3D-Modelle, die die Originalform bestmöglich approximieren. Dabei erzeugen Sie eine andere Struktur für die Speicherung: die <i>Progressive Meshes</i>.</p>
+	</section>
+
+	<section>
+		<h2>Dreiecksnetze reduzieren</h2>
+		<figure class="floatright">
+			<img src="assets/200012_1.png" width="640" height="275" alt="DIE OPERATION Vertex Removal/Insertion vereinfacht die Darstellung von Dreiecksnetzen.">
+			<figcaption><span>DIE OPERATION</span> Vertex Removal/Insertion vereinfacht die Darstellung von Dreiecksnetzen.</figcaption>
+		</figure>
+		<p>Details aus Dreiecksnetzen lassen sich auf verschiedene Arten entfernen. Alle Arten reduzieren die Zahl der Vertizes und Polygone.</p>
+		<p>• Die erste Methode wählt einen Punkt, der mit seinen Nachbarpunkten Dreiecke bildet, und entfernt diesen. Durch den fehlenden Vertex fallen eine Reihe von Dreiecken weg, wobei ein Loch im Dreiecksnetz entsteht. Dieses Loch, auch Patch genannt, füllen Sie mit neuen Dreiecken aus, wobei Sie den gerade entfernten Vertex nicht mehr verwenden. Diese Operation nennt sich Knoten entfernen/einfügen (Vertex removal/insertion). Sie reduzieren bei jeder Anwendung dieses Operators die Zahl der Vertizes um <i>1</i>, die Zahl der Dreiecke um <i>2</i>.<br>
+		• Eine zweite Methode bietet der <i>EdgeCollapse/Vertex-Split</i>-Operator. Das Verfahren wählt zwei durch eine Kante verbundene Vertizes und ersetzt sie durch einen neuen gemeinsamen Vertex.
+		Auch hier reduzieren Sie das Dreiecksnetz um zwei Dreiecke und einen Vertex. Da Sie bei der progressiven Übertragung, die diesen Operator verwendet, die vereinfachten Dreiecksnetze wieder verfeinern wollen, müssen Sie die Informationen für die Verfeinerung speichern. Dazu benötigen Sie Informationen, welcher der neue Vertex <i>v</i> ist, welche er zu ersetzen hat (<i>v1</i> und <i>v2</i>), und mit welchen Nachbar-Vertizes <i>v(links)</i> und <i>v(rechts)</i> die Dreiecke wiederher&shy;gestellt werden müssen. Sie speichern also für jede Anwendung des Operators eine Datenstruktur mit</p>
+		<figure class="floatright">
+			<img src="assets/200012_2.png" width="445" height="205" alt="DER EDGE-COLLAPSE-OPERATOR entfernt Kanten.">
+			<figcaption><span>DER EDGE-COLLAPSE-OPERATOR</span> entfernt Kanten.</figcaption>
+		</figure>
+		<pre><code>
+Edge Collapse Information:
+	v v1 v2 v(links) v(rechts)
+		</code></pre>
+		<p>• Eine Variante des Edge Collapse ist der <i>Half Edge Collapse</i>. Dabei wird kein neuer Punkt <i>v</i> berechnet, sondern einer der Ausgangspunkte gewählt. In diesem Fall speichern Sie nur folgende Informationen:</p>
+		<pre><code>
+Half Edge Collapse Information:
+	v1 v2 v(links) v(rechts)
+		</code></pre>
+		<p>Bei der schrittweisen Vergröberung Ihres Dreiecksnetzes sind stets zwei Entscheidungen zu treffen: welche Kante als nächste entfernt werden soll und wo der neue Punkt (beim Edge Collapse) liegt oder welchen der beiden Kantenpunkte Sie beibehalten wollen (beim Half Edge Collapse). Beide Entscheidungen beeinflussen die Qualität der erzeugten 3D-Objekte.</p>
+		<figure class="floatright">
+			<img src="assets/200012_3.png" width="445" height="207" alt="DER HALF-EDGE-COLLAPSE-OPERATOR ist ein Spezialfall des Edge Collapse.">
+			<figcaption><span>DER HALF-EDGE-COLLAPSE-OPERATOR</span> ist ein Spezialfall des Edge Collapse.</figcaption>
+		</figure>
+		<p>Betrachten Sie zuerst die Suche nach der Kante, deren Verlust das 3D-Objekt möglichst wenig beeinflusst. Zwar sind alle Methoden heuristischer Natur, denn Sie können nicht berechnen, wie stark eine entfernte Kante den visuellen Eindruck des 3D-Objekts auf den Menschen stört. Deshalb gibt es verschiedene Ansätze. Sie berechnen einen <i>Kostenwert</i> für jede mögliche Kanten&shy;entfernung. Hohe Kosten bedeuten, dass die Heuristik eine Kante als wichtig für das Erscheinungs&shy;bild des 3D-Objekts wertet.<br>
+		• Nach der Methode, die auch das Beispiel-Programm auf der Heft-CD anwendet, berechnen Sie die Länge der Kante, zu der Sie die Kosten wissen wollen. Anschließend suchen Sie die zwei Nachbar&shy;dreiecke und berechnen den Winkel zwischen deren Normalen. Als Kosten betrachten Sie das Produkt aus Länge der Kante und Winkel. Wenn Sie eine Kante entfernen wollen, wählen Sie jeweils die Kante mit den niedrigsten Kosten. Allerdings müssen Sie auch einen Spezialfall beachten und nicht blind dem Kostenwert vertrauen. Es kann passieren, dass Sie durch das Entfernen einer Kante die neuen Kanten mit den alten schneiden. Dieser Fall tritt meist auf, wenn Sie das 3D-Objekt zu stark reduzieren.</p>
+		<figure class="floatright">
+			<img src="assets/200012_4.png" width="314" height="497" alt="SIE DÜRFEN nicht alle Kanten entfernen, wenn das Objekt erhalten bleiben soll.">
+			<figcaption><span>SIE DÜRFEN</span> nicht alle Kanten entfernen, wenn das Objekt erhalten bleiben soll.</figcaption>
+		</figure>
+		<p>Beim Edge Collapse müssen Sie den neuen Vertex richtig platzieren. Das bekannteste Verfahren dazu stammt von Michael Garland und Paul S. Heckbert, ist beschrieben in <i>Surface Simplification Using Quadric Error Metrics</i> (siehe Literaturhinweis am Ende) und arbeitet mit einer Kostenfunktion für die Vertex-Platzierung. Dabei berechnen Sie die Kosten, die entstehen, wenn Sie die beiden Vertizes der Kante (<i>v1</i> und <i>v2</i>) zum neuen Vertex <i>v</i> verschieben. Bei der verwendeten Kostenfunktion kann der Vertex <i>v</i> irgendwo auf der Geraden, die durch <i>v1</i> und <i>v2</i> festgelegt ist, liegen.</p>
+		<p>Die Kostenfunktion ist wie folgt definiert: Jeder Vertex wird von einer Reihe Dreiecke geteilt. Jedes dieser Dreiecke liegt in einer Ebene. Als Kosten verwenden Sie die Summe der quadrierten Abstände zwischen den Ebenen und der neuen Position. Die Gesamtkosten eines neuen Vertex sind die Kosten für die Verschiebung von <i>v1</i> plus der von <i>v2</i>. Eine beispielhafte Implementation mit Sourcecode dieses Verfahrens finden Sie auf der <a href="https://graphics.cs.uiuc.edu/~garland/CMU/quadrics/quadrics.html" rel="external nofollow noreferrer">Website von Michael Garland</a>. Wenn Sie nur einen Half Edge Collapse durchführen wollen, können Sie sich mit der beschriebenen Kostenfunktion für einen Vertex entscheiden. Die Kosten ergeben sich aus der Verschiebung des einen Vertex auf den anderen.</p>
+	</section>
+
+	<section>
+		<h2>Progressive Meshes</h2>
+		<p>Mit dem <i>Progressive-Mesh</i>-Verfahren erzeugen Sie schnell beliebige Detailstufen, wobei Sie sogar in Echtzeit Dreiecksnetze übertragen können. Es arbeitet nur mit Half Edge Collapses.</p>
+		<p>Für das erste Ziel speichern Sie zusätzliche Daten: Sie müssen die Reihenfolge, in der Sie Vertizes entfernen, speichern (also eine Permutations&shy;tabelle). Für jeden Vertex, den Sie entfernen, müssen Sie die Information aufheben, zu welchem Vertex er hingewandert ist (Map-Tabelle). Die Objekt&shy;reduktion im Pseudocode:</p>
+		<pre><code>
+v = Anzahl Vertizes
+while(v > 0)
+{
+	suche Kante mit kleinsten Kosten
+	Vertex u sei der zu entfernende
+
+	speichere: Vertex u nach Index v
+		permutation[index u] = v;
+
+	speichere:
+		collapse_map[v] =
+			Index des anderen KantenVertizes
+	v--;
+}
+		</code></pre>
+		<p>Anhand der Permutations&shy;tabelle müssen Sie die Vertizes des 3D-Objekts umsortieren und die Indizes der Dreiecke (bei der Shared-Vertex-Struktur) anpassen:</p>
+		<pre><code>
+for(alle Vertizes)
+	pVertexList_neu[permutation[i]] =
+		pVertexList[i];
+
+for(alle Polygone)
+	for (alle Indizes)
+		index_neu =
+			permutation[index_alt];
+		</code></pre>
+		<p>Wenn Sie das 3D-Objekt zeichnen wollen, können Sie festlegen, wie viele Vertizes das neue Dreiecksnetz haben soll. Die Zahl der Dreiecke geben Sie nicht direkt an. Mit Hilfe der Map-Tabelle können Sie nachvollziehen, welche Vertizes entfernt und auf welche verschoben wurden. Wenn ein Dreieck (Bild S. 266 oben) aus <i>v1</i>, <i>v2</i> und <i>v(links)</i> besteht und <i>v1</i> auf <i>v2</i> verschoben wurde, würden Sie aus der Map-Tabelle auslesen, dass <i>v1</i> zu <i>v2</i> wurde. Für das resultierende Dreieck ergäben sich die Eckpunkte <i>v2, v2</i> und <i>v(links)</i>. Solche degenerierten Dreiecke, bei denen zwei oder drei Eckpunkte zusammenfallen, zeichnen Sie nicht.Der Pseudocode zeigt die komplette Zeichenroutine. <i>mx</i> ist die neue Anzahl der Vertizes im Objekt:</p>
+		<pre><code>
+int remap(int idx,int mx)
+{
+	while(idx &gt;= mx)
+	idx = collapse_map[idx];
+	return idx;
+}
+
+for(alle Dreiecke)
+{
+	p0 = remap(Index 1);
+	p1 = remap(Index 2);
+	p2 = remap(Index 3);
+	if(p0 == p1 || p1 == p2 || p2 == p0)
+		gehe zu nächstem Dreieck
+	Zeichne Dreieck mit p0, p1, p2
+}
+		</code></pre>
+		<p>Die zweite Anwendung der Progressive Meshes ist, Dreiecksnetze progressiv zu übertragen. Dabei übertragen Sie zuerst ein grobes Modell, das Sie am Ende Ihres Reduktions&shy;vorgangs erhalten haben. Anschließend übertragen Sie nur noch die Half-Edge-Collapse-Information. Damit kann das Originalmodell wieder vollständig hergestellt werden. Bei der Übertragung von Dreiecksnetzen werden für die Koordinaten der Vertizes meistens keine drei Floats investiert. Stattdessen quantisieren Sie die Koordinaten. Das heißt, Sie stellen die Koordinaten durch Integer-Werte mit weniger Bits pro Koordinate dar. Dazu berechnen Sie die Ausdehnung des Objekts entlang der <i>x-, y-</i> und <i>z</i>-Achse, skalieren die Float-Werte auf einen genügend großen Zahlenbereich und runden anschließend. Folgendes Beispiel zeigt die Quantisierung einer Achse auf 12 Bit:</p>
+		<pre><code>
+finde min+max Koordinate,
+(min_x und max_x)
+Ausdehnung = max_x - min_x
+Skalierung = (2 ^ 12) / Ausdehung
+
+for (jede Koordinate)
+	quantisierte Koordinate =
+		(Floatkoordinate - min_x) *
+		Skalierung
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Das Netz verfeinern</h2>
+		<p>Um die Auflösung des Dreiecksnetzes (also die Zahl der Vertizes, Kanten und Dreiecke) zu erhöhen, um Details am Objekt zu modellieren oder numerische Simulationen mit hoher Rechen&shy;genauigkeit durchzuführen, verfeinern Sie die Maschen des Netzes.</p>
+		<p>Beim Mesh Refinement (Netzver&shy;feinerung) unterscheidet man zwischen dem globalen (Uniform Refinement) und dem adaptiven Verfeinern (Refinement). Das globale Verfeinern ist für alle Dreiecke identisch.</p>
+		<p>Sie verfeinern Dreiecksnetze, indem Sie die Dreiecke in mehrere kleine zerschneiden. Es erhöht die Genauigkeit der Darstellung, wenn keine langen, schmalen Dreiecke, sondern möglichst gleichseitige entstehen: <i>Edge-Splitting</i> (auch <i>1-to-4</i> <i>split</i> genannt) und sqrt(3)-subdivision.</p>
+		<figure class="large">
+			<img src="assets/200012_5.png" width="735" height="175" alt="SO TEILEN SIE EIN DREIECK in vier weitere auf.">
+			<figcaption><span>SO TEILEN SIE EIN DREIECK</span> in vier weitere auf.</figcaption>
+		</figure>
+		<p>• Beim 1-to-4-split-Verfahren fügen Sie neue Vertizes an den Mittelpunkten der Kanten ein, die Sie zu einem neuen Dreieck verbinden. Sie erhalten vier mal so viele Dreiecke, wenn Sie das mit dem gesamten Netz machen.</p>
+		<figure class="large">
+			<img src="assets/200012_6.png" width="708" height="358" alt="DIE SQRT(3)-SUBDIVISION zerschneidet bei zweimaliger Anwendung eine Kante in drei Teile.">
+			<figcaption><span>DIE SQRT(3)-SUBDIVISION</span> zerschneidet bei zweimaliger Anwendung eine Kante in drei Teile.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200012_8.png" width="352" height="128" alt="HIER WÄHLEN SIE für das mittlere blaue Dreieck das 1-to-4-split-Verfahren.">
+			<figcaption><span>HIER WÄHLEN SIE</span> für das mittlere blaue Dreieck das 1-to-4-split-Verfahren.</figcaption>
+		</figure>
+		<p>• Bei der sqrt(3)-Subdivision betrachten Sie zwei benachbarte Dreiecke. Sie fügen jeweils einen Vertex im Mittelpunkt der Dreiecke ein und verbinden ihn mit den Eckpunkten. Nun drehen Sie die alte Kante zwischen den Original&shy;dreiecken, um die beiden neuen Vertizes zu verbinden. Wenn Sie diesen Vorgang zweimal auf ein Dreieckspaar anwenden, teilen Sie die Originalkanten in drei Strecken auf.</p>
+		<p>Es ist nicht immer notwendig, alle Dreiecke des Netzes zu zerschneiden. Behandeln Sie zunächst nur die Dreiecke, die Sie verfeinert benötigen.</p>
+		<p>Dadurch können T-Vertizes an Grenzen zu den benachbarten Dreiecken entstehen. Diese vermeiden Sie im Refinement-Prozess mit einer Schließungs&shy;operation: Unterteilen Sie die Nachbar&shy;dreiecke (eins, zwei oder alle drei).</p>
+		<figure class="large">
+			<img src="assets/200012_7.png" width="612" height="338" alt="DIE SCHLIESSUNGSOPERATIONEN verhindern T-Vertizes.">
+			<figcaption><span>DIE SCHLIESSUNGS&shy;OPERATIONEN</span> verhindern T-Vertizes.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Dreiecksnetze glätten</h2>
+		<figure class="large">
+			<img src="assets/200012_10.jpg" width="662" height="166" alt="WENN SIE DIE DARSTELLUNG eines Würfel glätten, runden Sie seine Kanten ab.">
+			<figcaption><span>WENN SIE DIE DARSTELLUNG</span> eines Würfel glätten, runden Sie seine Kanten ab.</figcaption>
+		</figure>
+
+		<p>Mit jedem Bildbear&shy;beitungsprogramm können Sie ein Bild weich zeichnen, wodurch es unscharf erscheint. Das funktioniert auch mit Dreiecksnetzen (Mesh Relaxation = Entspannung).</p>
+		<p>Anders als bei Bitmaps lassen sich nicht einfach Farbwerte mitteln und ändern. Objekt&shy;koordinaten stellen kein Pendant zu Pixeln dar, weil Sie zusätzlich die Topologie-Information berück&shy;sichtigen müssen. Wie der Name des Verfahrens andeutet, geht es darum, Spannung aus den Dreiecksnetzen zu nehmen. Spannung tritt an Stellen auf, an denen Spitzen hervorragen. Betrachten Sie jeden Vertex, und ziehen Sie ihn ein Stück zu jedem seiner Nachbarn hin.</p>
+		<figure class="floatright">
+			<img src="assets/200012_9.png" width="393" height="366" alt="DIE MESH-RELAXATION-METHODE glättet Dreiecksnetze, indem sie Vertizes verschiebt.">
+			<figcaption><span>DIE MESH-RELAXATION-METHODE</span> glättet Dreiecksnetze, indem sie Vertizes verschiebt.</figcaption>
+		</figure>
+		<p>Ein Beispiel: Die Nachbar-Vertizes bilden eine mehrseitige Pyramide mit dem aktuell betrachteten Vertex als Spitze, dann zieht der Algorithmus den Vertex in Richtung der Grundfläche. So glätten Sie das Dreiecksnetz. Wenn alle Vertizes (inklusive des betrachteten) in einer Ebene liegen, können Sie zwar den Vertex verschieben, aber ändern dadurch nicht die Form des Objekts. Trotzdem hat das Verfahren einen positiven Aspekt: Die Dreiecke des Netzes verändern durch die neuen Vertex-Positionen ihre Form in Richtung gleichseitiger Dreiecke. Dieses Verfahren verwenden Sie für numerische Simulationen. Die Formel, nach der Sie die Vertizes verschieben, verdeutlicht das Bild unten.</p>
+		<p>Der Pseudocode <i>meshrelax.c</i> veran&shy;schaulicht das Vorgehen. Sie benötigen zwei Speicher&shy;bereiche für die Vertizes: einen für die alten und einen für die neuen Positionen.</p>
+		<p>Mit Mesh Relaxation runden Sie die Kanten eines Würfels ab. Vor dem Glätten wurde das Dreiecksnetz des Würfels mehrmals mit einem <i>1-to 4-split</i> geteilt. Ansonsten wäre die Darstellung nicht detailliert genug, um eine Glättung erkennen zu können.</p>
+		<p>Mit den vorgestellten Methoden können Sie 3D-Modelle feiner oder gröber berechnen, ohne Software Dritter zu benutzen.</p>
+	</section>
+
+	<aside>
+		<h2>Pseudocode von meshrelax</h2>
+		<div class="whitebox framedbox">
+			<pre><code>// Mesh Relaxation
+for(i = 0; i &lt; nVertices; i++)
+{
+	VERTEX3D v_neu = { 0, 0, 0 };
+	int count = 0;
+
+	// alte Position
+	VERTEX3D pi = pVertexList [i];
+	for (j = 0; j &lt; nPolys; j++)
+	{
+		if(Vertex mit Index i in Dreieck j)
+		{
+			// Nachbarvertices addieren
+			v_neu += pVertexList[pPolyList[j].a];
+			v_neu += pVertexList[pPolyList[j].b];
+			v_neu += pVertexList[pPolyList[j].c];
+			v_neu -= pi * 3;
+			count += 2;
+		}
+	}
+
+	v_neu *= (1.0f / count);
+	pi += summe;
+	pVertexList2[i] = pi;
+}
+			</code></pre>
+			<p class="note"><i>meshrelax.c</i> zeigt auszugsweise die Reduktion eines Gitternetzes.</p>
+		</div>
+	</aside>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote">Literatur:</p>
+		<p class="footnote"><a href="https://graphics.cs.uiuc.edu/~garland/CMU/quadrics/quadrics.html" rel="external nofollow noreferrer">Michael Garland and Paul S. Heckbert: Surface Simplification Using Quadric Error Metrics</a></p>
+		<p class="footnote"><a href="ftp://cs.smith.edu/pub/compgeom" rel="external nofollow noreferrer">Joseph O’Rourke, Computational Geometry in C</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200011.html">11/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200102.html">02/2001</a>
+	</nav>
+</body>

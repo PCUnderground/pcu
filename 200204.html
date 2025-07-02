@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Kugeln im Spiegel (PC Underground, PC Magazin 4/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;4/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200203.html">3/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200205.html">5/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Cube Mapping mit OpenGL</h2>
+		<h1><span class="highlight">Kugeln</span> im Spiegel</h1>
+		<p class="summary">Berechnende Hardware: Eine NVidia-GeForce-256/2/3 oder ATI-Radeon-Grafikkarte zaubert Spiegelungen <span class="highlight">mit wenigen Programmzeilen</span> OpenGL auf den Bildschirm.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Die modernen Grafikkarten wie NVidia GeForce 256, GeForce 2, GeForce 3 und ATI Radeon verlagern die Berechnung immer komplexerer Funktionen in die Hardware und entlasten so die Haupt&shy;prozessoren. Zu diesen Funktionen zählen vor allem die Geometrie&shy;transformation und die Beleuchtungs&shy;berechnung. Textur&shy;koordinaten generieren weitere Aufgaben, die die Grafik-Hardware übernimmt. Dieses Feature und die Cube Maps verwenden Sie, um Spiegelungen zwischen zwei 3D-Objekten und der umgebenden 3D-Szene darzustellen.</p>
+		<figure class="large">
+			<img src="assets/200204_1.jpg" width="1152" height="698" alt="UNSER BEISPIELPROGRAMM zeigt zwei spiegelnde Kugeln.">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> zeigt zwei spiegelnde Kugeln.</figcaption>
+		</figure>
+		<p>Environment Mapping (auch Reflection Mapping) ist eine Texturierungs&shy;methode, die den Anschein erweckt, als spiegele sich die umgebende 3D-Szene auf der Oberfläche eines 3D-Objekts. Beim Texture Mapping sind einem Dreieck feste Textur&shy;koordinaten zugewiesen.</p>
+		<p>Das Environment Mapping berechnet die Textur&shy;koordinaten für jeden Vertex. Für die Berechnung sind die Oberflächen&shy;normale, die Blickrichtung des Betrachters und die Environment-Mapping-Technik ausschlag&shy;gebend. Die Berechnungen variieren von Technik zu Technik. Genauso verhält es sich mit den Anforderungen an die Daten, den Environment-Texturen. Diese sollen die umgebende 3D-Szene enthalten.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200204.zip">💾 200204.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Spherical Environment Mapping</h2>
+		<figure class="floatright">
+			<img src="assets/200204_2.png" width="256" height="256" alt="JEDER FARBBEREICH der Spheremap repräsentiert eine Blickrichtung entlang der Koordinatenachsen +x,-x,+y,-y,+z,-z.">
+			<figcaption><span>JEDER FARBBEREICH</span> der Spheremap repräsentiert eine Blickrichtung entlang der Koordinatenachsen <i>+x,-x,+y,-y,+z,-z.</i></figcaption>
+		</figure>
+		<p>Spherical Environment Mapping ist die momentan wahrscheinlich am meisten verwendete Technik, welche die meisten 3D-Beschleuniger unterstützen. Die Umgebung wird hierbei in einer einzigen Textur repräsentiert. Eine exemplarische <i>Spheremap</i> sehen Sie im Bild unten.</p>
+		<p>Etwas über 20 Prozent der Fläche, der schwarze Bereich der Textur, werden nicht genutzt. Weil beim Sphere Mapping eine Kugel auf einer Ebene dargestellt wird, treten Verzerrungen auf. Daraus folgt, dass das Verhältnis aus der Fläche eines Pixels in der Spheremap und dem repräsen&shy;tierten Winkelbereich in der Spiegelung nicht konstant ist, sondern variiert, was Aliasing-Effekte hervorruft.</p>
+		<p>Von Vorteil sind die gute Unterstützung durch die Hardware und die Grafik-APIs. Sie benötigen beim Sphere Mapping nur eine einzige Textur, um die Spiegelung der Umgebung darzustellen. Spheremaps sind immer vom Betrachter&shy;standpunkt und der -blickrichtung abhängig <i>(view-dependent)</i>. Weil Sie dabei Verzerrungen einkalkulieren müssen, ist es nicht einfach, dynamische Spheremaps zu generieren.</p>
+	</section>
+
+	<section>
+		<h2>Dual Paraboloid Maps</h2>
+		<figure class="floatright">
+			<img src="assets/200204_3.png" width="512" height="256" alt="DIE AUFTEILUNG der spiegelnden 3D-Szene bei den Dual Paraboloid Maps.">
+			<figcaption><span>DIE AUFTEILUNG</span> der spiegelnden 3D-Szene bei den Dual Paraboloid Maps.</figcaption>
+		</figure>
+		<p>Im Gegensatz zu Spheremaps sind Dual Paraboloid Maps <i>view-independent</i>: Sie können sie einmal für die 3D-Szene generieren und den Betrachter frei bewegen. Außerdem gibt es weitaus weniger Verzerrungen als auf einer Spheremap. Ein Manko haben beide: Etwa 25 Prozent der Fläche bleiben ungenutzt.</p>
+		<p>Das Dual Paraboloid Mapping benötigt entweder Dual Texturing, wobei der 3D-Beschleuniger zwei Texturen gleichzeitig verwenden muss, oder die spiegelnden Oberflächen müssen zweimal gerendert werden. Der Aufwand ist gering, denn das Environment-Mapping-Verfahren, das Sie in dieser Ausgabe einsetzen, stellt weit höhere Anforderungen an die 3D-Hardware.</p>
+		<p>Dual Paraboloid Maps können allerdings nur schwer eine dynamische 3D-Szene gespiegelt darstellen, da die Generierung der Maps etwas aufwändiger ist.</p>
+	</section>
+
+	<section>
+		<h2>Cube Environment Mapping</h2>
+		<p>Das Cube Environment Mapping ist das Verfahren unserer Wahl. Es wird seit der Einführung des NVidia-GeForce-256-Grafikchips unterstützt. Hierbei präsentiert sich die umgebende 3D-Szene in sechs Texturen.</p>
+		<figure class="large">
+			<img src="assets/200204_4.jpg" width="619" height="476" alt="DIE CUBE ENVIRONMENT MAP besteht aus sechs Einzeltexturen.">
+			<figcaption><span>DIE CUBE ENVIRONMENT MAP</span> besteht aus sechs Einzeltexturen.</figcaption>
+		</figure>
+		<p>Der Vorteil: Die 3D-Hardware kann diese sechs Texturen zusammen adressieren. Sie müssen also keine speziellen Environment-Texturen berechnen. Die Verzerrungen, die beim Rendering auftreten, sind kleiner als bei den Dual Paraboloid Maps.</p>
+		<p>Stellen Sie sich die sechs Texturen einer Cubemap als einen Würfel vor, der aufgefaltet um den Koordinaten&shy;ursprung liegt. Jedes Texel (Pixel einer Textur) repräsentiert den Teil der Umgebung, der vom Ursprung aus in dieser Richtung sichtbar ist. Vereinfachend nimmt man an, dass die Cubemaps von einem Punkt aus berechnet werden, und die Umgebung unendlich weit entfernt ist. Da diese Annahme nicht realisierbar ist, sind die Spiegelungen für nahe Objekte nicht exakt. Aber die Abweichungen sind akzeptabel, wovon Sie sich im Beispiel&shy;programm überzeugen können. Um Cubemaps zu berechnen, platzieren Sie eine Kamera in der Mitte des spiegelnden 3D-Objekts und rendern sechsmal die 3D-Szene ohne das spiegelnde Objekt – je eines entlang der positiven und negativen <i>x-, y-</i> und <i>z</i>-Achse.</p>
+	</section>
+
+	<section>
+		<h2>Cubemapping in OpenGL</h2>
+		<p>Ein Teil der OpenGL-API unterstützt Cubemapping, was neuere Grafikkarten&shy;treiber berück&shy;sichtigen. Deshalb sollten Sie vorerst prüfen, ob der Treiber die verwendeten Fähigkeiten beherrscht. Außerdem benötigen Sie die aktuellen OpenGL-Extension-Header (<i>glext.h</i>), die Sie beim Quelltext des Beispiel&shy;programms finden.</p>
+		<p>Für das Cubemapping verwenden Sie die <i>GL_ARB_texture_cube_map</i> oder die <i>GL_NV_texgen_reflection</i>-Extension. So prüfen Sie die Fähigkeiten der Treiber:</p>
+		<pre><code>
+char *extensions;
+extensions = strdup((char*)glGetString(GL_EXTENSIONS));
+for(unsigned int i = 0; i &lt; strlen(extensions); i++)
+	if(extensions[i] == ' ')
+		extensions[i] = '\n';
+	if(strstr(extensions, "GL_ARB_texture_cube_map") ||
+		strstr(extensions, "GL_NV_texgen_reflection"))
+	{
+		// Extensions unterstützt
+	}
+		</code></pre>
+		<p>Unterstützt ein Treiber auch die Erweiterung <i>GL_SGIS_generate_mipmap</i>, können Sie diese verwenden. Damit ersparen Sie es sich, die Mipmaps für Texturen manuell aufzubauen, was vor allem für dynamisch generierte Texturen von Nutzen ist.</p>
+		<p>Wenn die Abfrage der Extensions erfolgreich verlaufen ist, beginnen Sie damit, die Cubemaps anzulegen. Durch die Cubemap-Extension ist auch ein neues Textur-Target definiert.</p>
+		<p>Beim Basis OpenGL gibt es ein- und zwei-dimensionale Texturen, deren Textur-Targets als <i>GL_TEXTURE_1D</i> und <i>GL_TEXTURE_2D</i> definiert sind. Diese Targets geben Sie an, um beim Texture Mapping Parameter zu setzen. Das neu definierte Target heißt <i>GL_TEXTURE_CUBE_MAP_ARB</i>. Sonst legen Sie die Textur so an, wie Sie es von OpenGL gewohnt sind:</p>
+		<pre><code>
+GLuint texture;
+glEnable(GL_TEXTURE_CUBE_MAP_ARB);
+glGenTextures(1, &amp;texture);
+glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, texture);
+		</code></pre>
+		<p>Sofern der Treiber die automatische Generierung der Mipmaps unterstützt, verwenden Sie am besten folgende Parameter:</p>
+		<pre><code>
+glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB,
+	GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB,
+	GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB,
+	GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
+		</code></pre>
+		<p>Anderenfalls können Sie auf das Mipmapping verzichten und schalten die bilineare Filterung ein:</p>
+		<pre><code>
+glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB,
+	GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_CUBE_MAP_ARB,
+	GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		</code></pre>
+		<p>Als nächstes können Sie Daten in die Texturen kopieren. Denken Sie daran, dass Sie mit einem Aufruf von <i>glBindTexture(...)</i> sechs Texturen auswählen. Auf die einzelnen Texturen greifen Sie mit den Konstanten im Array <i>cubeMapConstants[]</i> zu:</p>
+		<pre><code>
+GLuint cubeMapConstants[6] =
+{
+	GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB,
+	GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB,
+	GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB,
+	GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB,
+	GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB,
+	GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB
+};
+
+for(int i = 0; i &lt; 6 ; i++)
+	glTexImage2D(cubeMapConstants[i], 0,
+		GL_RGB8, CUBEMAPSIZE, CUBEMAPSIZE,
+		0, GL_RGB, GL_UNSIGNED_BYTE, DatenPtr);
+		</code></pre>
+		<p>Abschließend müssen Sie OpenGL noch mitteilen, dass es die Textur&shy;koordinaten aus der Betrachter&shy;position, blickrichtung und Oberflächen&shy;normalen für das Cubemapping berechnen soll. Dazu gibt es eine spezielle Erweiterung, die <i>GL_REFLECTION_MAP_</i> <i>ARB</i>-Methode, die Sie mit folgenden Zeilen einbinden:</p>
+		<pre><code>
+glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP_ARB);
+glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP_ARB);
+glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_REFLECTION_MAP_ARB);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Cubemaps in dynamischen 3D-Szenen</h2>
+		<p>Berechnen Sie die Cubemaps für eine dynamische 3D-Szene und ein bewegliches spiegelndes Objekt. Untersuchen Sie die Hauptschleife des Renderings der 3D-Szene. Der wichtige Punkt ist die Abfolge der Trans&shy;formationen (Verschiebungen und Rotationen). Zunächst platzieren Sie das spiegelnde Objekt, hier eine Kugel, und initialisieren Sie die Projektions&shy;matrix:</p>
+		<pre><code>
+// Berechnung der Position
+spherePos.x = ...;
+spherePos.y = ...;
+spherePos.z = ...;
+
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+gluPerspective(70, aspectRatio, 1, 5000);
+glMatrixMode(GL_MODELVIEW);
+glLoadIdentity();
+		</code></pre>
+		<p>Verwenden Sie als Trans&shy;formationen in der Modelview-Matrix zwei Rotationen und eine Translation:</p>
+		<pre><code>
+glRotatef(xangle, 1.0f, 0.0f, 0.0f);
+glTranslatef(0, 30, 0);
+glRotatef(zangle, 0.0f, 0.0f, 1.0f);
+		</code></pre>
+		<p>An dieser Stelle zeichnen Sie das spiegelnde Objekt. Der Einfachkeit halber verwenden Sie eine Kugel, deren Geometrie die Funktionen der <i>GLUT</i>-Bibliothek darstellen kann. Diese Kugel können Sie durch ein beliebiges 3D-Objekt ersetzen, Sie müssen lediglich das Dreiecksnetz inklusive der Normalen der Vertices übergeben.</p>
+		<p>Zuerst das Setup des Texture Mapping:</p>
+		<pre><code>
+// Cubemapping aktivieren
+glEnable(GL_TEXTURE_CUBE_MAP_ARB);
+// und Cubemap wählen
+glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, cubeMap);
+glEnable(GL_TEXTURE_GEN_S);
+glEnable(GL_TEXTURE_GEN_T);
+glEnable(GL_TEXTURE_GEN_R);
+		</code></pre>
+		<p>Jetzt kommt der wichtige Teil mit der Umkehrung der Modelview-Trans&shy;formationen, damit Sie Textur&shy;koordinaten korrekt berechnen können:</p>
+		<pre><code>
+glMatrixMode(GL_MODELVIEW);
+glPushMatrix();
+
+// 3D-Szene bzgl. spiegelnden
+// Objekts verschieben:
+glTranslatef(spherePos.x, spherePos.y, spherePos.z);
+glMatrixMode(GL_TEXTURE);
+glPushMatrix();
+
+// Rotationen rückgängig machen
+glRotatef(-zangle, 0.0f, 0.0f, 1.0f);
+glRotatef(-xangle, 1.0f, 0.0f, 0.0f);
+
+// 3D-Objekt zeichnen
+glutSolidSphere(SPHERE_SIZE,
+	SPHERE_SUBDIVX, SPHERE_SUBDIVY);
+glPopMatrix();
+		</code></pre>
+		<p>Nach dem Zeichnen des Objekts räumen Sie den Matrix Stack wieder auf und deaktivieren die Textur&shy;koordinaten-Generierung. Anschließend zeichnen Sie den Rest der 3D-Szene:</p>
+		<pre><code>
+glMatrixMode(GL_MODELVIEW);
+glPopMatrix();
+glDisable(GL_TEXTURE_GEN_S);
+glDisable(GL_TEXTURE_GEN_T);
+glDisable(GL_TEXTURE_GEN_R);
+
+// Rest der 3D-Szene zeichnen
+renderScene();
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Cubemaps generieren</h2>
+		<p>Sie benötigen noch eine Cube-Environment-Map für Ihr spiegelndes Objekt, die die aktuelle 3D-Szene aus der Sicht des Objekts enthält. Eine Cubemap können Sie leichter als jede andere Environment-Map generieren.</p>
+		<p>Sie platzieren die OpenGL-Kamera und richten sie aus, rendern die 3D-Szene und kopieren das Resultat in die Cubemap. Diese Schritte sehen Sie an Hand von Codezeilen. Die Berechnung der Cubemap rufen Sie am besten vor der Render-Hauptschleife auf, die Sie zuvor gesehen haben. Legen Sie die Größe der gerenderten Cubemap-Seite fest, die der Größe entspricht, die Sie bei der Initialisierung gewählt haben. Anschließend setzen Sie die Parameter der Projektion. Verwenden Sie einen Kamera&shy;öffnungswinkel von 90 Grad. Andernfalls enthalten die Cubemaps nicht die gesamte, umgebende 3D-Szene.</p>
+		<pre><code>
+// Größe festlegen
+glViewport(0, 0, CUBEMAPSIZE, CUBEMAPSIZE);
+
+// Projektion
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+gluPerspective(90, 1.0f, 1, 500);
+glMatrixMode(GL_MODELVIEW);
+
+// für jede Richtung
+for(int i = 0; i &lt; 6; i++)
+{
+	glClear(GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+		</code></pre>
+		<p>Richten Sie die Kamera entlang der Koordinaten&shy;achsen <i>+x, -x, +y, -y, +z, -z</i> aus. Diese Ausrichtung fassen folgende Zeilen zusammen:</p>
+		<pre><code>
+float cubeMapRotation[6][4] =
+{
+	{ -90, 0, 1, 0 },
+	{  90, 0, 1, 0 },
+	{ -90, 1, 0, 0 },
+	{  90, 1, 0, 0 },
+	{ 180, 1, 0, 0 },
+	{ 180, 0, 0, 1 }
+};
+
+glRotatef(
+	cubeMapRotation[i][0],
+	cubeMapRotation[i][1],
+	cubeMapRotation[i][2],
+	cubeMapRotation[i][3]);
+
+if(i &lt; 2)
+	glRotatef(180.0f, 0.0f, 0.0f, 1.0f);
+		</code></pre>
+		<p>Verschieben Sie den Mittelpunkt der Kugel in den Ursprung – somit auch den Rest der 3D-Szene – und zeichnen Sie diese:</p>
+		<pre><code>
+glTranslatef(-spherePos.x, -spherePos.y, -spherePos.z);
+renderScene();
+		</code></pre>
+		<p>Damit können Sie einen Teil der Cubemap aus dem Framebuffer von OpenGL in die Textur kopieren. Der <i>glFlush(...)</i>-Befehl stellt sicher, dass das Rendern abgeschlossen ist, bevor der Kopiervorgang beginnt:</p>
+		<pre><code>
+glEnable(GL_TEXTURE_CUBE_MAP_ARB);
+glFlush();
+
+glBindTexture(GL_TEXTURE_CUBE_MAP_ARB, cubemap);
+glCopyTexSubImage2D(cubeMapConstants
+	[i], 0, 0, 0, 0, 0,
+	CUBEMAPSIZE, CUBEMAPSIZE);
+
+glFlush();
+glDisable(GL_TEXTURE_CUBE_MAP_ARB);
+		</code></pre>
+		<p>Im Beispiel&shy;programm zu dieser Ausgabe haben wir es nicht bei einem einzelnen spiegelnden Objekt belassen. Stattdessen sehen Sie zwei Kugeln, in denen sich die Umgebung und die jeweils andere Kugel spiegelt. In der Hauptschleife des Rendering macht es keinen Unterschied, ob Sie eines oder mehrere Objekte mit Cubemapping darstellen.</p>
+	</section>
+
+	<section>
+		<h2>Mehrere spiegelnde Objekte</h2>
+		<p>Wie lassen sich dynamische Cubemaps generieren? Wie Sie in der Hauptschleife sehen, müssen Sie die Trans&shy;formationen der Modelview-Matrix rückgängig machen. Genauso müssen Sie das für die Ausrichtung der Kamera beim Rendering der Cubemaps vornehmen. Wenn Sie weitere Objekte mit Cubemap-Spiegelungen haben, fügen Sie an der Stelle des <i>renderScene()</i>-Aufrufs folgende Zeilen ein:</p>
+		<pre><code>
+glMatrixMode(GL_TEXTURE);
+glPushMatrix();
+if(i &lt; 2)
+	glRotatef(-180.0f, 0.0f, 0.0f, 1.0f);
+glRotatef(
+	-cubeMapRotation[i][0],
+	cubeMapRotation[i][1],
+	cubeMapRotation[i][2],
+	cubeMapRotation[i][3]);
+
+// Cubemapping anschalten
+...
+glMatrixMode(GL_MODELVIEW);
+glPushMatrix();
+glTranslatef(spherePos2.x,
+	spherePos2.y, spherePos2.z);
+glutSolidSphere(SPHERE_SIZE,
+	SPHERE_SUBDIVX, SPHERE_SUBDIVY);
+glMatrixMode(GL_MODELVIEW);
+glPopMatrix();
+// Cubemapping ausschalten
+...
+
+// sauber hinterlassen!
+glMatrixMode(GL_TEXTURE);
+glPopMatrix();
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Tricks bei Cubemaps</h2>
+		<p>Für jedes erzeugte Bild wird die gesamte 3D-Szene 13-mal gerendert: je sechsmal für jede Cubemap und einmal für das endgültige Bild. Reduzieren Sie diesen Aufwand.<br>
+		• Für Cubemap-Texturen genügen deutlich kleinere Auflösungen als die Bildschirm&shy;auflösungen. So lassen sich mit 64 x 64 Pixeln pro Cubemap (also insgesamt 64 x 64 x 6=24576 Pixel) sehr gute Resultate erreichen. Eine Auflösung von 128 x 128 Pixeln genügt für die meisten Anwendungen.<br>
+		• Aktualisieren Sie die Cubemaps nicht beim Rendern jedes einzelnen Bildes. Im Beispiel&shy;programm erkennen Sie nicht, dass die Cubemap des einen Objekts nur bei jedem Bild mit einer geraden Nummer und die des anderen bei ungeraden Nummern neu berechnet wird. Somit wird die 3D-Szene für jedes endgültige Bild nur noch siebenmal gerendert. Für komplexe 3D-Szenen bietet sich außerdem an, die Geometrie der umgebenden Szene für die Spiegelung mit gröberen 3D-Netzen zu repräsentieren, was den Polygon&shy;durchsatz niedriger hält.</p>
+		<p>Cubemaps können Sie für viele Effekte, wie die Beleuchtungs&shy;berechnung oder als eine Art Lookup-Tabelle für die Vektor&shy;normalisierung einsetzen. Über das Dot-Product-Bumpmapping berichtet Heft 7/01, ab S. 226. Weitere Beispiele finden Sie auf den Webseiten von <a href="https://www.nvidia.com" rel="external nofollow noreferrer">NVidia</a> und <a href="https://www.ati.com" rel="external nofollow noreferrer">ATI</a>.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Quellen:</b></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://developer.nvidia.com/" rel="external nofollow noreferrer">http://developer.nvidia.com/</a></p>
+		<p class="footnote"><a href="https://www.ati.com/na/pages/resource_centre/dev_rel/devrel.html" rel="external nofollow noreferrer">www.ati.com/na/pages/resource_centre/dev_rel/devrel.html</a></p>
+		<p class="footnote">„Advanced Rendering Techniques Using OpenGL“, SIGGRAPH 99 Course Notes</p>
+		<p class="footnote"><a href="https://www.opengl.org/developers/code/sig99/index.html" rel="external nofollow noreferrer">www.opengl.org/developers/code/sig99/index.html</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200203.html">3/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200205.html">5/2002</a>
+	</nav>
+</body>
+

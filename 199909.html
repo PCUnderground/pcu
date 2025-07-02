@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Effektzauberei mit MP3 (PC Underground, PC Magazin 9/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;9/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199908.html">8/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199910.html">10/1999</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/98</h2>
+		<h1><span class="highlight">Effektzauberei</span> mit MP3</h1>
+		<p class="summary">Für den weitverbreiteten MP3-Player Winamp schreiben Sie <span class="highlight">zwei Plugins</span> und lernen nebenbei noch ein wenig OpenGL.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Musik aus dem Internet ist in: MP3-Dateien genießen große Popularität, ebenso Winamp, der Player schlechthin für dieses Dateiformat. Dank verschiedener Skins (Erscheinungs&shy;bilder) können Sie das Aussehen dieses Programms individuell anpassen. Skins sind jedoch nicht der einzige Weg, Winamp ganz nach Ihrem Geschmack auszustatten. Sie können auch Plugins laden, die zum Beispiel grafische Effekte passend zur Musik zeigen. Dabei liefert Winamp alle Daten, das heißt die aktuelle Ausgangs&shy;spannung des Verstärkers und die Amplitude der Frequenz&shy;spektren. Das Plugin muß sich nur um die Darstellung kümmern.</p>
+		<p>Wie Sie solche Plugins ohne großen Aufwand selbst schreiben, zeigen wir Ihnen in dieser Ausgabe. Zuerst programmieren wir ein einfaches, aber eindrucks&shy;volles Plugin unter DirectDraw. Im zweiten Plugin kommt zusätzlich OpenGL zum Einsatz.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Die Struktur eines Plugins</h2>
+		<p>Die Visuali&shy;sierungs-Plugins für Winamp sind keine gewöhnlichen Programme, sondern DLL-Dateien (Dynamic Link Libraries). Deren Aufbau ist in diesem Fall jedoch einfach. Jedes Plugin kann aus mehreren Modulen bestehen, wobei die Programmierer von Winamp mit Modul einen Grafikeffekt meinen.</p>
+		<p>Um eine reibungslose Zusammenarbeit mit dem MP3-Player zu gewährleisten, füllen Sie für jedes dieser Module eine Struktur aus. Darin steht der Name des Moduls, welche Daten es braucht und welche Routinen aufzurufen sind:</p>
+		<pre><code>
+winampVisModule PCUModul =
+{
+	PluginName, // Modul-Name
+	NULL, //* Fenster-Handle von Winamp
+	NULL, //* DLL Instance Handle
+	0, //* Sampling-Rate
+	0, //* Anzahl der Channels (1=Mono, 2=Stereo)
+	0, // Ausgabe-Latenz
+	0, // Verzögerung der Grafik-Ausgabe
+	0, // Keine Spektrum-Analyser-Daten anfordern
+	2, // Stereo-Waveform-Daten anfordern
+	{ 0, }, //* Spektrumdaten
+	{ 0, }, //* Waveform-Daten
+	config, // Konfigurations-Routine
+	init, // Initialisierungs-Routine
+	render, // Berechnungs-Routine
+	quit // Beendigungsroutine
+};
+		</code></pre>
+		<p>Die mit einem Sternchen (*) im Kommentar gekenn&shy;zeichneten Felder füllt Winamp aus. Um die übrigen kümmern Sie sich selbst. Wichtig sind vor allem die letzten vier Felder mit den Programm&shy;routinen.</p>
+		<p>Die <i>config</i>-Funktion wird aufgerufen, wenn der Benutzer bei der Auswahl Ihres Plugins den Button <i>Configure</i> drückt. Dort können Sie sich einen Dialog anzeigen lassen, über den der Anwender die Effekte nach seinen Wünschen anpassen kann.</p>
+		<p>Das Beispiel-Plugin kommt ohne einen solchen Dialog aus, es zeigt hier statt dessen eine kleine Infobox:</p>
+		<pre><code>
+void config(struct
+	winampVisModule *this_mod)
+{
+	MessageBox(this_mod->
+		hwndParent,
+		„PCU Winamp Plugin“,
+		„About“, MB_OK);
+}
+		</code></pre>
+		<p>Als Parameter wird immer ein Zeiger auf Ihre Modulstruktur übergeben. Dies wird wichtig, wenn Sie in Ihrem Plugin mehrere Module implementieren wollen, die alle den gleichen Konfigurations&shy;dialog oder die gleiche Initialisierungs- und Beendigungs&shy;routine benutzen.</p>
+		<p>Der Initialisierungscode</p>
+		<pre><code>
+int init(struct winampVisModule *this_mod)
+		</code></pre>
+		<p>wird gleich nach dem Start des Plugins aufgerufen. Unser Plugin öffnet in dieser Routine ein einfaches Fenster und startet dann DirectDraw im Fullscreen-Modus.</p>
+		<p>Der Initialisierungs&shy;code ähnelt dem aus der Grafik&shy;bibliothek, die Sie aus früheren Ausgaben von PC Underground kennen. Im Unterschied zur Grafik&shy;bibliothek müssen Sie jetzt aber nicht dafür sorgen, daß Ihre Berechnungs&shy;routine regelmäßig aufgerufen wird. Das erledigt Winamp für Sie.</p>
+		<p>Die Beendigungsroutine</p>
+		<pre><code>
+void quit(struct winampVisModule *this_mod)
+		</code></pre>
+		<p>ist das nötige Gegenstück zur <i>init</i>-Funktion. Wenn das Plugin verlassen wird, beendet diese Funktion DirectDraw und schließt das erzeugte Fenster wieder.</p>
+		<p>Dazwischen erledigt die Render-Routine</p>
+		<pre><code>
+int render(struct winampVisModule *this_mod)
+		</code></pre>
+		<p>die eigentliche Arbeit. Während die Musik läuft, wird sie regelmäßig von Winamp aus aufgerufen.</p>
+		<figure class="floatright">
+			<img src="assets/199909_1.jpg" width="318" height="353" alt="SECHS MOMENTAUFNAHMEN des ersten Winamp-Plugins zeigen farbenfrohe Zufallsmuster.">
+			<figcaption><span>SECHS MOMENTAUFNAHMEN</span> des ersten Winamp-Plugins zeigen farbenfrohe Zufallsmuster.</figcaption>
+		</figure>
+		<p>Um Ihre Ideen zur Visualisierung in Pixel umsetzen zu können, haben Sie hier Zugriff auf einige interessante Daten. Winamp füllt die Modulstruktur mit den Informationen, die Sie angefordert haben. So nutzen Sie entweder das Frequenz&shy;spektrum der Musik oder die Sample-Daten – oder auch beides gleichzeitig, wenn Sie möchten.</p>
+		<p>Im Array <i>waveformData</i> finden Sie die jeweils aktuellen 576 Sample-Werte. Diese können Sie zur Anzeige eines Oszilloskops verwenden. Das Array <i>spectrumData</i> hingegen enthält das aktuelle Frequenz&shy;spektrum und ist ebenfalls 576 Einträge lang. Die Baßanteile befinden sich dabei in den unteren Werten, während die höchste Frequenz bei Element <i>576</i> zu finden ist.</p>
+		<p>Da Sie möglicherweise Stereodaten vorliegen haben, sind die Arrays zwei&shy;dimensional. Die Samples für den linken Kanal finden Sie in <i>waveformData[0][i]</i>, die für den rechten in <i>waveformData[1][i]</i>. Das gleiche gilt analog für das Array <i>spectrumData</i>.</p>
+		<p>576 Sampling-Werte sind nicht besonders viel. Bei einer Wiedergabe&shy;frequenz von 44 100 Hz, die Sie bei CD-Qualität erreichen, entsprechen die übergebenen Werte einem Zeitfenster von etwa 13 Millisekunden. Daher sollte auch Ihr Effekt nicht viel Rechenzeit kosten.</p>
+		<p>Ist Ihre Rendering-Funktion zu langsam, verpassen Sie einen Teil der Daten, und Ihr Plugin verliert an Genauigkeit. Dies ist zwar nicht sonderlich schlimm, aber Ihr Plugin kann dabei einen Teil seines optischen Reizes verlieren.</p>
+	</section>
+	<section>
+		<h2>Die Schnittstelle zu Winamp</h2>
+		<p>Jetzt informieren Sie Winamp darüber, welche Module Sie in Ihrem Plugin programmiert haben. Dafür brauchen Sie zwei Funktionen.<br>
+		• <i>getModule</i> ist eine sogenannte Callback-Funktion. Winamp wird sie mehrfach aufrufen und die DLL fragen, welche Module verfügbar sind. Da Sie zur Zeit nur ein Modul haben, fällt sie relativ einfach aus:</p>
+		<pre><code>
+winampVisModule *getModule(int which)
+{
+	switch (which)
+	{
+		case 0: return &amp;PCUModul;
+		default: return NULL;
+	}
+}
+		</code></pre>
+		<p>Möchten Sie ein zusätzliches Modul programmieren, erweitern Sie lediglich das <i>switch</i>-Statement um den Fall <i>1</i>. Das dritte Modul erhält die Nummer <i>2</i> usw.<br>
+		• Die zweite Funktion ist sehr viel interessanter: Sie ist der Einsprungs&shy;punkt der DLL. In etwa entspricht sie der <i>main()</i>-Funktion eines normalen C-Programms. Beim Laden von Winamp werden auch alle installierten Plugins geladen und diese Einsprung&shy;routinen aufgerufen. Dabei geben diese den Namen des Plugins, die Versionsnummer und einen Pointer auf die <i>getModule</i>-Funktion zurück. Winamp fragt dann Informationen über die Module ab und läßt die Plugins bis zu ihrer Aktivierung erst einmal ruhen.</p>
+		<pre><code>
+extern „C“ __declspec(dllexport)
+	winampVisHeader *winampVisGetHeader()
+{
+	static winampVisHeader PluginHeader;
+	//Felder der Header-Struktur ausfüllen
+	PluginHeader.description = PluginName; // Name
+	PluginHeader.version = VIS_HDRVER; // Version
+	PluginHeader.getModule = getModule;
+	// getModule-Funktion
+	return &amp;PluginHeader;
+}
+		</code></pre>
+		<p>Damit Winamp diese Funktion in Ihrer DLL findet, muß sie mit einem bestimmten Namen exportiert werden. Die Anweisung <i>extern „C“</i> sorgt dafür, daß Ihr C++-Compiler den Namen der Funktion nicht ändert. Bei C++ ist es nämlich in der Regel so, daß die Parameter und Rückgabetypen in den internen Namen codiert werden. Da es leider keinen allgemeinen Standard für diese Codierung gibt, programmieren Sie bei DLLs exportierte Funktionen im „C“-Standard.</p>
+		<p>Der Zusatz <i>__declspec(dllexport)</i> sorgt schließlich dafür, daß die Funktion in die sogenannte Exporttabelle der DLL aufgenommen wird. Lediglich exportierte Funktionen sind von außen zu sehen. Sie können dabei auch mehr als eine Routine exportieren.</p>
+		<p>Die Kommunikation zwischen den Plugins und Winamp erscheint am Anfang vielleicht etwas verwirrend – aber wenn Sie sich damit etwas näher beschäftigen, werden Sie schnell die Annehm&shy;lichkeiten dieser Methode zu schätzen wissen.</p>
+	</section>
+
+	<section>
+		<h2>Ein erstes Plugin</h2>
+		<p>Als Einstieg in die Plugin-Programmierung wählen Sie zunächst einen einfachen Effekt. Damit Sie dabei nicht auf tolle optische Reize verzichten müssen, wenden Sie die sogenannte Movelist-Technik in einer verfeinerten Variante an.</p>
+		<p>Bei Movelists legen Sie – wie der Name schon sagt – eine Tabelle an, die für jedes Pixel eine neue Position angibt. Das ist noch nichts Neues. Daher erweitern Sie die Movelist so, daß sie mit höherer Genauigkeit arbeitet. Auch benutzen Sie keine Textur, sondern wenden die Movelist immer auf das vorherige Bild an. Diese sehr beein&shy;druckenden Effekte, bei denen ein Ergebnis wieder in die Berechnung des nächsten einfließt, nennt man Feedbacks.</p>
+		<p>Für jeden Punkt auf dem Bildschirm brauchen Sie zwei Tabellen&shy;einträge, die angeben, von welcher Position der Punkt kopiert werden soll. Wegen der erhöhten Genauigkeit speichern Sie diesen Wert in einem 32-Bit-Integer-Wert. Die oberen 16 Bit geben direkt einen Teil der Koordinate an, während die unteren 16 Bit festlegen, an welcher Position „zwischen“ den Pixeln kopiert werden soll. Sie können natürlich nicht zwischen zwei Speicher&shy;stellen lesen, deshalb simulieren Sie dies mit Hilfe der bilinearen Interpolation.</p>
+		<p>Im Movelist-Array werden x- und y-Koordinate jeweils nacheinander abgelegt. Das ist sinnvoll, da Sie beide Koordinaten benötigen und alle Punkte des Bilds nacheinander berechnen. Der leicht vereinfachte Code zum Zeichnen des Feedbacks sieht so aus:</p>
+		<figure class="floatright">
+			<img src="assets/199909_2.png" width="575" height="347" alt="MEHRERE HINTEREINANDERGESCHALTETE Transformationen bilden einen Punkt von 3D nach 2D ab.">
+			<figcaption><span>MEHRERE HINTEREINANDERGESCHALTETE</span> Transformationen bilden einen Punkt von 3D nach 2D ab.</figcaption>
+		</figure>
+		<pre><code>
+int lerp (int a, int b, int x)
+// Lineare 16-Bit Interpolation
+{
+	return a + (((b - a) * x) &gt;&gt; 16);
+}
+		</code></pre>
+		<p>Zunächst erfolgt die lineare Interpolation zweier Werte <i>a</i> und <i>b</i>. Die Funktion <i>lerp</i> liefert einen Wert zwischen <i>a</i> und <i>b</i> zurück. Wo genau das Ergebnis liegt, hängt von dem Wert <i>x</i> ab. Ist <i>x</i> gleich <i>0</i>, bekommen Sie <i>a</i>. Ist <i>x</i> gleich <i>65536</i>, erhalten Sie <i>b</i> zurück. Alle anderen Belegungen von <i>x</i> liefern Werte zwischen <i>a</i> und <i>b</i>.</p>
+		<pre><code>
+long *source = movelist1;
+for(int i = 0; i &lt; width * height; i++)
+{
+	int x = *source++;
+	int y = *source++;
+	int offset = (x > 16) + width * ( y > 16);
+
+	int a = lerp(buffer1[offset],
+		buffer1[offset + 1], x &amp; 0xffff);
+	int b = lerp(buffer1[offset + width],
+		buffer1[offset + 1 + width], x &amp; 0xffff);
+	buffer2[i] = lerp (a, b, y &amp; 0xffff);
+}
+		</code></pre>
+		<p>Dies ist die Hauptschleife des Movelist-Feedbacks. Darin lesen Sie zunächst die Quell&shy;koordinaten <i>x</i> und <i>y</i> aus der Movelist aus. Die Pixeladresse <i>offset</i> berechnen Sie aus den oberen 16 Bit der Koordinaten.</p>
+		<p>Dann interpolieren Sie zwischen den Pixeln des Bilds in <i>buffer1</i>. Da Sie eine zwei&shy;dimensionale bilineare Interpolation brauchen, rufen Sie die <i>lerp</i>-Funktion mehrfach auf. Das interpolierte Ergebnis schreiben Sie schließlich in das neue Bild bei <i>buffer2</i>.</p>
+		<p>Mit diesen wenigen Zeilen Code können Sie jetzt Bilder um Bruchteile von Pixeln verschieben, drehen, verzerren, vergrößern und stauchen. Das Resultat hängt nur davon ab, was Sie in Ihre Movelist schreiben.</p>
+	</section>
+
+	<section>
+		<h2>Die Effekt-Movelist</h2>
+		<p>Bei Feedbacks sollten Sie die Bewegung nicht zu schnell laufen lassen. Nur so kommt der Effekt voll zur Geltung. Als kleine Anregung hier eine kombinierte Rotation und Vergrößerung:</p>
+		<pre><code>
+double sinval = sin(0.01) * 1.01;
+double cosval = cos(0.01) * 1.01;
+		</code></pre>
+		<p>Hier berechnen Sie die Rotationswerte vor. Der Winkel beträgt 0,01 rad, was in etwa 0,6 Grad entspricht. Die Multiplikation mit 1,01 sorgt für einen Zoom-Wert von einem Prozent.</p>
+		<pre><code>
+long* dest = movelist1;
+for(int py = 0; py &lt; height; py++)
+	for(int px = 0; px &lt; width; px++)
+	{
+		double x = (double)(px - (width / 2)) / (width / 2);
+		double y = (double)(line - (height / 2)) / (height / 2);
+		</code></pre>
+		<p>Diese Zeilen skalieren die Koordinaten <i>px</i> und <i>py</i> in den Bereich von <i>-1</i> bis <i>1</i>. Dadurch werden die Berechnungen unabhängig von der Breite und Höhe der Movelist.</p>
+		<pre><code>
+double xx = x * cosval - y * sinval + 1.0;
+double yy = y * cosval + x * sinval + 1.0;
+xx = Clamp(xx * width /2.0, width - 1, 1);
+yy = Clamp(yy * height /2.0, height - 1, 1);
+</code></pre>
+		<p>Der Punkt wird nun mit den vorberechneten Werten <i>xx</i> und <i>yy</i> rotiert und danach wieder auf Bildgröße skaliert. Die Funktion <i>Clamp</i> sorgt dafür, daß die rotierten Werte nicht den Bildbereich verlassen. Sonst würde Ihre Feedback-Routine beim Auslesen der Pixel unweigerlich abstürzen.</p>
+		<pre><code>
+*dest++ = (long)(xx * 65536.0);
+*dest++ = (long)(yy * 65536.0);
+}
+		</code></pre>
+		<p>Zuletzt schreiben Sie die Koordinaten in die Movelist. Zuerst kommt die x-, dann die y-Koordinate. Die Multiplikation mit der Konstanten 65536 sorgt für die Aufteilung in eine 16-Bit-Koordinate und in eine 16-Bit-Subkoordinate. Das Schreiben der Koordinaten mit dem Befehl <i>*dest++=</i> sieht etwas ungewöhnlich aus. Es funktioniert, weil <i>dest</i> ein Pointer ist. Nachdem der Wert an die entsprechende Adresse geschrieben wurde, erhöht die Operation <i>++</i> den Pointer, der dann auf das nächste Element zeigt. Bei dieser Vorgehensweise sparen Sie eine Variable, und der Compiler kann möglicherweise effizienteren Code erzeugen.</p>
+		<p>Im Beispielcode haben wir noch etwas mehr Aufwand getrieben, um den Effekt wilder zu gestalten. Wie Sie bemerken werden, haben wir einfach mehrere Rotationen übereinander&shy;gelegt.</p>
+		<p>Wenn Sie Ihr Plugin so starten, sehen Sie noch nichts. Denn es fehlt noch der Code, der die Sample- oder Spektrumdaten benutzt, um dem Feedback brauchbare Bilder zu liefern. Zeichnen Sie einfach die Samples als Wellenform im Kreis über das aktuelle Bild. Dies können Sie ähnlich wie die Funktion <i>Movelist_Draw()</i> machen.</p>
+		<p>Wir haben es uns nicht nehmen lassen, noch einige Extras in das Plugin einzubauen. So können Sie das Aussehen mit den Cursor-Tasten verändern. Das Bild auf S. 212 zeigt einige psychedelisch wirkende Schnappschüsse des Plugins.</p>
+	</section>
+
+	<section>
+		<h2>Einführung in OpenGL</h2>
+		<p>OpenGL (Open Graphics Library) ist ein Standard der Computer&shy;industrie für 3D-Grafik. Er stammt ursprünglich von der internen Grafik&shy;bibliothek von Silicon Graphics (SGI) und wird jetzt von SGI, Microsoft, IBM, Intel und DEC weiter&shy;entwickelt. Die Vorteile von OpenGL sind die genaue Spezifikation des Standards – er arbeitet gleichermaßen unter Betriebs&shy;systemen wie Windows, Unix sowie Linux – und die Unterstützung durch 3D-Hardware.</p>
+		<p>Es ist ganz einfach, mit OpenGL beeindruckende 3D-Grafiken zu programmieren. Dabei lernen Sie die Funktionen kennen, die Sie für ein Winamp-Plugin brauchen.</p>
+		<p>OpenGL stellt Ihnen Funktionen zum Zeichnen von Primitiven, also von Punkten, Linien und Polygonen, zur Verfügung. Es gibt auch Support-Routinen, mit denen Sie Kurven, Bézier-Oberflächen oder Text darstellen können. Die Polygon&shy;primitive können Sie dabei mit Texture Mapping und Schattierung ausstatten.</p>
+		<p>Sobald Sie eine 3D-Szene aus Primitiven aufgebaut haben, definieren Sie Beleuchtungs&shy;effekte, das Blickfeld und Spezialeffekte wie Nebel oder Transparenz. OpenGL erledigt dann den Rest für Sie: die Schattierung, das perspek&shy;tivische Rendering, das „Wegwerfen“ der nicht sichtbaren Polygone (Hidden Surface Removal) und das Clipping. Wenn Sie das Blickfeld oder die Beleuchtung ändern oder die definierten Objekte bewegen, berechnet OpenGL alles für Sie neu.</p>
+		<p>OpenGL ist als eine sogenannte State Machine implementiert: Das heißt, daß ein festgelegter Zustand (zum Beispiel eine Farbe) so lange aktuell ist, bis Sie ihn wieder ändern. Solange also beispielsweise die aktuelle Zeichenfarbe Rot ist, erhalten alle definierten Primitive diese gesetzte Farbe. Zudem ist OpenGL dafür konzipiert, in einem Client-Server-Modell zu arbeiten. Client und Server können natürlich auch in einem Rechner vereint sein, so wie es bei uns der Fall ist.</p>
+	</section>
+
+	<aside>
+		<h2>KOMPILIEREN UND INSTALLIEREN</h2>
+		<div>
+			<p>Da es sich bei den Plugins um keine <i>exe</i> Dateien handelt, weicht der Kompilier&shy;vorgang etwas von der üblichen Vorgehensweise ab. Je nachdem, welchen Compiler Sie benutzen, sind einige Änderungen nötig.</p>
+			<p>Oftmals genügt es, bei den Linker-Einstellungen als Zieldatei den Typ <i>DLL</i> statt <i>EXE</i> auszuwählen. Benutzer von Watcom C++ müssen wir diesmal leider enttäuschen: Der Compiler ließ sich bei unseren Tests nicht dazu bewegen, funktionierende Plugins zu liefern. Da die Beispielcodes DirectDraw benutzen, müssen Sie auch die Bibliotheken <i>ddraw.lib</i> und <i>dxguid.lib</i> mit einbinden.</p>
+			<p>Die erzeugten DLLs müssen alle mit dem Namen <i>vis_</i> beginnen. Winamp sucht nur nach Plugin-Dateien, die dieser Konvention entsprechen.</p>
+			<p>Um das Plugin zu installieren, kopieren Sie es lediglich in das Plugin-Verzeichnis innerhalb der Winamp-Installation. Über die Tasten&shy;kombination <i>[Umschalt fest Strg-K]</i> wählen Sie ein Plugin und starten es.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>OpenGL-Programmierung</h2>
+		<p>Zuerst einmal bringen Sie OpenGL dazu, in ein Windows-Fenster zu rendern. Da OpenGL plattform&shy;unabhängig ist, stellt Microsoft die Befehle dazu zur Verfügung. Dabei registrieren Sie wie bei einem normalen Windows-Programm eine Fensterklasse, öffnen ein Fenster und erzeugen mit folgenden Befehlen einen sogenannten OpenGL-Kontext:</p>
+		<pre><code>
+// Pixelformat des Windows-Bildschirms lesen
+int FormatIndex = ChoosePixelFormat(
+	WindowDC, &amp;FormatDescriptor);
+SetPixelFormat(WindowDC, FormatIndex,
+	&amp;FormatDescriptor);
+// OpenGL Kontext erzeugen
+WindowRC = wglCreateContext(WindowDC);
+wglMakeCurrent(WindowDC, WindowRC);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199909_3.png" width="610" height="367" alt="DAS ZWEITE PLUGIN VERWENDET verschiedene Polygon-Primitive, hier mit ihren Bezeichnungen in OpenGL.">
+			<figcaption><span>DAS ZWEITE PLUGIN VERWENDET</span> verschiedene Polygon-Primitive, hier mit ihren Bezeichnungen in OpenGL.</figcaption>
+		</figure>
+		<p>Das ist schon alles. Diese Zeilen dienen nur als Beispiel, die vollständige Routine finden Sie im Quelltext des OpenGL-Plugins.</p>
+		<p>Nun können Sie schon mit der Beschreibung der 3D-Szene beginnen. Im Bild auf S. 213 sehen Sie, welche Trans&shy;formationen ein Punkt im Raum – gegeben durch (x,y,z) – durchläuft, bis er die Bildschirm&shy;koordinaten (x,y) erhält. Beachten Sie dabei, daß x und y im Raum und im Fenster verschieden sind.</p>
+		<p>Alle Trans&shy;formationen in OpenGL beschreiben Sie mit Matrizen. Sie können Ihr Mathematikbuch aber ruhig in der Ecke lassen, denn Matrizen werden hier abstrakt behandelt.</p>
+		<p>Stellen Sie sich eine Matrix einfach als ein mathematisches Gebilde vor, das eine Verschiebung, Drehung oder Skalierung darstellt. Verschiedene Matrizen können Sie aufeinander anwenden und so eine einzige Matrix errechnen, die alle dabei durchgeführten Trans&shy;formationen enthält.</p>
+		<p>Für das OpenGL-Plugin beschreiben Sie zunächst eine Projektions&shy;matrix, die sowohl die Perspektiv- als auch die Viewport-Transformation beschreibt. Bei der Perspektiv&shy;projektion kann es sich zum Beispiel um eine Zentral- oder Orthogonal&shy;projektion handeln. Mit der Bezeichnung Viewport ist das Fenster gemeint – die entsprechende Transformation bildet also die einzelnen Punkte auf die Bildebene ab.</p>
+		<p>Die in dieser Matrix gespeicherten Transforma&shy;tionen stellen quasi das Kameramodell dar. Nun teilen Sie OpenGL mit, daß Sie die Projektions&shy;matrix bearbeiten möchten:</p>
+		<pre><code>
+glMatrixMode(GL_PROJECTION);
+		</code></pre>
+		<p>Danach laden Sie die Einheitsmatrix, das neutrale Element beim Arbeiten mit Matrizen:</p>
+		<pre><code>
+glLoadIdentity();
+		</code></pre>
+		<p>Egal, ob Sie diese Matrix auf eine andere Matrix oder einen Vektor anwenden, Sie erhalten als Ergebnis immer wieder den unveränderten Operanden zurück.</p>
+		<p>Die Kamera- bzw. die Perspektiv- und die Viewport-Transformation legen Sie am einfachsten mit einem Befehl aus der <i>Glut Library</i> fest. Dabei handelt es sich um eine Sammlung von Highlevel-Befehlen, die sehr komfortable OpenGL-Funktionen enthalten.</p>
+		<pre><code>
+gluPerspective(45.0f, 1.33f, 1.0f, 1000.0f);
+glViewport(0, 0, SCREEN_X, SCREEN_Y);
+		</code></pre>
+		<p>Die erste Zeile definiert eine Kamera mit einem Öffnungswinkel von 45 Grad. Der zweite Parameter der Funktion <i>gluPerspective</i> beschreibt den Aspect-Ratio-Wert, also das Verhältnis von der Breite zur Höhe des Bildschirms. Zuletzt übergeben Sie noch die gewünschten Entfernungs-Clipping-Ebenen mit Abstandswerten von 1 und 1000.</p>
+		<p>Dank des folgenden Befehls <i>glViewport</i> weiß OpenGL, wie groß das Fenster ist. Jetzt verschaffen Sie der Kamera noch etwas Abstand von der Projektions&shy;ebene, auf die die Primitive projiziert werden:</p>
+		<pre><code>
+glTranslatef(0.0f, 0.0f, -30.0f);
+		</code></pre>
+		<p>Das war die Definition der Kamera.</p>
+		<p>Es gibt noch ein paar zusätzliche Initialisierungs&shy;aufrufe, die Sie einmalig beim Start des Programms einsetzen:</p>
+		<p>Nun legen Sie die Objekte der Szenerie fest. Dazu wählen Sie die Modelview-Matrix, die die Bewegung und Drehung eines Objektes bestimmt. Danach laden Sie wieder die Identität, also die Einheitsmatrix:</p>
+		<pre><code>
+glMatrixMode(GL_MODELVIEW);
+glLoadIdentity();
+		</code></pre>
+		<p>Für eine Verschiebung, Skalierung oder Drehung stehen dann folgende drei Befehle zur Verfügung:</p>
+		<pre><code>
+glTranslatef(float x,float y, float z)
+glScalef(float x,float y, float z)
+glRotatef(float drehwinkel, float achse_x,
+	float achse_y, float achse_z)
+		</code></pre>
+		<p>Dabei spielt die Reihenfolge der Trans&shy;formationen durchaus eine Rolle: Je nachdem, ob Sie ein Objekt zum Beispiel vor oder nach einer Drehung verschieben, erhalten Sie ein anderes Ergebnis.</p>
+		<p>Nachdem Sie die Transformation festgelegt haben, übermitteln Sie die Polygon-Primitive, aus denen Sie Ihre Objekte zusammensetzen, an OpenGL. Eine Übersicht der in diesem Artikel verwendeten Primitive zeigt das Bild auf S. 214. Die Zahlen an den Eckpunkten deuten die Reihenfolge an, in der Sie die Punkte übergeben, um die Primitive zu zeichnen.</p>
+		<p>Ein Primitiv wie ein Dreieck beginnen Sie mit dem Befehl:</p>
+		<pre><code>
+glBegin(GL_TRIANGLE);
+		</code></pre>
+		<p>Bevor Sie die Eckpunkte übergeben, wählen Sie noch die Farben, Oberflächen&shy;normalen und Texture-Mapping-Koordinaten aus. Denken Sie daran, daß Sie es mit einer State Machine zu tun haben – alle Zustände wie Farben, Normalen und Koordinaten gelten für alle Eckpunkte, solange Sie sie nicht ändern:</p>
+		<pre><code>
+glNormal3f(0, -1, 0);
+glTexCoord2d(0.0, 0.0);
+glVertex3f(1.0, 2.0, 1.0);
+glTexCoord2d(1.0, 0.0);
+glVertex3f(3.0, 2.0, 1.0);
+glTexCoord2d(1.0, 1.0);
+glVertex3f(1.0, 1.0, 0.0);
+glEnd();
+		</code></pre>
+		<p>Bei den Primitiven, die eine unbestimmte Anzahl von Eckpunkten (Vertices) enthalten können, übergeben Sie so viele Punkte, wie Sie wollen.</p>
+	</section>
+
+	<section>
+		<h2>Texture Mapping in OpenGL</h2>
+		<p>Um Ihre Objekte mit Texturen zu versehen, genügen in OpenGL wenige Programmzeilen. Aktivieren Sie mit dem Befehl <i>glEnable</i> das Texture Mapping. Dann legen Sie fest, daß Texture-Mapping-Koordinaten größer als 1,0 eine Wiederholung (Kachelung) der Textur bedeuten:</p>
+		<pre><code>
+glEnable(GL_TEXTURE_2D);
+glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		</code></pre>
+		<p>Wählen Sie über eine Nummer die Textur aus, deren Zustand Sie verändern möchten:</p>
+		<pre><code>
+glBindTexture(GL_TEXTURE_2D, int Nummer);
+		</code></pre>
+		<p>Bei einer Größenänderung kann OpenGL die Textur entweder per bilinearer Interpolation oder per Mipmapping anpassen. Wie sich das Texture Mapping hier verhalten soll, wählen Sie – jeweils separat für die Vergrößerung und die Verkleinerung – über das Kommando <i>glTexParameteri</i>.</p>
+		<p>Danach übergeben Sie der Funktion <i>glTexImage2D</i> die Texturdaten:</p>
+		<pre><code>
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, maxFilter);
+void glTexImage2D(GL_TEXTURE_2D, 0, 4, 256, 256,0, GL_BGRA_EXT,
+	GL_UNSIGNED_BYTE, void *texturedaten);
+		</code></pre>
+		<p>In diesem Beispiel übergeben Sie eine 256 x 256 Pixel große Textur mit 4 Byte Farbtiefe, wobei die Konstante <i>GL_BGRA_EXT</i> jeweils 8 Bit für den Blau-, Rot-, Grün- und den Alphakanal reserviert. Der Zeiger <i>texturedaten</i> verweist auf die geladene Textur im Speicher.</p>
+		<p>Das war schon alles, um OpenGL Texturen zu entlocken. Doch im Moment sehen diese Texturen noch sehr blaß aus...</p>
+	</section>
+
+	<section>
+		<h2>Lichtquellen in OpenGL</h2>
+		<figure class="floatright">
+			<img src="assets/199909_4.png" width="646" height="502" alt="EINE STIMMUNGSVOLLE UND DIFFUSE BELEUCHTUNG sorgt beim zweiten Plugin für glitzernde Lichteffekte.">
+			<figcaption><span>EINE STIMMUNGSVOLLE UND DIFFUSE BELEUCHTUNG</span> sorgt beim zweiten Plugin für glitzernde Lichteffekte.</figcaption>
+		</figure>
+		<p>Die richtige Beleuchtung nimmt entscheidenden Einfluß auf die Wirkung einer Szene. In OpenGL legen Sie zunächst fest, wie die Oberflächen auf die Lichtquelle reagieren sollen. Zum Beispiel können Sie für die Vorderseiten der Polygone eine stimmungsvolle und diffuse Beleuchtung einschalten. Die Vorder- und Rückseite bestimmen Sie durch die Reihenfolge der Eckpunkte – sind diese im Uhrzeigersinn angeordnet, sehen Sie das Polygon von vorne.</p>
+		<p>Mit <i>glEnable</i> aktivieren Sie die Beleuchtungs&shy;berechnung:</p>
+		<pre><code>
+glEnable(GL_LIGHTING);
+GLfloat Intensität[4] = {1.0, 1.0, 1.0, 1.0};
+glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, Intensität);
+		</code></pre>
+		<p>Wählen Sie nun eine Lichtquelle. OpenGL stellt Ihnen dabei – je nach Implementierung – mindestens acht verschiedene zur Verfügung. Danach legen Sie die Lichtfarbe sowie die Position und Richtung des Lichts fest:</p>
+		<pre><code>
+glEnable(GL_LIGHT0);
+GLfloat light_diffuse[]= { 1.0, 1.0, 1.0, 1.0};
+GLfloat light_ambient[]= { 0.1, 0.1, 0.1, 1.0};
+
+glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+
+glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, light_direction);
+		</code></pre>
+		<p>Das ist alles, was Sie für ein respektables OpenGL-Programm benötigen. Das Bild auf S. 218 zeigt das fertige Plugin im Einsatz.</p>
+		<p>Am besten experi&shy;mentieren Sie ein bißchen mit dem Quellcode und verändern ein paar Parameter. So bekommen Sie mehr Gefühl für die Wahl der passenden Transformations&shy;matrix und für eine optimale Beleuchtung.</p>
+		<p>Möchten Sie sich in OpenGL vertiefen, lohnt sich ein Besuch der Homepage von Silicon Graphics unter <a href="https://www.sgi.com" rel="external nofollow noreferrer">www.sgi.com</a>. Hier stoßen Sie auf jede Menge Sourcecodes, Tips und Tutorials. So zum Beispiel auch auf der Seite des Silicon-Graphics-Mitarbeiters <a href="http://reality.sgi.com/mjk/tips" rel="external nofollow noreferrer">Mark Kilgard.</a></p>
+		<p>Wenn Sie die Plugins ausprobieren wollen, kopieren Sie die jeweilige DLL-Datei und für das OpenGL-Programm noch die <i>raw</i>- und <i>tga</i>-Dateien in das Unter&shy;verzeichnis <i>Plugin</i> von Winamp. Die aktuelle Version des MP3-Players Winamp erhalten Sie unter <a href="https://www.winamp.com" rel="external nofollow noreferrer">www.winamp.com</a>. Dort finden Sie auch verschiedene Benutzer&shy;oberflächen in unterschiedlichem Design und viele Plugins.</p>
+	</section>
+	<footer>
+		<p>Rüdiger Pein</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199908.html">8/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199910.html">10/1999</a>
+	</nav>
+</body>

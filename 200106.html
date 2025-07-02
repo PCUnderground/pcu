@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Atmosphäre und Panorama (PC Underground, PC Magazin 6/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;6/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200105.html">5/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200107.html">7/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Genesis-Projekt: Landschaften texturieren/Spezialeffekte</h2>
+		<h1><span class="highlight">Atmosphäre</span> und Panorama</h1>
+		<p class="summary">Mit unserem Beispiel&shy;programm erforschen Sie <span class="highlight">berechnete Landschaften</span>. Lassen Sie sich von der realistischen Darstellung beeindrucken.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Mit der OpenGL-API haben Sie in der letzten Ausgabe Landschaften gerendert. Im dritten Teil des Genesis-Projekts erfahren Sie, wie Sie Ihre Landschaft realistisch aussehen lassen und geschickt texturieren. Dazu verwenden Sie mehrere Texturierungs&shy;schritte. Mit weiteren Algorithmen zur Sichtbar&shy;keitsberechnung optimieren Sie die Renderge&shy;schwindigkeit.</p>
+	</section>
+
+	<aside>
+		<h2>DAS GENESIS-PROJEKT</h2>
+		<div>
+			<p>Unser Genesis-Projekt gliedert sich in folgende drei Teile, die Sie von den OpenGL-Grundlagen bis zum Einsatz praxis&shy;tauglicher Algorithmen führen.</p>
+			<br>
+			<p><b>Teil 1:</b> Landschaften rendern mit OpenGL</p>
+			<p><b>Teil 2:</b> Eigene Landschafts&shy;daten generieren</p>
+			<p class="highlight2"><b>Teil 3:</b> Methoden des Landschafts-Texturierens und Spezialeffekte</p>
+			<br>
+			<p>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200106.zip">💾 200106.zip</a>.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Shadow Map</h2>
+		<figure class="floatright">
+			<img src="assets/200106_1.png" width="256" height="248" alt="SIE VERWENDEN den zweidimensionalen Emboss-Filter, um die Beleuchtung zu berechnen.">
+			<figcaption><span>SIE VERWENDEN</span> den zwei&shy;dimensionalen Emboss-Filter, um die Beleuchtung zu berechnen.</figcaption>
+		</figure>
+		<p>In der letzten Ausgabe haben Sie die Landschaft schattiert, indem Sie eine Textur mit der Helligkeits&shy;information (<i>Fademap</i>) über die ganze Landschaft gespannt haben. Diese Helligkeits&shy;information hängt von der Beleuchtung der Landschaft durch eine Lichtquelle – in unserem Fall die Sonne – und von der Neigung der Landschaft zur Einfalls&shy;richtung des Lichts ab.</p>
+		<p>Diese Helligkeits&shy;informationen generieren Sie aus der <i>Heightmap</i> (vgl. Ausgabe 5/01, S. 246) mit einem Emboss Filter. Diesen definieren Sie mit einer Filtermatrix. Diese wenden Sie auf Ihr Bild an, indem Sie die Matrix wie eine Schablone über das Bild legen. Nun multiplizieren Sie die Pixelwerte mit den Zahlen in der Matrix. Die Summe dieser Wert ergibt die gewünschte Helligkeit in der Landschaft.</p>
+		<figure class="floatright">
+			<img src="assets/200106_2.png" width="253" height="128" alt="MIT RAYCASTING berechnen Sie die Schatten auf der Landschaft.">
+			<figcaption><span>MIT RAYCASTING</span> berechnen Sie die Schatten auf der Landschaft.</figcaption>
+		</figure>
+		<p>Auch Schatten verstärken den realistischen Eindruck. Auch diese können Sie aus der <i>Heightmap</i> berechnen. Betrachten Sie die <i>Heightmap</i> mit Ihren Höhen&shy;informationen. Von jedem Pixel, dessen Höhe Sie kennen, schicken Sie einen Strahl zur Lichtquelle <i>(Raycasting)</i>.</p>
+		<p>Wenn dieser Strahl einen Teil der Landschaft schneidet, liegt der zum Strahl gehörende Pixel der <i>Heightmap</i> im Schatten. In der Textur, die Sie mit dem Emboss Filter erzeugen, verdunkeln Sie die Pixel im Schatten. Diese beiden Schritte können Sie direkt nach der Generierung der <i>Heightmap</i> (siehe Beispiel&shy;programm <i>lsgen</i>, 5/01) erledigen. Deshalb haben wir den Landschaft&shy;generator aus der letzten Ausgabe um dieses Feature erweitert.</p>
+	</section>
+
+	<section>
+		<h2>Texturierung ausgereizt</h2>
+		<p>Es gibt zahlreiche Methoden, um Landschaften zu texturieren. Welche sie einsetzen sollten, hängt von der Zielplattform ab (welche Grafik-Hardware unterstützt werden soll), vom Speicherbedarf der Texturen, und davon, ob die Landschaft eher statisch oder dynamisch sein soll. Dynamisch sind sich ständig verändernde Landschaften, wie sie in vielen Computer&shy;spielen vorkommen. Stellen Sie sich zum Beispiel eine Gegend vor, die Arbeiter einebnen, um dort besser bauen zu können.</p>
+		<figure class="floatright">
+			<img src="assets/200106_3.jpg" width="128" height="125" alt="WEIL DIE TEXTUREN ohne Rand aneinander passen, können Sie jede Kachel einzeln färben.">
+			<figcaption><span>WEIL DIE TEXTUREN</span> ohne Rand aneinander passen, können Sie jede Kachel einzeln färben.</figcaption>
+		</figure>
+		<p>Die unten aufgeführten Texturierungs&shy;methoden arbeiten mit drei oder mehr Texturen, die Sie verknüpfen können.
+		Bei einem Texturierungs&shy;schritt spricht man von einem <i>Renderpass</i>. Neuere Grafikkarten haben zwei oder mehr <i>Texture Units</i>, mit denen Sie mehrere Texturen gleichzeitig rendern und verknüpfen können.</p>
+		<p>Im Quellcode <i>lsrender</i> finden Sie zu jeder Methode die Variante, die nur eine Texture Unit verwendet, und das Pendant dazu, das zwei Units auslastet. Der 3D-Beschleuniger verwendet immer den Befehl</p>
+		<pre><code>glTexEnv[i/f](...)</code></pre>
+		<p>Bisher haben Sie eine Textur mit der folgenden Option gerendert:</p>
+		<pre><code>
+glTexEnvf(GL_TEXTURE_ENV,
+	GL_TEXTURE_ENV_MODE, GL_MODULATE);
+glDisable(GL_BLEND);
+		</code></pre>
+		<p>Die vordefinierte Konstante <i>GL_MODULATE</i> hat festgelegt, dass Sie jeweils die Farb- und Alphawerte des bereits gerenderten Bildes und die der aktuellen Textur multiplizieren. Im Beispiel&shy;programm des letzten Teils wurde die Grundfarbe der Landschaft mit der <i>Fademap</i> multipliziert, wodurch der Beleuchtungs&shy;effekt entstand. Wenn Sie die Schatten und Schattierung der Landschaft beibehalten wollen, benötigen Sie also einen Renderpass allein für diesen Effekt.</p>
+		<p>Bereichern Sie Landschaften mit <i>Detailmaps</i>. Diese Texturen enthalten zufällige Grauwerte. <i>Detailmaps</i> müssen <i>seamless</i> sein: Sie müssen sie nebeneinander legen können, ohne dass die Ränder sichtbar sind.</p>
+		<p>Die <i>Detailmap</i> im Bild oben Mitte wird nicht über die ganze Landschaft gestreckt, sondern sehr oft wiederholt. Sie ist also in viel höherer Auflösung zu sehen als die <i>Fademap</i>. Die Grauwerte der <i>Detailmap</i> verwenden Sie, um die Farbwerte abzudunkeln. Dazu überblenden Sie Texturen (Texture Blending) und zeichnen die Landschafts&shy;polygone ein zweites Mal, nachdem Sie folgende Renderstates gesetzt haben:</p>
+		<pre><code>
+glTexEnvf(GL_TEXTURE_ENV,
+	GL_TEXTURE_ENV_MODE, GL_MODULATE);
+glEnable(GL_BLEND);
+glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+		</code></pre>
+		<p>Für die Funktion <i>glBlendFunc(...)</i> bestimmen verschiedene Parameter, wie die Farbwerte verknüpft werden. Der erste Parameter bezieht sich auf das, was anschließend gerendert wird. Der zweite bestimmt, wie sich das Gerenderte auswirkt. Im obigen Beispiel multiplizieren Sie Farbwerte miteinander (<i>GL_MODULATE</i>) und übernehmen das Ergebnis (<i>GL_SRC_COLOR</i>). Die Farbwerte der <i>Detailmap</i> sind nur für die Multiplikation wichtig (<i>GL_ZERO</i>). <i>Detailmaps</i> beeindrucken mit einer viel höheren Textur&shy;auflösung. Ihr Einsatz lohnt sich damit immer, wenn es um eine realistische Darstellung geht.</p>
+		<p>Diese Variante verwendet nur eine Texture Unit, so dass Sie alle Polygone doppelt zeichnen müssen. Damit Sie auf die Funktionen zugreifen können, die Sie für mehrere Units benötigen, müssen Sie die <i>OpenGL Extensions</i> importieren. Zuerst binden Sie den <i>OpenGL-Extension-String</i> ein, der alle Erweiterungen aufzählt, die Ihre Grafikkarte unterstützt:</p>
+		<pre><code>
+char *extensions;
+extensions = strdup((char*)glGetString(GL_EXTENSIONS));
+for (int i = 0; i &lt; strlen(extensions); i++)
+	if(extensions[i] == ' ')
+		extensions[i] = ‘\n’;
+		</code></pre>
+		<p>Wenn die beiden Schlüssel&shy;wörter <i>GL_ARB_multitexture</i> und <i>GL_EXT_</i> <i>texture_env_combine</i>, die mehrere Texture Units unterstützen, in diesem String enthalten sind, importieren Sie die Funktionen wie folgt:</p>
+		<pre><code>
+// Konstanten Definitionen:
+
+#include „glext.h“
+PFNGLMULTITEXCOORD2FARBPROC
+	glMultiTexCoord2fARB = NULL;
+PFNGLACTIVETEXTUREARBPROC
+	glActiveTextureARB = NULL;
+
+if(strstr(extensions, "GL_ARB_multitexture") &amp;&amp;
+	strstr(extensions, „GL_EXT_texture_env_combine“))
+	{
+		// anzahl der texture units:
+		glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB,
+			&amp;maxTexelUnits);
+		glMultiTexCoord2fARB = (PFNGLMULTITEXCOORD2FARBPROC)
+			wglGetProcAddress("glMultiTexCoord2fARB");
+		glActiveTextureARB = (PFNGLACTIVETEXTUREARBPROC)
+			wglGetProcAddress("glActiveTextureARB");
+...
+
+}
+		</code></pre>
+		<p>Mit den neuen Funktionen können Sie zwei Texturen gleichzeitig wählen und jedem Vertex zwei Sätze von Textur&shy;koordinaten im <i>Immediate Mode</i> zuweisen:</p>
+		<pre><code>
+// texture unit #0 wählen
+glActiveTextureARB(GL_TEXTURE0_ARB);
+glEnable(GL_TEXTURE_2D);
+fadeMap.select();
+// texture unit #1 wählen
+glActiveTextureARB(GL_TEXTURE1_ARB);
+glEnable(GL_TEXTURE_2D);
+detailMap.select();
+// UV Koordinaten
+glMultiTexCoord2fARB(GL_TEXTURE0_ARB, 0.0, 1.0);
+glMultiTexCoord2fARB(GL_TEXTURE1_ARB, 0.5, 0.8);
+// und Zeichnen...
+		</code></pre>
+		<p>Im Streaming Mode, den Sie in der letzten Ausgabe kennengelernt haben, setzen Sie die Pointer (Zeiger) auf die Textur&shy;koordinaten-Streams:</p>
+		<pre><code>
+glClientActiveTextureARB(GL_TEXTURE0_ARB);
+glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+glTexCoordPointer(2, GL_FLOAT,0,pTexCoordStream);
+glClientActiveTextureARB(GL_TEXTURE1_ARB);
+glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+glTexCoordPointer(2, GL_FLOAT,0,pTexCoordStream2);
+		</code></pre>
+		<p>Die Online-Hilfe listet die Konstanten der Blending-Modi und Literatur zu OpenGL auf.</p>
+	</section>
+
+	<section>
+		<h2>Techniken des Texturierens</h2>
+		<p>Nachdem Sie das Handwerkzeug des Multitexturing erarbeitet haben, können Sie mit den folgenden Techniken Landschaften texturieren:<br>
+		• Die einfachste: Spannen Sie eine sehr große Textur über die ganze Landschaft – ähnlich wie bei der <i>Fademap</i>. Wenn Sie die Landschafts-Polygone näher betrachten, sehen Sie sehr schnell, dass eine detailreiche Textur, die noch Wege oder Straßen abbilden soll, eine sehr hohe Auflösung benötigt. Diese kann von 1024 x 1024 Pixeln bis zu 8192 x 8192 Pixeln reichen.</p>
+		<figure class="floatright">
+			<img src="assets/200106_4.png" width="256" height="231" alt="EINE DETAILMAP beschert zusätzlichen Realismus.">
+			<figcaption><span>EINE DETAILMAP</span> beschert zusätzlichen Realismus.</figcaption>
+		</figure>
+		<p>Diese Methode hat einen hohen Speicherbedarf und ist daher für moderne Grafikkarten konzipiert, die Textur&shy;kompression unterstützen. Selbst große Speicher sind mit 8192 x 8192 = 67 108 864 Pixeln schnell gefüllt. Eine solche große Textur können Sie in einem Bildbearbeitungs&shy;programm anlegen. Für diese Technik würden Sie mit einem oder zwei Renderpasses auskommen, wenn Sie zusätzlich <i>Detailmaps</i> einsetzen wollen.<br>
+		• Eine ältere, oft verwendete Methode arbeitet mit einem Satz kleinerer Texturen. Diese Texturen stellen jeweils einen Landschaftstyp dar.</p>
+		<p>Unterteilen Sie eine Landschaft in Felder. Im Beispiel&shy;programm der letzten Ausgabe haben Sie aus der <i>Heightmap Triangle-Strips</i> generiert. Jeweils zwei Dreiecke ergeben ein Quadrat (Landschafts&shy;feld). Weisen Sie jedem Feld eine Textur zu. Sie benötigen nicht nur Texturen für jeden Landschaftstyp, sondern auch für Übergänge, etwa von Sand- nach Felsboden. Damit vervielfacht sich die Anzahl der Texturen.</p>
+		<p>Für dieses Verfahren spricht der geringe Speicher&shy;verbrauch. Obwohl Sie viele Texturen benötigen, sind diese relativ klein. Schon Texturen mit einer Auflösung von 32 x 32 bis zu 64 x 64 Pixeln ergeben beachtliche Landschaften. Dabei ergibt sich ein geschätzter Speicher&shy;verbrauch von 300 x 64 x 64 = 1 228 800 Pixeln; das sind ungefähr 1,8 Prozent von dem der vorherigen Methode.<br>
+		• Die dritte Variante benötigt für jeden Landschaftstyp nur eine Textur, mit der Sie die Landschafts&shy;felder texturieren können. Diese Texturen müssen seamless sein.</p>
+		<p>Weisen Sie jedem Landschafts&shy;feld zwei Landschafts&shy;texturen zu. Eine weitere Textur spannen Sie über die ganze Landschaft. Hierfür genügt eine relativ niedrige Auflösung. Diese dritte Textur enthält die Information, wie die zwei voherigen Texturen überblenden. Diese Methode sehen Sie am Beispiel im Bild.</p>
+		<figure class="floatright">
+			<img src="assets/200106_6.png" width="367" height="240" alt="SIE ERKENNEN keine Grenzen in der Landschaftstexturierung, wenn Sie die Überblendtechnik verwenden.">
+			<figcaption><span>SIE ERKENNEN</span> keine Grenzen in der Landschaftstexturierung, wenn Sie die Überblendtechnik verwenden.</figcaption>
+		</figure>
+		<p>Sie können mit wenig Aufwand und wenig Texturspeicher sehr schöne Übergänge zwischen Landschafts&shy;regionen erzeugen. Die im Bild angedeuteten Multi&shy;plikations- und Additions&shy;schritte erledigt die Grafik-Hardware. Setzen Sie die verschiedenen Texturen und die Texture Units so geschickt ein, dass Sie mit möglichst wenig Renderpasses auskommen. Das fängt schon bei der Organisation der Daten an. Nehmen wir an, Sie wollen die <i>Fademap</i>, die <i>Blendmap</i> und zwei Landschafts&shy;texturen miteinander verknüpfen. Mit einem Bildbearbeitungs&shy;programm basteln Sie eine 32-Bit-Textur, deren RGB- (Farb-) Kanäle die <i>Fademap</i> enthalten. In den Alpha-Kanal der Textur kopieren Sie die <i>Blendmap</i> für die Landschaft. Sie rendern dann wie folgt, wobei das Beispiel von einer Texture Unit ausgeht:</p>
+		<pre><code>
+// 32 Bit Textur
+blendMap.select();
+glTexEnvf(GL_TEXTURE_ENV,
+	GL_TEXTURE_ENV_MODE, GL_MODULATE);
+glDisable(GL_BLEND);
+renderStream(pTexCoordStream);
+
+// erster Landschaftstyp
+basisMap1.select();
+glEnable(GL_BLEND);
+glBlendFunc(GL_DST_ALPHA, GL_SRC_COLOR);
+renderStream(pTexCoordStream2);
+
+// zweiter Landschaftstyp
+basisMap2.select();
+glBlendFunc(GL_ONE_MINUS_DST_ALPHA,
+	GL_DST_COLOR);
+renderStream(pTexCoordStream2);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Wolken am Himmel</h2>
+		<p>Mit diesen Rendering- und Texturierungs-Tricks lassen sich Landschaften sehr realistisch darstellen. Um den noch fehlenden Himmel darzustellen, können Sie eine sehr große Halbkugel wie eine Glocke über Ihre Landschaft platzieren. Dieser Halbkugel verpassen Sie eine Textur, auf der Wolken und/oder Sonne zu sehen sind <i>(Skydomes)</i>. Statt einer Halbkugel können Sie auch einen Zylinder verwenden, wenn der Kamera&shy;blickwinkel so eingeschränkt ist, dass der Betrachter nicht sehr steil nach oben sehen kann.</p>
+		<p>Für diese beiden Varianten lassen sich Texturen mit Fotos, Bildbearbeitungs&shy;programmen oder dem Midpoint Displacement Algorithmus (Heft 5/01, S.247, siehe gleichlautende Zwischen&shy;überschrift).</p>
+		<p>Noch eleganter sind Skyboxes. Die Theorie dahinter: Ein Betrachter befindet sich an einem festen Punkt. Von diesem Punkt aus machen Sie sechs Fotos mit 90 Grad Öffnungswinkel in jeweils beide Richtungen des 3D-Koordinaten&shy;systems. Wenn Sie diese Fotos als Texturen auf einen Würfel kleben und die Kamera in der Mitte des Würfels platzieren, können Sie in jede Richtung blicken und werden stets eine korrekte Perspektive haben.</p>
+		<p>Da der Betrachter bei unserer Landschafts&shy;darstellung nicht an einer Stelle stehen bleibt, stimmt die Theorie nicht mehr ganz. Sie trifft aber für sehr weit entfernte Objekte wie Sonne und Wolken zu.</p>
+		<p>Entsprechende Texturen zu erzeugen, ist kompliziert, da Sie eine Verzerrung an den Ecken berück&shy;sichtigen müssen. Benutzen Sie das Zeichen&shy;programm Skypaint, das Sie unter <a href="https://www.skypaint.com" rel="external nofollow noreferrer">www.skypaint.com</a> laden können. Um fertige Skybox-Texturen zu genieren, nutzen Sie das kommerzielle Programm Bryce 3D.</p>
+	</section>
+
+	<section>
+		<h2>Atmosphärische Effekte</h2>
+		<p>Um in einer 3D-Anwendung atmosphärische Effekte in Echtzeit darzustellen, nutzen Sie das so genannte <i>Fogging</i>. Dabei werden die Farbwerte beim Rendering abhängig von ihrer Entfernung zum Betrachter mit einer vorher festgelegten Farbe gemischt und können leicht Nebeleffekte erzeugen.</p>
+		<figure class="large">
+			<img src="assets/200106_5.jpg" width="800" height="446" alt="MIT FOGGING modellieren Sie atmosphärische Effekte.">
+			<figcaption><span>MIT FOGGING</span> modellieren Sie atmosphärische Effekte.</figcaption>
+		</figure>		<p>Um diesen Effekt zu erreichen, fügen Sie folgende Codezeilen in Ihr Programm ein:</p>
+		<pre><code>
+glEnable(GL_FOG);
+glFogi(GL_FOG_MODE, GL_EXP2);
+glFogf(GL_FOG_DENSITY, 0.01f);
+GLfloat fogColor[3] = { 1.0f, 1.0f, 1.0f };
+glFogfv(GL_FOG_COLOR,fogColor);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Renderspeed</h2>
+		<p>Wenn Sie Ihre Grafikkarte mit den Daten der bisher vorgestellten Rendertricks belasten, kann es zu einer Performance-Krise kommen. Immerhin haben Sie es mit bis zu <i>256 x 256 x 2 = 131 072</i> Dreiecken bei bis zu drei Renderpasses zu tun, also 393 216 gezeichneten Dreiecken. Es gilt daher, mit einem einfachen Algorithmus wirkungsvoll zu intervenieren. Trotz optimierter Daten&shy;strukturen ist es sinnvoll, eine gewisse Vorauswahl zu treffen, welche Teile der Landschaft sichtbar sein können.</p>
+		<p>Zuerst sollten Sie die Landschaft unterteilen. Damit sich die Triangle-Strips noch rentieren, sollten diese Teile nicht zu klein sein. Erfahrungs&shy;werte optimieren Sie mit Experimenten. Es hat sich bewährt, die Landschaft mit <i>256 x 256</i> Feldern in <i>16 x 16</i> Sektoren zu <i>16 x 16 x 2</i> Dreiecke zu unterteilen. Für jeden dieser Sektoren berechnen Sie eine <i>Bounding Box</i>: ein möglichst kleiner Quader, der alle Dreiecke des Sektors enthält.</p>
+		<p>Am einfachsten lassen sich <i>Axis Aligned Bounding Boxes</i> berechnen. Dabei handelt es sich um Quader, deren Kanten parallel zu den Koordinaten&shy;achsen verlaufen. Die Eckpunkte der Quaders erhalten Sie, indem Sie die minimalen und maximalen <i>x-, y-</i> und <i>z</i> Koordinaten aller Vertizes eines Sektors bestimmen und darauf die Eckpunkte konstruieren. Den Sourcecode dazu finden Sie in <i>clipper.h</i> auf der Heft-CD.</p>
+		<figure class="floatleft">
+			<img src="assets/200106_7.jpg" width="472" height="262" alt="IN UNSEREM LANDSCHAFTSRENDERER steuern Sie mit den Cursortasten die Kamera.">
+			<figcaption><span>IN UNSEREM LANDSCHAFTSRENDERER</span> steuern Sie mit den Cursortasten die Kamera.</figcaption>
+		</figure>
+		<p>Der von der Kamera sichtbare Bereich ist ein Pyramiden&shy;stumpf im Raum (der so genannte Viewing Frustum), den sechs Begrenzungs&shy;ebenen einschließen. Wenn die Bounding Box diesen <i>Viewing Frustum</i> nicht schneidet, sind die Dreiecke des zugehörigen Landschafts&shy;sektors nicht sichtbar. Somit können Sie eine Vielzahl von Dreiecken vom Rendering ausschließen, die nicht zur Grafikkarte geschickt werden müssen.</p>
+		<p>Doch wie bekommen Sie die Information über den Viewing Frustum, und wie stellen Sie fest, ob eine Bounding Box diesen schneidet? Glücklicher&shy;weise lässt sich der Viewing Frustum aus der Transformation, die ein Vertex durch die Modelview- und die Projektions&shy;matrix erfährt, rekonstruieren. Die entsprechende Routine <i>buildFrustum()</i>, die Ihnen die Ebenen&shy;gleichungen der Begrenzungs&shy;ebenen berechnet, finden Sie auch in <i>clipper.h</i>.</p>
+		<p>Per Definition der Ebenen&shy;gleichung teilt eine Ebene den Raum in zwei Hälften: In eine zeigt die Normale, die andere Hälfte ist die Entgegen&shy;gesetzte. Mit dem Skalarprodukt können Sie feststellen, auf welcher Seite sich ein Vertex befindet. Damit können Sie auch berechnen, ob eine Bounding Box das Viewing Frustum schneidet, komplett umfasst oder vollständig außerhalb liegt. Nur in den ersten beiden Fällen müssen die Dreiecke des Sektors gerendert werden. Je nach Kameraposition und Blickwinkel lassen sich damit bis zu 98 Prozent der Dreiecke von vornherein ausschließen. Wenn Sie eine Panorama-Ansicht der Landschaft genießen wollen, werden Sie mit diesem Algorithmus nicht viel Einsparung feststellen. Aber bei geläufigen Ansichten wie in Computer&shy;spielen ist die Einsparung enorm.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur:</b></p>
+		<p class="footnote">Jackie Neider, Tom Davis, Mason Woo, OpenGL Programming Guide: The Official Guide to Learning OpenGL, Release 1</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200105.html">5/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200107.html">7/2001</a>
+	</nav>
+</body>

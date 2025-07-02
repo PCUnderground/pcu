@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Frei wie ein Vogel (PC Underground, PC Magazin 1/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;1/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+	<nav class="pagenav">
+		<a rel="prev" href="199812.html">12/1998</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199902.html">2/1999</a>
+	</nav>
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/NT</h2>
+		<h1>Frei wie ein <span class="highlight">Vogel</span></h1>
+		<p class="summary">Den Grand Canyon und die Schluchten der Ozeane bereisen Sie heute schon virtuell am Bildschirm. Wie Sie Ihre <span class="highlight">eigene Cyberwelt mit Hilfe des Voxelspace schaffen</span>, zeigt Ihnen dieser Beitrag.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>In dieser Ausgabe von PC Underground stellen wie Ihnen die sogenannte Voxelspace-Grafik vor. Voxelspace ist ein Verfahren zur Darstellung drei&shy;dimensionaler Objekte. Im Gegensatz zur 3D-Engine aus den Ausgaben 8/98 und 9/98 basiert das Verfahren aber nicht auf Polygonen, sondern auf sogenannte Voxels (Volume-Elements), aus denen sich das 3D-Objekt zusammensetzt. Sie können sich ein Voxel einfach als Miniquader vorstellen, denn es ist gewissermaßen das drei&shy;dimensionale Pendant eines Pixels (Picture-Element).</p>
+		<figure class="floatright">
+			<img src="assets/199901_1.jpg" width="318" height="238" alt="WEISS-BLAUER HIMMEL, grüne Landschaft, schneebedeckte Gipfel – mit Voxelspace zur PC-Idylle">
+			<figcaption><span>WEISS-BLAUER HIMMEL</span>, grüne Landschaft, schneebedeckte Gipfel – mit Voxelspace zur PC-Idylle</figcaption>
+		</figure>
+		<p>Es gibt sehr unter&shy;schiedliche Anwendungen für Voxelspace. In der Medizin wird das Verfahren zum Beispiel eingesetzt, um Daten eines Kernspin&shy;tomographen zu visualisieren. Eine andere Möglichkeit kennen Sie vielleicht aus PC-Spielen, zum Beispiel dem Hubschrauber&shy;simulator <i>Comanche</i>. Hier werden Voxels verwendet, um eine Landschaft darzustellen. Und genau diese Variante stellen wir Ihnen in dieser Ausgabe vor.</p>
+		<p>Wenn Sie ein drei&shy;dimensionales Objekt mit Voxels darstellen, verwenden Sie dazu ein drei&shy;dimensionales Array von Werten. Jeder Eintrag in diesem Array hält zunächst fest, ob sich an der entsprechenden Stelle überhaupt ein Voxel befindet. Ist ein Voxel vorhanden, enthält der Eintrag darüber hinaus zusätzliche Informationen, zum Beispiel die Farbe des Voxel.</p>
+		<p>Die Berechnung eines Bilds erfolgt, indem für jeden Pixel am Bildschirm ermittelt wird, welcher Voxel des Objekts dem Betrachter am nächsten ist. Leider führt dieses Verfahren auch bei relativ einfachen Objekten sehr schnell zu einer immensen Datenmenge. Wir zeigen Ihnen, wie Sie dieses Hindernis mit einem kleinen Trick umgehen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199901.zip">💾 199901.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Landschaft erfassen</h2>
+		<p>Stellen Sie sich einen Landschafts&shy;ausschnitt aus der Vogel&shy;perspektive vor. Wenn Sie ein gedachtes Gitter über den Ausschnitt legen, können Sie für jedes einzelne Feld im Gitter eine Farbe und eine Höhe der Landschaft angeben. Diese Daten reichen schon aus: Sie bilden diese Landschaft durch Voxels nach, die auf einer Ebene stehen, und zwar nur mit der Grundfläche eines Gitterfelds und der angegebenen Höhe und Farbe.</p>
+		<p>Die Daten speichern Sie als Bitmaps. Die erste Bitmap, die Heightmap, enthält für jede Position ( <i>x,y</i>) die Höhe der Landschaft bzw. die Höhe des Voxel, das sich an dieser Position befindet. Die zweite Bitmap enthält die dazugehörige Farbe. Sie generieren solche Landschafts&shy;daten entweder selbst mit Photoshop oder ähnlichen Bild&shy;bearbeitungs&shy;programmen, oder Sie verwenden unsere Beispiele auf der Heft-CD.</p>
+		<p>Wenn Sie sich auf Landschaften mit einer Größe von 256 x 256 oder 512 x 512 Pixeln beschränken, hält sich die Datenmenge in Grenzen. Diese Auflösungen reichen für eine Demo auch vollkommen aus, da in Demos und Beispiel&shy;programmen fast immer <i>seamless</i> Texturen, das heißt beliebig aneinander&shy;reihbare Texturen, verwendet werden. Die Kantenlängen der Bitmaps berechnen Sie mit <i>2<sup>n</sup></i>, um eine möglichst schnelle Berechnung im Programm zu gewährleisten.</p>
+	</section>
+
+	<section>
+		<h2>Bild berechnen</h2>
+		<figure class="floatright">
+			<img src="assets/199901_2.png" width="318" height="238" alt="GRENZENLOSE FREIHEIT: durch Wüsten und Täler zur nächsten Oase">
+			<figcaption><span>GRENZENLOSE FREIHEIT:</span> durch Wüsten und Täler zur nächsten Oase</figcaption>
+		</figure>
+		<p>Um das endgültige Bild zu berechnen, müßten Sie für jeden Bildpunkt eine Sichtbarkeits&shy;prüfung durchführen, um herauszufinden, welcher Voxel sichtbar ist. Eine solche Sichtbarkeits&shy;prüfung wird mit dem sogenanntem Raycasting durchgeführt: Sie schießen einen Strahl von der Betrachter&shy;position durch das Pixel des Bilds und durch den Voxelspace, bis Sie einen Voxel getroffen haben oder der Strahl eine bestimmte maximale Suchstrecke zurückgelegt hat, bei der Sie die Berechnung abbrechen.</p>
+		<p>Bei einer Auflösung von 320 x 240 Punkten wären das 76 800 Operationen, die allesamt sehr viel Rechenzeit kosten. Dies wäre ohne sehr komplizierte Verfahren und entsprechend kleinliche Assembler-Optimierung nicht in Echtzeit möglich. Wenn Sie aber die Möglichkeiten der Betrachter&shy;position und des blickwinkels etwas einschränken, brauchen Sie im Prinzip nur einen einzigen Ray (Strahl) pro Bildschirm&shy;spalte auszuwerten.</p>
+		<p>Zuerst berechnen Sie, wie die Strahlen verlaufen. Nehmen Sie für den Anfang an, der Betrachter, der über diese Landschaft fliegt, blickt immer waagerecht, das heißt nicht nach unten und nicht nach oben.</p>
+		<figure class="floatright">
+			<img src="assets/199901_3.jpg" width="512" height="496" alt="IM RAYCASTING-VERFAHREN überprüfen Sie, ob ein Voxel sichtbar oder verdeckt ist.">
+			<figcaption><span>IM RAYCASTING-VERFAHREN</span> überprüfen Sie, ob ein Voxel sichtbar oder verdeckt ist.</figcaption>
+		</figure>
+		<p>Im Bild rechts sehen Sie einen Landschafts&shy;ausschnitt aus der Vogel&shy;perspektive. Darauf sind die Betrachter&shy;position und der Kegel des sichtbaren Bereichs eingezeichnet. Der Kegel hat einen vorher festgelegten Öffnungs&shy;winkel, der dem Öffnungs&shy;winkel der virtuellen Kamera entspricht.</p>
+		<p>In diesem Kegel befinden sich in konstanten Winkel&shy;abständen die Strahlen, die Sie schießen. In Wirklichkeit sind es natürlich deutlich mehr, als in dieser Skizze eingezeichnet sind (wie bereits erwähnt, ein Strahl pro Bildschirm&shy;spalte). Diese Strahlen geben Sie durch einen Startpunkt (Ortsvektor) und einen Richtungs&shy;vektor an.</p>
+		<p>Da Sie sich im Moment noch im Zwei&shy;dimensionalen befinden, hat jeder dieser Vektoren zwei Komponenten. Daß diese Komponenten in Fixpoint-Arithmetik gespeichert werden, haben Sie sicher schon geahnt. Der Startpunkt ist die Position der Betrachter&shy;kamera und somit für alle Strahlen konstant. Den Richtungs&shy;vektor erhalten Sie für einen bestimmten Blickwinkel mit Hilfe der Sinus- und der Cosinus-Funktion:</p>
+		<pre><code>
+delta_x = cos(winkel)*FIXPOINT;
+delta_y = sin(winkel)*FIXPOINT;
+		</code></pre>
+		<p>Da die Sinus- bzw. Cosinus-Funktionen der meisten Prozessoren sehr langsam sind, verwenden Sie statt dessen vorberechnete Funktionswerte in einer Tabelle. Die Schleife, die für jede Spalte des Bildschirms die Richtungs&shy;vektoren berechnet, sieht dann – mit Hinzunahme der Parameter für den Öffnungs- und Blickwinkel des Betrachters – folgendermaßen aus:</p>
+		<pre><code>
+for(x = 0; x &lt; SCREEN_X; x++)
+{
+	//Abweichung vom Blickwinkel für diese Spalte:
+	winkel = (OEFFNUNGSWINKEL * (SCREEN_X - x * 2)) / SCREEN_X;
+	// Werte aus den Tabellen auslesen:
+	delta_x = cos(blickwinkel + winkel);
+	delta_y = sin(blickwinkel + winkel);
+	//an dieser Stelle wird die
+	//Funktion aufgerufen,die eine
+	//Bildschirmspalte zeichnet
+}
+		</code></pre>
+		<p>Damit haben Sie die Richtung der Strahlen im Zwei&shy;dimensionalen bestimmt und können somit die ersten Bilder berechnen.</p>
+	</section>
+	<section>
+		<h2>Raycasting einsetzen</h2>
+		<p>Das nächste Problem, das Sie lösen, ist die Strahlen&shy;verfolgung. Dabei stellen Sie fest, welcher Voxel von einem dieser Strahlen getroffen wird. An dieser Stelle haben Sie bereits das <i>delta_x</i> und das <i>delta_y</i> für den Strahl bestimmt und wählen noch eine (vorläufig) feste Flughöhe <i>z</i>.</p>
+		<p>Außerdem kennen Sie die Startposition <i>(x/y)</i> des Strahls. Sie addieren jetzt <i>delta_x</i> auf <i>x</i> und <i>delta_y</i> auf <i>y</i> und prüfen jeweils, ob der Voxel an der Position <i>(x/y)</i> höher als oder gleich hoch wie die Flughöhe ist. Haben Sie einen solchen Voxel gefunden, müssen die dahinter liegenden Voxels, um sichtbar zu sein, natürlich nicht nur höher als die Flughöhe, sondern auch höher als die bisher gefundenen Voxels sein.</p>
+		<p>Damit diese Schleife nicht ewig läuft und auch um den Fall abzufangen, daß ein Strahl nie einen Voxel trifft, verwenden Sie zusätzlich einen Zähler, den Sie nach jedem Schleifen&shy;durchlauf inkrementieren. Wenn dieser Zähler einen bestimmten, vorher festgelegten Wert überschreitet, brechen Sie die Schleife ab. Dieser Wert bestimmt also auch die Entfernung, bis zu der Voxels sichtbar sind. Prinzipiell sieht das Raycasting folgendermaßen aus:</p>
+		<pre><code>
+entf = 0;
+z = 100; //Flughöhe
+while(entf++ &lt; MAX_ENTF)
+{
+	x += delta_x;
+	y += delta_y;
+	if(hoehe[x,y] >= z)
+	{
+		// Voxel getroffen!
+		z = hoehe[x,y];
+	}
+}
+		</code></pre>
+		<p>Mit dieser Routine berechnen Sie natürlich keine zufrieden&shy;stellenden Bilder, die einen Eindruck einer perspek&shy;tivischen Darstellung der Landschaft vermitteln. An dieser Stelle kommt unser angekündigter Trick ins Spiel. Das Auf- und Abblicken, das heißt die Neigung der Betrachter&shy;kamera, drücken Sie durch ein <i>delta_z</i> aus, das Sie nach jedem Raycasting-Schritt zur Flughöhe addieren. Außerdem erhöhen Sie den <i>entf</i>-Wert nicht um 1, sondern um eine Variable <i>ph</i>. Zusätzlich deklarieren Sie eine Konstante <i>VSCALE</i>, mit der Sie die vertikale Skalierung der Landschaft festlegen.</p>
+		<p>Wenn Sie in der Schleife einen Voxel erreichen, dessen Höhe größer als der momentane <i>z</i>-Wert ist, dann erhöhen Sie <i>delta_z</i> um <i>VSCALE</i> und <i>z</i> um <i>ph</i>, solange dies der Fall ist. Bei der Berechnung einer Spalte des Bilds starten Sie bei dieser Routine in der untersten Zeile.</p>
+		<p>Die Pixel zeichnen Sie ebenfalls in dieser Schleife, indem Sie den aktuellen Pixel auf die Farbe des getroffenen Voxels setzen und die nachfolgende Pixel-Koordinate auf den Pixel darüber setzen. Wenn Sie die oberste Zeile des Bilds überschritten haben, brechen Sie die Berechnung dieser Bildschirm&shy;spalte ab. Die fertige Routine zum Zeichnen sieht dann folgendermaßen aus:</p>
+		<pre><code>
+while(ph &lt; MAX_ENTF * VSCALE)
+{
+	y += dy;
+	x += dx;
+	z += dz;
+	ph += VSCALE;
+
+	h = hoehe[x,y];
+	// Schnittpunkt ?
+	if(h &gt; z)
+	{
+		c = farbe[x, y];
+		do
+		{
+			// Steigung erhöhen
+			dz += VSCALE;
+			screen[pixel] = c;
+			z += ph
+			pixel -= SCREEN_X;
+			if (pixel < 0) return;
+		} while(h > z);
+	}
+}
+		</code></pre>
+		<p>Allerdings ist diese Methode mathematisch nicht ganz korrekt. Sie liefert aber für Neigungen, die nicht zu groß sind (ca. bis +/- 45° nach oben und unten), akzeptable Ergebnisse. Und Sie wissen ja, der Zweck heiligt bekanntlich die Mittel.</p>
+	</section>
+
+	<section>
+		<h2>Hintergrund berechnen</h2>
+		<p>Nun sind Sie so weit, daß Sie eine Voxel-Landschaft darstellen können. Aber was wäre eine idyllische Landschaft ohne entsprechenden Himmel?</p>
+		<p>Für den Himmel benutzen Sie eine Textur, die Sie entsprechend der Kamerabewegung am Bildschirm verschieben. Die Textur sollte natürlich <i>seamless</i>, das heißt beliebig aneinander&shy;reihbar sein, um sie mehrmals nebeneinander zeichnen zu können.</p>
+		<p>Die Verschiebung entlang der x-Achse berechnen Sie aus dem Blickwinkel der Kamera. Die Verschiebung nach oben bzw. unten erhalten Sie aus dem Neigungswert der Kamera.</p>
+		<p>Die Himmel-Textur, die Sie in den Beispiel&shy;programmen zu diesem Artikel auf der Heft-CD finden, wurde übrigens mit Hilfe von prozeduralen Texturen mit dem Shareware-Raytracer POVRay berechnet. Sie erzeugen solche Texturen auch mit der Routine für fraktale Plasmawolken und den Verzerrungen aus PC Underground der Ausgabe 10/98.</p>
+	</section>
+
+	<section>
+		<h2>Nebel einbauen</h2>
+		<p>Ein weiteres hübsches Feature, das Sie Ihrem Voxel-Programm hinzufügen können, ist das sogenannte Fogging (Nebel). Hierbei werden die Farben der Voxels je nach Entfernung vom Betrachter mit weißer Farbe gemischt.</p>
+		<p>So geben Sie der Landschafts&shy;darstellung ein weitaus realeres Aussehen. Außerdem vermeiden Sie einen störenden Effekt in der Darstellung: Bei der Berechnung des Raycasting müssen Sie die Suchschleife nach einer gewissen Strecke abbrechen, entweder weil der Strahl keinen Voxel trifft oder weil Sie einfach nicht genug Rechenzeit zur Verfügung haben, den Strahl sehr lange Zeit zu verfolgen.</p>
+		<p>Durch das Abbrechen des Raycasting kann es passieren, daß hohe Berge plötzlich in einiger Entfernung des Betrachters aus dem Boden heraus&shy;zuwachsen scheinen. Sie programmieren das Fogging dann so, daß die Voxels, die die maximale Entfernung vom Betrachter haben, beinahe weiß sind. Dann tauchen die Berge aus dem Nebel heraus auf, statt im Hintergrund in die Höhe zu sprießen.</p>
+		<p>Sie programmieren das Fogging, indem Sie der Schleife für das Raycasting eine Variable hinzufügen, die die Anzahl der Durchläufe enthält. Zudem legen Sie eine Shading-Tabelle an, die für jede Entfernung und jede Farbe der Landschafts-Bitmap die Mischfarbe mit Weiß enthält. Diese Tabelle berechnen Sie zum Beispiel so wie im Listing-Teil dieses Artikels.</p>
+		<p>Übrigens: Ohne großen Aufwand implementieren Sie auch eine Drehung der Kamera um die eigene Achse. Hierzu sollten Sie die Ausmaße des berechneten Voxel-Bilds auf 256 x 256 ändern und dieses Bild als Textur für den Rotozoomer aus Ausgabe 11/98 verwenden.</p>
+	</section>
+
+	<section>
+		<h2>Landschaften generieren</h2>
+		<p>Neue Landschaften zu generieren erfordert ein bißchen Übung. Wir zeigen Ihnen deshalb, wie eine unserer Beispiel&shy;landschaften erzeugt wurde.</p>
+		<figure class="floatright">
+			<img src="assets/199901_4.jpg" width="256" height="256" alt="OHNE LICHTEFFEKTE sieht die LandschaftsTextur noch nicht sehr aufregend aus.">
+			<figcaption><span>OHNE LICHTEFFEKTE</span> sieht die Landschafts-Textur noch nicht sehr aufregend aus.</figcaption>
+		</figure>
+		<p>Als Software haben wir das bekannte Bild&shy;bearbeitungs&shy;programm Photoshop von Adobe benutzt. Photoshop ist durch die vielen Filter&shy;funktionen perfekt für Ihre Aufgabe gerüstet. Da fast alle neueren Bild&shy;bearbeitungs&shy;programme die entsprechenden Fähigkeiten besitzen, können Sie dieses Beispiel auch mit anderen Programmen nachvollziehen.</p>
+		<p>Zunächst erzeugen Sie eine Graustufen-Bitmap mit den Maßen 256 x 256 Pixel. Diese Bitmap wird Ihre Höhen-Bitmap. Um eine gute Landschafts&shy;struktur zu bekommen, wählen Sie als Zeichenfarbe Weiß und als Hintergrund&shy;farbe Schwarz.</p>
+		<p>Über das Menü <i>Filter/Rendering Filter/Wolken</i> lassen Sie Photoshop die Grundstruktur Ihrer Landschaft berechnen. Rufen Sie zudem mehrfach den Filter <i>Differenz Wolken</i> aus dem gleichen Menü auf. Damit bekommen Sie zusätzliche feine Strukturen in Ihrer Landschaft. Speichern Sie dieses Bild, denn Sie brauchen es später noch, um der Landschaft den letzen Schliff zu geben.</p>
+		<p>Diese Bitmap sieht noch nicht sehr realistisch aus. Es fehlen Wasserflächen, Niederungen und Hochplateaus, die Sie im nächsten Schritt hinzufügen.</p>
+		<figure class="floatleft">
+			<img src="assets/199901_5.png" width="341" height="333" alt="DIE VERTEILUNG DER GRAUSTUFEN für eine Wasseroberfläche bearbeiten Sie mit einer Graduierungskurve.">
+			<figcaption><span>DIE VERTEILUNG DER GRAUSTUFEN</span> für eine Wasser&shy;oberfläche bearbeiten Sie mit einer Graduierungs&shy;kurve.</figcaption>
+		</figure>
+		<p>Als erstes ist es nötig, den ganzen Wertebereich der Graustufen-Bitmap auszunutzen, um einen geeigneten Wertebereich für die Voxel-Berechnung zu erhalten. Das erledigen Sie mit der Funktion <i>Auto-Tonwert&shy;korrektur</i>, die Sie im Menü <i>Bild/Einstellungen</i> finden.</p>
+		<p>Jetzt folgt die Generierung der Hochplateaus und Wasserflächen: Über die Graduierungs&shy;kurve im gleichen Menü bearbeiten Sie die Verteilung der Graustufen. Wählen Sie als Werkzeug den Stift, und zeichnen Sie Bereiche gleicher Höhe durch horizontale Linien ein.</p>
+		<p>Wenn Sie mit der Höhen-Bitmap fertig sind, ändern Sie über die Helligkeit-Kontrast-Regelung noch das Höhenniveau, falls Ihre Berge zu hoch sind. Sind Ihre Berge zu spitz und zackig, dann spielen Sie am besten so lange mit den Weich&shy;zeichnungs&shy;filtern, bis Sie zufrieden sind.</p>
+		<p>Laden Sie nun die Bitmap, die Sie vorher gespeichert haben. Diese Grafik verwandeln Sie durch einfaches Einfärben und Nachbearbeiten in eine sehr realistische Landschafts-Textur.</p>
+		<figure class="floatright">
+			<img src="assets/199901_6.png" width="509" height="371" alt="AUF DIE BELEUCHTUNG kommt es an. Lichteffekte verstärken den realen Eindruck.">
+			<figcaption><span>AUF DIE BELEUCHTUNG</span> kommt es an. Lichteffekte verstärken den realen Eindruck.</figcaption>
+		</figure>
+		<p>Mit Hilfe des Paletten&shy;editors im Menü <i>Bild/Modus/Farbtabelle</i> färben Sie Ihre Textur ein. Von Hochgebirgen bis hin zu Fantasie&shy;landschaften ist alles möglich. Wir haben uns in den Beispielen eher konservativ an der Natur orientiert: Die Wasserflächen sind blau, die Berge grau mit weißen, schnee&shy;bedeckten Gipfeln und dazwischen ein wenig Braun- und Grüntöne für Sand und Grasflächen.</p>
+		<p>Jetzt zum Feinschliff: Wandeln Sie Ihr Bild mit <i>Bild/Modus/RGB-Farbe</i> in das RGB-Format um. Fügen Sie dem Bild etwas Rauschen hinzu, um der Landschaft mehr Realismus zu verleihen. Was jetzt noch fehlt, sind Lichteffekte, die Sonnen&shy;einstrahlung und Schattenwurf der Berge simulieren. Dank der Rendering-Filter von Photoshop ist dies denkbar einfach.</p>
+		<p>Laden Sie Ihre Höhen-Bitmap, und stellen Sie sicher, daß die Bitmap als Graustufen-Bitmap vorliegt. Photoshop hat nämlich die unangenehme Eigenschaft, <i>bmp</i>-Dateien immer als palettierte Bilder zu laden, auch wenn gar keine Farben benutzt wurden.</p>
+		<figure class="floatright">
+			<img src="assets/199901_7.png" width="256" height="256" alt="VIRTUAL REALITY: Erst durch das Zusammenspiel von Licht und Schatten treten die Landschaftskonturen deutlich hervor.">
+			<figcaption><span>VIRTUAL REALITY:</span> Erst durch das Zusammenspiel von Licht und Schatten treten die Landschafts&shy;konturen deutlich hervor.</figcaption>
+		</figure>
+		<p>Die Ebene Ihrer Höhen-Bitmap wird nun dupliziert und in die Textur-Bitmap eingefügt. Öffnen Sie hierzu die Ebenen-Toolbox, und wählen Sie die Ebene aus. Die Funktion zum Duplizieren rufen Sie über die rechte Maustaste ab. Sollten Sie die Ebenen-Toolbox nicht finden, ist diese vermutlich ausgeblendet. Sie finden sie im Menü <i>Fenster/Ebe</i><i>nen einblenden</i>. Die duplizierte Ebene wird Ihnen als Relief-Kanal für die Beleuchtung dienen. Rufen Sie hierzu den Filter <i>Filter/Rendering/Beleuchtungsef</i><i>fekte</i> auf. Als Relief-Kanal wählen Sie den neuen Kanal der Höhen-Bitmap. Zum Start empfehlen wir eine diffuse Lichtquelle.</p>
+		<p>Nun können Sie mit den Reglern experi&shy;mentieren, bis Sie ein ansprechendes Resultat erzielen. Durch die zahlreichen Parameter dieses Filters ist es nicht leicht, gleich am Anfang die optimalen Ergebnisse zu erzielen. Aber mit ein bißchen Übung bekommen Sie schnell den richtigen Dreh.</p>
+		<p>Übrigens: Vertrauen Sie nicht blind dem Vorschau&shy;fenster. In der Regel fallen die Beleuchtung&shy;seffekte immer etwas extremer aus. Wenn Sie fertig sind, vergessen Sie nicht, Ihre Textur wieder auf 256 Farben zu reduzieren, um Sie im Voxel-Programm verwenden zu können.</p>
+	</section>
+
+	<section>
+		<h2>Keyframing optimieren</h2>
+		<p>Im Beitrag zur 3D-Engine in Ausgabe 9/98 haben wir Ihnen gezeigt, wie Sie die Kamera&shy;positionen und alle Animations&shy;daten für eine angenommene Bildfrequenz speichern und wieder abspielen. Dieses Verfahren glänzt durch seine Einfachheit, hat aber einige entscheidende Nachteile: Die Animation ist auf eine bestimmte Bildfrequenz abgestimmt und wird deswegen auf unter&shy;schiedlichen PCs auch unterschiedlich schnell abgespielt. Es ist außerdem sehr schwierig, die Kamerafahrt nachträglich zu ändern. Aus diesem Grund zeigen wir Ihnen hier eine verbesserte Variante des Keyframings.</p>
+		<p>Sie legen dabei nicht mehr extra für jedes Bild eine Kameraposition ab, sondern definieren diese Position nur noch für einige Zeitpunkte. Mit ein wenig Mathematik berechnen Sie die Zwischenstufen.</p>
+		<p>Das Problem, eine weiche Kurve zwischen einigen wenigen Stützwerten zu berechnen, ist nicht neu und wurde von vielen Mathematikern behandelt. Sehr nützlich für die Computergrafik hat sich dabei die Familie der kubischen Splines erwiesen. Diese Splines berechnen den Kurvenverlauf zwischen zwei Stützwerten, indem eine Funktion dritten Grades aus den gegebenen Werten berechnet wird. Diese Funktion benutzen Sie, um Werte zwischen den Keyframes zu berechnen.</p>
+		<p>Es gibt eine ganze Menge verschiedener kubischer Splines. Vermutlich haben Sie sogar schon mit kubischen Splines gearbeitet, ohne es zu wissen: Die Rundungen und Bögen von True-Type-Schriften und auch die Beziér-Kurven, die von vielen Grafik&shy;programmen benutzt werden, sind zum Beispiel solche Kurven.</p>
+	</section>
+
+	<section>
+		<h2>Hermite-Kurven berechnen</h2>
+		<p>Hermite-Kurven bestehen aus zwei Punkten (Im Bild <i>P1</i> und <i>P2</i> genannt) sowie aus zwei Vektoren (die Tangenten), die Einfluß auf die Richtung der Kurve haben, sobald die Kurve den Startpunkt verläßt ( <i>T1</i>) bzw. den Endpunkt erreicht ( <i>T2</i>). Diese vier Werte geben Ihnen eine sehr gute Kontrolle über den Verlauf der Kurve zwischen den zwei Punkten.</p>
+		<p>Um einen Punkt dieser Kurve zu berechnen, verwenden Sie die Formeln des Mathematikers Hermite. Diese Funktionen werden Hermite Basis Funktionen genannt und lauten:</p>
+		<pre><code>
+h1(t) = 2 * t^3 - 3 * t^2 + 1
+h2(t) = -2 * t^3 + 3 * t^2
+h3(t) = 1 * t^3 - 2 * t^2 + t
+h4(t) = 1 * t^3 - 1 * t^2
+		</code></pre>
+		<p>Der Wert <i>t</i> bestimmt den Punkt der Kurve, der berechnet werden soll. Der Wert ist <i>0</i> für den Fall, daß Sie am Anfang der Kurve sind, und <i>1</i>, wenn Sie den Endpunkt berechnen. Alle Werte zwischen <i>0</i> und <i>1</i> berechnen die erwünschten Zwischenwerte.</p>
+		<p>Um einen Wert auf dieser Kurve zu berechnen, multiplizieren Sie nur die Punkte und Tangenten mit den vier Funktionen.</p>
+		<p>Für die Berechnung einer zwei&shy;dimensionale Kurve gehen Sie so vor: Berechnen Sie zuerst für Ihren <i>t</i>-Wert die Funktionen <i>h1, h2, h3</i> und <i>h4</i>. Wenden Sie anschließend folgende Formeln an, um die Koordinaten zu erhalten:</p>
+		<pre><code>
+x = (h1 * P1.x) + (h2 * P2.x) +
+	(h3 * T1.x) + (h4 * T2.x);
+y = (h1 * P1.y) + (h2 * P2.y) +
+	(h3 * T1.y) + (h4 * T2.y);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Mehrere Kurven&shy;abschnitte</h2>
+		<p>Die Tangenten, die von den Hermite-Kurven benötigt werden, sind nicht gerade anschaulich. Sie sollen sich jedoch das Erstellen der Keyframes so einfach wie möglich machen. Es ist auch gar nicht in Ihrem Interesse, daß die Kurven extrem flexibel sind. Ein Knick an den Stützwerten zum Beispiel würde bei einem Kameraflug nur störend wirken.</p>
+		<p>Wenn Sie mehr als einen Kurven&shy;abschnitt haben, zum Beispiel bei einer Abfolge von Kamera&shy;positionen, berechnen Sie Tangenten, die diese Bedingungen erfüllen. Die Tangenten&shy;formel für die Cardinal Splines lautet:</p>
+		<pre><code>
+T[i].x = a * (P[i+1].x - P[i-1].x);
+T[i].y = a * (P[i+1].y - P[i-1].y);
+		</code></pre>
+		<p>Über die Konstante <i>a</i> stellen Sie ein, wie weich der Übergang zwischen den Kurven sein soll. Sinnvolle Werte für <i>a</i> liegen zwischen <i>0</i> und <i>1</i>. Cardinal Splines mit dem <i>a</i>-Wert <i>0.5</i> haben übrigens einen eigenen Namen: Sie werden Catmull-Rom Splines genannt. Und genau diese Splines sind optimal für den Zweck, den Sie hier verfolgen.</p>
+		<p>Die Tangenten-Formel hat einen kleinen Nachteil: Sie benötigen zum Berechnen jeweils den vorherigen und den nächsten Spline-Punkt. Für den ersten und letzten Punkt funktioniert sie nicht. In unserer Implementation wird die Tangente für den ersten und letzten Stützpunkt jeweils auf <i>0</i> gesetzt.</p>
+	</section>
+
+	<section>
+		<h2>C++-Klasse einsetzen</h2>
+		<p>Um Ihnen die Arbeit mit den Splines zu erleichtern, finden Sie auf der Heft-CD in dieser Ausgabe eine leicht zu benutzende C++-Klasse. Sie ist in der Lage, die ganze Familie von Cardinal Splines zu berechnen – und zwar für so viele Stützwerte gleichzeitig, wie Sie wollen. Die genaue Implementation finden Sie in den beiden Quelltext-Dateien <i>Spline.cpp</i> und <i>Spline.h</i>. Einen kleinen Beispiel-Code, der die Verwendung der Klasse demonstriert, zeigt Listing 1. Im kompletten Quelltext zum Artikel befindet sich außerdem noch ein zusätzliches Beispiel&shy;programm.</p>
+	</section>
+
+	<section>
+		<h2>Splines einbauen</h2>
+		<p>Das Einbauen der Splines in den Voxelspace ist einfach. Zunächst einmal werden für den Voxelspace Key-Informationen erzeugt, indem Sie eine Handsteuerung – ähnlich der eines Flugsimulators – in das Programm einbauen. Dann speichern Sie in regelmäßigen Abständen (zum Beispiel jede Sekunde) die aktuelle Kameraposition in eine Datei. Wenn Sie sich für diese Variante entscheiden, führen Sie einige kleine Änderungen im Demosystem durch.</p>
+		<p>Ein Tastendruck darf nicht mehr dazu führen, daß das Programm beendet wird. Dafür kommentieren Sie die Zeile</p>
+		<pre><code>„case: WM_KEYDOWN“</code></pre>
+		<p>in der Datei <i>demosys.cpp</i> aus (Funktion: <i>WindowProc</i>). Jetzt fragen Sie die Tasten ab. Sie verwenden dafür die Windows-Funktion <i>GetAsyncKeyState</i>. Informationen zu dieser Funktion finden Sie in der Hilfe zur Win32-API.</p>
+		<p>Die Auswertung der Keyframing-Informationen, die Sie in den Dateien <i>keys1.txt</i> und <i>keys2.txt</i> finden, geschieht mit der <i>CardinalSpline</i>-Klasse. Bei der Initial&shy;isierung des Effekts wird ein Spline erzeugt.</p>
+		<p>Die Datei wird zeilenweise ausgelesen und die Informationen als Keyframes der Spline-Klasse übergeben. Am Anfang dieser Dateien geben Sie noch die Landschafts- und Höhen-Bitmap sowie die Anzahl der Spline-Stützwerte und die Abspiel&shy;geschwindig&shy;keit der Spline-Interpolation an.</p>
+		<p>In der Funktion <i>Lenkung</i> werden für den aktuellen Zeitpunkt die Kameradaten interpoliert (Klassenmethode <i>CardinalSpline::Get</i>) und an die Voxelspace-Routine übergeben.</p>
+	</section>
+
+	<footer>
+		<p>Jörg Reitter</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199812.html">12/1998</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199902.html">2/1999</a>
+	</nav>
+</body>

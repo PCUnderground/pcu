@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Beleuchtung – Punkt für Punkt (PC Underground, PC Magazin 4/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;4/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200303.html">3/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200305.html">5/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Vertex- und Fragment-Programme mit OpenGL</h2>
+		<h1>Beleuchtung – Punkt für <span class="highlight">Punkt</span></h1>
+		<p class="summary">Mit Geometrie- und Textur-Verarbeitung erzielen Sie Bumpmapping-Effekte. Neueste Grafikkarten verfügen über <span class="highlight">programmier&shy;bare Fragment Shaders</span>, um die Beleuchtung für jeden Pixel zu berechnen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200304_1.jpg" width="640" height="480" alt="Pixel Lighting mit dem Beispielprogramm: Wagen Sie den Schritt von der Praxis der aufregenden Ego-Shooter in die Theorie, die diese virtuellen Welten erschafft.">
+			<figcaption><span>Pixel Lighting</span> mit dem Beispielprogramm: Wagen Sie den Schritt von der Praxis der aufregenden Ego-Shooter in die Theorie, die diese virtuellen Welten erschafft.</figcaption>
+		</figure>
+		<p>Da moderne Grafikkarten frei programmierbar sind, lassen sich realistische Beleuchtungs&shy;effekte in Echtzeit darstellen. Den ersten Schritt in dieser Richtung stellen die Vertex-Programme dar. Diese von Direct3D-Experten auch als Vertex Shaders bezeichnete Technik führte nVidia mit der GeForce-Grafikkarten-Serie ein. Auf Pixelbasis stehen seit längerem die Texture Shaders und Register Combiners (nVidia) bzw. Pixel/Fragment Shaders (ATI/Direct3D) zur Verfügung.</p>
+		<p>Die neueste Grafikkarten-Generation wie ATI Radeon 9500/9700 und nVidia GeForce FX ist frei programmierbar auf der Fragment-(Pixel-) Stufe (also im Rasterisierung&shy;steil der Grafik-Pipeline). Sie können in einer Art Assembler-Sprache programmieren, ähnlich den Vertex-Programmen, mit einem Hochsprachen-Compiler wie nVidias Cg oder der HLSL (High Level Shading Language) von DirectX9.</p>
+		<p>In OpenGL sind Hersteller übergreifende Standards für Vertex- und Fragment- Programme festgelegt worden. Wir berechnen für jeden Pixel – statt nur für jeden Vertex – die Beleuchtung (Per-Pixel-Lighting) mit dem vollständigen Phong- Beleuchtungs&shy;modell und führen Bumpmapping durch. Wer nicht über die neueste Grafikkarte verfügt, erfährt, wie er ohne Fragment-Programme, nur mit Vertex-Programmen Bumpmapping-Effekte rendern kann.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200304.zip">💾 200304.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Das Phong-Beleuchtungsmodell</h2>
+		<figure class="floatright">
+			<img src="assets/200304_3.png" width="364" height="256" alt="Pixel-Phong-Beleuchtung: Gestaltung ohne Eigenfarbe der Oberflächen">
+			<figcaption><span>Pixel-Phong-Beleuchtung:</span> Gestaltung ohne Eigenfarbe der Oberflächen</figcaption>
+		</figure>
+		<p>Phong ist das am häufigsten eingesetzte Beleuchtungs&shy;modell in der Computergrafik. Es wurde 1975 von Phong Bui-Toung (für nicht perfekte Reflektoren) entwickelt und dient dazu, die Farbe eines Oberflächen&shy;punkts zu bestimmen.</p>
+		<p>Dazu benötigen Sie dessen Normale <i>N</i>, den Vektor zur Lichtquelle <i>L</i>, den Vektor der reflektierten Lichtrichtung <i>R</i> und den Vektor zum Betrachter <i>V</i>. Die Grafik auf der folgenden Seite verdeutlicht den Zusammenhang der vorkommenden Vektoren. Weiterhin fließen in die Formel die Farbe der Lichtquelle <i>I</i> und die Eigenfarbe der Oberfläche <i>O</i> ein. Weitere Oberflächen&shy;parameter sind das ambiente, diffuse und spekular reflektierte Licht, gegeben durch die Koeffizienten <i>k(a), k(d)</i> und <i>k(s)</i>. Der Attenuation Faktor <i>f_att</i> gibt die Abnahme der Intensität der Lichtquelle in Abhängigkeit zum Abstand an.</p>
+		<pre><code>
+F = k(a) · I · O + f_att · I ·
+	[k(d) · O · (N dot L) +
+	gloss · k(s) · (R · V) ^ n]
+		</code></pre>
+		<p>Die Formel enthält Farbvektoren und berechnet RGB-Komponenten. Der Koeffizient <i>n</i> dient dazu, Glanzlichter zu modellieren. Größere Werte für <i>n</i> resultieren in kleineren schärferen Glanzlichtern. Der <i>gloss</i>-Faktor modelliert Unregel&shy;mäßigkeiten in der spekularen Reflexion, um glänzende und nicht glänzende Stellen auf einer metallischen Oberfläche darzustellen.</p>
+		<figure class="large">
+			<img src="assets/200304_5.jpg" width="640" height="423" alt="Die Beispiel Szene: Per Pixel-Phong-Beleuchtung ohne Gloss Mapping erzeugen Sie eindrucksvolle Schattierungen.">
+			<figcaption><span>Die Beispiel Szene:</span> Per Pixel-Phong-Beleuchtung ohne Gloss Mapping erzeugen Sie eindrucksvolle Schattierungen.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Bumpmapping</h2>
+		<figure class="floatright">
+			<img src="assets/200304_4.png" width="512" height="401" alt="Vier Vektoren: 1975 hat Phong Bui-Toung sein Beleuchtungsmodell für nicht perfekte Reflektoren entwickelt.">
+			<figcaption><span>Vier Vektoren:</span> 1975 hat Phong Bui-Toung sein Beleuchtungsmodell für nicht perfekte Reflektoren entwickelt.</figcaption>
+		</figure>
+		<p>Beim Phong-Modell hängen viele Parameter entweder von den Oberflächen&shy;eigenschaften wie der Farbe ab oder sind durch die Lage des Objekts in der Szene relativ zur Lichtquelle und zum Betrachter bestimmt (wie durch <i>L, R</i> und <i>V</i>). Sie können daher nur in die Beleuchtungs&shy;berechnung eingreifen, indem Sie die Normale verändern. Genau das geschieht beim Bumpmapping. Das Verfahren speichert die jeweilige Oberflächen-Normale, codiert per RGB-Farbwert in einer Textur, und berechnet so die Beleuchtung.</p>
+		<p>Wir setzen voraus, dass Sie die Position der Lichtquelle im <i>Object Space</i>, also relativ zum Koordinaten&shy;system, in dem die Object Vertices definiert sind, bestimmt haben. In einer Textur für Ihr 3D-Objekt ist die Normale gespeichert, die Sie zur Beleuchtungs&shy;berechnung verwenden. Das heißt, jedem Punkt der Oberfläche ist ein eindeutiger (unikater) Texel der Textur zugeordnet. Dieser Texel enthält die Normale in codierter Form. Er hängt von der Beschaffenheit der Oberfläche ab.</p>
+		<figure class="floatright">
+			<img src="assets/200304_7.jpg" width="409" height="287" alt="Tangent Space: Dieses mathematische Modell legt die Normale in die Z-Achse.">
+			<figcaption><span>Tangent Space:</span> Dieses mathematische Modell legt die Normale in die Z-Achse.</figcaption>
+		</figure>
+		<p>Da diese Methode schwierig umzusetzen ist, verwenden wir fürs Bumpmapping eine andere Technik, bei der jedem Vertex nicht nur eine Koordinate, sondern ein Tangent Space (ein eigenes Koordinaten&shy;system) zugeordnet wird. Dieses begnügt sich mit den drei Vektoren Tangente, Binormale und Normale. Wählen Sie Tangente und Binormale so, dass sie entsprechend den Vektoren des Textur-Mappings verlaufen. Solche Tangent Spaces können Sie mit 3D-Programmen aufspannen. Ein Tangent Space muss der Anforderung genügen, dass die Normale <i>n</i> der Z-Achse entspricht. So berechnen Sie den Tangent Space für einen Vertex in Abhängigkeit von <i>n</i>:</p>
+		<pre><code>
+VECTOR up = { 0.0, 0.0, -1.0 };
+
+// X-&gt;Kreuzprodukte bilden
+binormal = n X up;
+tangente = bi X n;
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200304_6.jpg" width="415" height="134" alt="Lineare Interpolation: Aus den Vektorkomponenten resultiert eine Längenänderung.">
+			<figcaption><span>Lineare Interpolation:</span> Aus den Vektorkomponenten resultiert eine Längenänderung.</figcaption>
+		</figure>
+		<p>Für jeden Vertex speichern Sie die drei Vektoren (in normalisierter Form). Für das Bumpmapping wird nun jeder Vektor von der Vertex-Position zur Lichtquelle, z.B. mit einem Vertex Programm, in dessen Tangent Space transformiert, was drei Skalar&shy;produkten entspricht:</p>
+		<pre><code>
+// Vektor vertex -&gt; lichtquelle
+toLight = lightPosition - vertexPosition;
+tangentLight.x = binormale dot toLight;
+tangentLight.y = tangente dot toLight;
+tangentLight.z = normale dot toLight;
+		</code></pre>
+		<p>Die drei Komponenten des <i>tangentLight</i>-Vektors speichern Sie in einer Textur-Koordinaten. Diese und somit der Vektor zur Lichtquelle wird beim Rendering der Dreiecke zwischen den Eckpunkten interpoliert und steht für jeden Pixel zur Verfügung. Allerdings bewirkt die lineare Interpolation der Komponenten, dass die Länge des Vektors nicht konstant ist.</p>
+		<figure class="floatright">
+			<img src="assets/200304_2.jpg" width="512" height="254" alt="Eine Heightmap: Daraus erzeugen Sie die Bumpmap, welche Sie mit einem vereinfachten mathematischen Modell gestalten.">
+			<figcaption><span>Eine Heightmap:</span> Daraus erzeugen Sie die Bumpmap, welche Sie mit einem vereinfachten mathematischen Modell gestalten.</figcaption>
+		</figure>
+		<p>Fürs vollständige Phong-Beleuchtungs&shy;modell benötigen Sie die Richtung zur Kamera im Tangent Space, die Sie analog berechnen.</p>
+		<p>Der Vorteil des Tangent Space Bumpmapping liegt in der Texturierung der Objekte. In der Bumpmap Texture sind die Normalen codiert, die für eine Fläche mit der Normalen <i>(0,0,1)</i> gültig sind. Durch die Tangent-Space-Transformation können Sie ein beliebiges Mapping dieser Textur auf das 3D-Objekt verwenden. Solche Bumpmap-Texturen werden meist aus <i>Heightmaps</i> erzeugt. Eine Heightmap ist ein Graustufen-Bitmap, wobei die Graustufe eines Texels dessen Höhe repräsentiert. Mit geeigneten Tools wie von <a href="https://developer.nvidia.com/view.asp?IO=map_generator" rel="external nofollow noreferrer">nVidia</a>, können Sie daraus eine Bumpmap erzeugen.</p>
+	</section>
+
+	<section>
+		<h2>Programmierbare Grafik-Pipeline</h2>
+		<p>Um den Tangent Space und die Beleuchtung zu berechnen, benötigen Sie die OpenGL Extensions für die Vertex- bzw. Fragment-Programme: <i>GL_ARB_VERTEX_</i> und <i>GL_ARB_FRAGMENT_PROGRAM</i>. Die Spezifi&shy;kationen aller OpenGL Extensions finden Sie unter <a href="https://oss.sgi.com/projects/ogl-sample/registry/" rel="external nofollow noreferrer">http://oss.sgi.com/projects/ogl-sample/registry/</a>. Beide Erweiterungen nutzen dieselbe Schnittstelle, um den Assembler Code eines <i>Program</i>, gespeichert in einem String, zu übergeben und zu nutzen. Die Funktions&shy;zeiger laden Sie im Beispiel&shy;programm mit dem <i>wglGetProcAddress(...)</i>-Befehl.</p>
+		<p>Als erstes fordern Sie immer einen Identifier für Ihr Vertex- oder Fragment-Programm an:</p>
+		<pre><code>
+GLuint programID;
+glGenProgramsARB(1, &amp;programID);
+		</code></pre>
+		<p>Ob es sich hier um ein Vertex- oder Fragment-Programm handelt, bestimmt bei den folgenden Befehlen das Target <i>GL_VERTEX_PROGRAM_ARB</i> oder <i>GL_FRAGMENT_PROGRAM_ARB</i>. Im nächsten Schritt erweitern Sie das Programm. Sie übergeben den String mit dem Programmcode, den Sie z.B. aus einer Textdatei vorher eingelesen haben:</p>
+		<pre><code>
+glBindProgramARB(GL_VERTEX_PROGRAM_ARB, programID);
+char *programCode = "...";
+glProgramStringARB(GL_VERTEX_PROGRAM_ARB,
+	GL_PROGRAM_FORMAT_ASCII_ARB,
+	strlen(programCode), programCode);
+		</code></pre>
+		<p>Um abzufragen, ob ein Fehler in Ihrem Code enthalten ist, liefert Ihnen die folgende Methode das Offset des Fehlers oder den Wert <i>-1</i>, falls alles korrekt war:</p>
+		<pre><code>
+int ep;
+glGetIntegerv(GL_PROGRAM_ERROR_POSITION_ARB, &amp;ep);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Vertex-Programme</h2>
+		<p>Ein Vertex-Programm verarbeitet immer nur einen Vertex. Ihr Einsatzgebiet reicht von einer Koordinaten-Transformation zu Vertex Blending für Animationen, Beleuchtungs- und Fog-Berechnungen und mehr.</p>
+		<p>Als Eingabedaten stehen die Vertex-Attribute wie Koordinate, Normale, Textur-Koordinaten, Farbe usw. zur Verfügung. Weiterhin nutzen Sie OpenGL States wie Material&shy;eigenschaften, Lichtquellen und Parameter. Letztere setzen sich aus mindestens 96 4-Komponenten-Vektoren pro OpenGL-Kontext, ebenso vielen pro Vertex-Programm und weiteren im Code definierten Konstanten zusammen. Sie rechnen mit mindestens zwölf 4-Komponenten-Vektoren und einem Adressregister. Die Operationen umfassen Addition, Substraktion, Skalar- und Kreuzprodukte, Vergleiche, Minimum-, Maximum- sowie Absolutwert-Bildung, zusätzlich Skalar-Operationen wie Potenzierung, Logarithmen, Reziproke und Reziproke-Wurzel-Bildung.</p>
+		<p>Den Aufbau der Vertex-Programme stellen wir anhand eines einfachen Beispiels vor. Es soll die Koordinaten eines Vertex transformieren, den normalisierten Vektor zur Lichtquelle im Tangent Space berechnen und in der Vertex-Farbe speichern. Die Vertex-Attribute übergeben Sie mit den üblichen OpenGL-Befehlen wie <i>glVertex3f(...)</i> oder <i>glTexCoord3f(...)</i>.</p>
+		<p>Die Position der Lichtquelle im Object Space speichern Sie als Parameter. Diesen übergeben Sie folgendermaßen von Ihrem Programm aus:</p>
+		<pre><code>
+glProgramEnvParameter4fARB(GL_VERTEX_PROGRAM_ARB,
+	0, 1.0f, 1.0f, 1.0f, 1.0f);
+		</code></pre>
+		<p>Der zweite Parameter bezeichnet die Speicherstelle. Jedes Vertex-Programm beginnt mit der Kennung <i>!!ARBvp1.0</i>. Für Programm&shy;parameter können Sie Aliasnamen vergeben. Die Position der Lichtquelle ist in einem solchen Parameter gespeichert. Um darauf zuzugreifen, verwenden Sie <i>program.env[1]</i> oder führen den Alias <i>lightPosition</i> ein:</p>
+		<pre><code>
+!!ARBvp1.0
+
+PARAM lightPosition = program.env[1];
+		</code></pre>
+		<p>Aliasnamen für Vertex Attribute definieren Sie folgendermaßen:</p>
+		<pre><code>
+ATTRIB binormal = vertex.texcoord[1];
+ATTRIB tangent = vertex.texcoord[2];
+ATTRIB normal = vertex.normal;
+		</code></pre>
+		<p>Aliasnamen für Ausgabewerte definieren Sie analog mit</p>
+		<pre><code>
+OUTPUT tangentLightNormalized = result.color;
+		</code></pre>
+		<p>Auf alle Werte können Sie auch ohne die Aliases zugreifen. Vertex-Attribute erreichen Sie mit <i>vertex._</i>, Ausgabewerte mit <i>result._</i>. Temporäre Variablen für die Berechnung definieren Sie mit</p>
+		<pre><code>
+TEMP toLight, tangentLight,
+	temp, invLen;
+		</code></pre>
+		<p>Jetzt geht es an den Programmcode. Transformieren Sie die Vertex-Koordinaten. Dann berechnen Sie den Vektor von der Vertex-Koordinaten zur Lichtquelle und speichern diesen in <i>toLight</i>. Diesen Vektor transformieren Sie mit drei Skalar&shy;produkten in den Tangent Space (gespeichert in <i>tangentLight</i>):</p>
+		<pre><code>
+# Transformation mit
+# Modelview+Projection Matrix
+PARAM mvp[4] = { state.matrix.mvp };
+DP4 result.position.x, mvp[0],
+	vertex.position;
+DP4 result.position.y, mvp[1],
+	vertex.position;
+DP4 result.position.z, mvp[2],
+	vertex.position;
+DP4 result.position.w, mvp[3],
+	vertex.position;
+
+ADD toLight, lightPosition,
+	-vertex.position;
+
+DP3 tangentLight.x, binormal, toLight;
+DP3 tangentLight.y, tangent, toLight;
+DP3 tangentLight.z, normal, toLight;
+		</code></pre>
+		<p>Sie können durch Angabe von <i>.x</i>, <i>.y</i> etc. entweder den Schreibzugriff im Zielregister auf diese Komponente beschränken oder im Falle eines Quellregisters diese Komponente vervielfachen. Es ist auch <i>Swizzling</i> möglich: Vektor-Operanden können nicht nur negiert werden, sondern deren Komponenten lassen sich auch beliebig anordnen und vervielfachen. Bei Skalar&shy;operationen müssen Sie die verwendete Vektor&shy;komponente spezifieren, wie Sie dies bei der Normalisierung des Lichtvektors sehen. Kommentare im Programmcode beginnen mit einem Rautezeichen, mit <i>END</i> wird das Programm abgeschlossen:</p>
+		<pre><code>
+# quadrierte Länge des Vektors
+DP3 temp, tangentLight, tangentLight;
+
+# 1/sqrt(länge)
+RSQ inverseLength, temp.x;
+# normalisiert Vektor berechnen
+MUL tangentLightNormalized, tangentLight,
+	inverseLength;
+END
+		</code></pre>
+		<p>Mit diesem Vertex-Programm können Sie den diffusen Teil der Phong- Beleuchtungs&shy;modells mit Bumpmapping berechnen, wenn Ihre Grafikkarte die <i>GL_EXT_texture_env_combine</i>-Erweiterung unterstützt. Dazu wählen Sie für die erste Textur-Stage eine Bumpmap-Textur. Konfigurieren Sie das Textur-Environment so, dass ein Skalarprodukt zweier Vektoren (codiert als Farben) durchgeführt wird. Die Parameter für <i>glTexEnvi(GL_TEXTURE_ENV, ?, ?)</i> sind:</p>
+		<pre><code>
+GL_TEXTURE_ENV_MODE: GL_COMBINE_EXT
+GL_COMBINE_RGB_EXT: GL_DOT3_RGBA_EXT
+		</code></pre>
+		<p>Operanden sind der interpolierte Lichtvektor im Tangent Space (gespeichert in der Farbe):</p>
+		<pre><code>
+GL_SOURCE0_RGB_EXT: GL_PREVIOUS_EXT
+GL_OPERAND0_RGB_EXT: GL_SRC_COLOR
+		</code></pre>
+		<p>und die Normale aus der Bumpmap:</p>
+		<pre><code>
+GL_SOURCE1_RGB_EXT: GL_TEXTURE
+GL_OPERAND1_RGB_EXT: GL_SRC_COLOR
+		</code></pre>
+		<p>Aktivieren Sie die Vertex-Programme vor dem Rendering mit der Eingabe</p>
+		<pre><code>
+glEnable(GL_VERTEX_PROGRAM_ARB)
+		</code></pre>
+		<p>Für eine ganz genaue Berechnung normalisieren Sie die Vektoren. Das gelingt mit den Textur-Einheiten, wenn Sie Normalizing Cube Maps verwenden.</p>
+	</section>
+
+	<aside>
+		<h2>Die Attribute für das Vertex-Programm</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Attribut</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>position</td><td>Vertex-Koordinate</td></tr>
+					<tr><td>texcoord[0]</td><td>Textur-Koordinate</td></tr>
+					<tr><td>texcoord[1]</td><td>Binormale</td></tr>
+					<tr><td>texcoord[2]</td><td>Tangente normal Normale</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Fragment-Programme</h2>
+		<p>Mit den Fragment-Programmen berechnen Sie die Beleuchtung in Floating-Point-Genauigkeit. Ein Fragment-Programm ersetzt Texturierung, Farbberechnung und das Fogging der OpenGL-Pipeline. Weiterhin können Sie andere Operationen durchführen, die bisher spezielle Erweiterungen übernommen haben, wie Tiefen&shy;vergleiche für Depth Map Shadows oder Dependent Texture Lookups für Environment Bump Mapping. Für diese Aufgaben greifen Sie auf einen, dem Vertex-Programm sehr ähnlichen, Befehlssatz zu. Als wichtige neue Instruktionen nutzen Sie das Auslesen von Texturen, das Fragment Killing (bedingtes Nichtzeichnen eines Fragments) und die Option, den Tiefenwert eines Fragments zu modifizieren.</p>
+		<p>Ein Fragment-Programm besitzt mindestens zehn Eingabe-Attribute, auf die Sie mit <i>fragment._</i> zugreifen, 24 Programm&shy;parameter, 16 temporäre Register und kann mindestens vier Texture Indirections, 48 ALU-Instruktionen (Arithmetic Logic Unit) und 24 Textur-Instruktionen durchführen. Diese Vielzahl gewährt zahlreiche neue Grafikeffekte.</p>
+		<p>Syntax und Semantik entsprechen denen der Vertex-Programme, auch was die Aliasnamen angeht. Als Beispiel dient das Fragment-Programm, das das Phong- Beleuchtungs&shy;modell auswertet. Dieses benötigt außer dem Licht- noch den Betrachter&shy;vektor, der zusätzlich im Vertex-Programm berechnet wird. Alle Eingabewerte sehen Sie in der Tabelle unten#.</p>
+		<p>Das Programm beginnt wieder mit einer Kennung <i>ARBfp1.0</i> und Ihren Alias-Definitionen entsprechend der Tabelle. Unser Beispiel&shy;programm benötigt einige temporäre Variablen, die Sie dem Quelltext entnehmen.</p>
+		<p>Der Programmcode beginnt damit, dass Sie per <i>TEX</i>-Befehl die Texturen auslesen. Diese sind die Farbe der Oberfläche, die Bumpmap und der Gloss-Faktor. Die Parameter sind Zielregister, Textur-Koordinaten&shy;register, Textur-Stage und zuletzt der Textur-Modus, um auf 2D-, 3D- und Cubemap-Texturen zugreifen zu können:</p>
+		<pre><code>
+TEX surfaceColor, texCoord0, texture[0], 2D;
+TEX bumpNormal, texCoord0, texture[1], 2D;
+TEX glossFactor, texCoord0, texture[2], 2D;
+		</code></pre>
+		<p>Jetzt müssen Sie die Normale aus dem RGB-Wert decodieren, also den Wertebereich der Komponente <i>[0,1]</i> auf <i>[-1,1]</i> strecken – mit den Konstanten <i>(2,2,2,2)</i> und <i>(1,1,1,1)</i> – und anschließend normalisieren:</p>
+		<pre><code>
+MAD bumpNormal, bumpNormal, two, -one;
+		</code></pre>
+		<p>Ebenfalls normalisieren Sie den Betrachter- und Lichtvektor, um akkurat rechnen zu können. Bei der Normalisierung des Lichtvektors erhalten Sie als Zwischen&shy;ergebnis dessen Länge, mit der Sie die Abnahme der Licht&shy;intensität berechnen können. Eine quadratische Abnahme können Sie mit nur zwei Instruktionen berechnen:</p>
+		<pre><code>
+(cAtt=(1.0,0.0,0.1,0.0)):
+MAD att, distance.z, cAtt.z, cAtt.x;
+RCP att, att.x;
+		</code></pre>
+		<p>Den Reflexions&shy;vektor berechnen Sie mit</p>
+		<pre><code>
+DP3 temp, bumpNormal, lightVector;
+MUL temp, temp, bumpNormal;
+		</code></pre>
+		<p>Jetzt haben Sie alle Parameter und Koeffizienten für das Phong-Modell bestimmt und können es auswerten. Mit den Skalar&shy;produkten</p>
+		<pre><code>
+# N dot L
+DP_SAT diffuse, bumpNormal, lightVector;
+		</code></pre>
+		<p>und der Kombination aller Zwischen&shy;ergebnisse beenden Sie das Programm.</p>
+	</section>
+
+	<aside>
+		<h2>Die Eingabewerte der Fragment-Programme</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Eingabewert</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>program.env[0]</td><td>ambientes Licht</td></tr>
+					<tr><td>program.env[1]</td><td>diffuses Licht</td></tr>
+					<tr><td>program.env[2]</td><td>spekulares Licht</td></tr>
+					<tr><td>program.env[3]</td><td>Phong Exponent</td></tr>
+					<tr><td>fragment.texcoord[0]</td><td>Textur-Koordinate</td></tr>
+					<tr><td>fragment.texcoord[1]</td><td>Lichtvektor L</td></tr>
+					<tr><td>fragment.texcoord[2]</td><td>Betrachtervektor V</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200303.html">3/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200305.html">5/2003</a>
+	</nav>
+</body>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Glanz im Strahlenkranz (PC Underground, PC Magazin 10/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;10/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200209.html">9/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200211.html">11/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Constructive Solid Geometry, Texturen in OpenGL</h2>
+		<h1>Glanz im <span class="highlight">Strahlenkranz</span></h1>
+		<p class="summary">Bringen Sie Ihrer Grafikkarte Boolesche Operationen bei und rendern Sie damit Constructive-Solid-Geometry-Objekte. Mit einfachen Textur-Tricks erhalten Sie <span class="highlight">beeindruckende Lichteffekte</span>!</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Lernen Sie die Booleschen Operationen für 3D-Körper kennen, die eigentlich nicht für polygonal definierte, sondern mathematisch beschriebenen Körper eingeführt wurden. Die drei primären Booleschen Operationen sind:<br>
+		• die Subtraktion,<br>
+		• die Vereinigung<br>
+		• und die Schnitt&shy;berechnung.</p>
+		<figure class="large">
+			<img src="assets/200210_1.jpg" width="675" height="262" alt="DIE BEI CONSTRUCTIVE SOLID GEOMETRY möglichen Operationen in zwei Dimensionen">
+			<figcaption><span>DIE BEI CONSTRUCTIVE SOLID GEOMETRY</span> möglichen Operationen in zwei Dimensionen</figcaption>
+		</figure>
+		<p>Die letzteren beiden werden auch – analog zur Mengenlehre – als <i>Oder</i> bzw. <i>Und</i>-Verknüpfung bezeichnet. Die Subtraktion schneidet das Volumen bzw. die Form eines Objekts aus einem anderen Objekt heraus. Die <i>Oder</i>-Operation vereinigt die beiden Objekte. Die <i>Und</i>-Operation resultiert in Volumen, das von beiden Objekten belegt ist. Als Schreibweise verwenden Sie <i>A – B</i>, <i>A orB</i> oder <i>A and B</i>. CSG-Operationen (Constructive Solid Geometry) finden Sie in 3D-Modelling-Paketen, mit denen sich Objekte intuitiv gestalten lassen, oder dazu, um 3D-Grafik in Echtzeit aufzubauen. Wir zeigen Ihnen den spielerischen Einsatz, unterstützt von interessanten Textur-Effekten.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200210.zip">💾 200210.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Polygonale Techniken</h2>
+		<p>Als ersten wollen wir die CSG-Operationen mit polygonalen Techniken durchführen, also die Dreiecke des einen Objekts mit den Dreiecken des anderen schneiden und die richtigen Dreiecke auswählen. Es sind die Dreiecke richtig, die als Menge der Ausgangs- und durch Schnitt&shy;berechnungen entstandenen Dreiecke entstehen. Diese resultieren aus der CSG-Operation. Ergebnisse liefern verschiedene Ansätze. Für 3D-Modelling-Programme gibt es zwei bekannte und gute Referenzen.<br>
+		• Der erste Ansatz verwendet die so genannten BSP-Trees (Binary Space Partitioning). Er wird in <i>Set Operations onPolyhedra Using Binary Space Partitioning Trees</i> von Thibault und Naylor beschrieben.<br>
+		• Die zweite Technik stellt das Arbeitspapier <i>Constructive Solid Geometry forPolyhedral Objects</i> vor. Beide Dokumente finden Sie im Internet, wobei http://citeseer.com/ eine sehr gute Ausgangslage bietet. Auch das Standardwerk der Computergrafik (<i>Computer Graphics Principles and Practice</i>) widmet sich ausführlich diesen beiden Techniken. Wenn Sie allerdings nur das Rendering der CSG-Objekte behandeln wollen, können Sie sich sehr viel Arbeit sparen, indem Sie keine Polygonale- sondern eine Render-Technik verwenden.</p>
+	</section>
+
+	<section>
+		<h2>Stencil-Buffer-Technik</h2>
+		<p>Wenn Sie einfache konvexe Primitive wie Kugeln, Quader, Kegel oder Zylinder einsetzen, lassen sich die CSG-Operationen durchführen, ohne deren Geometrie bearbeiten zu müssen. Es handelt sich dabei um ein Rendering-Verfahren mit Tricks. Es bedient sich der Stencil Buffers.</p>
+		<figure class="large">
+			<img src="assets/200210_2.jpg" width="806" height="232" alt="STENCIL-BUFFER-OPERATIONEN für die Subtraktion und die Schnittmenge zweier Objekte">
+			<figcaption><span>STENCIL-BUFFER-OPERATIONEN</span> für die Subtraktion und die Schnittmenge zweier Objekte</figcaption>
+		</figure>
+		<p>Stencil Buffering (vgl. PC Underground in Heft 5/02 und 6/02) setzen Sie ein, um Spiegelungen und Schatten in 3D-Szenen zu rendern. In der Tat ist das im Folgenden vorgestellte Verfahren verwandt mit den Stencil-Buffer-Schatten.</p>
+		<p>Mit einem Stencil Buffer steuern Sie das Rendering auf Pixelbasis, also für einzelne Pixel. Sie können das Setzen eines Pixels, abhängig vom Ergebnis von bestimmten Vergleichs&shy;operationen, gestatten oder verbieten. Zusätzlich zum Frame- (bzw. Color-)Buffer und zum Z-Buffer für Farb-/Alpha- und Tiefen&shy;information, die Sie zumeist beim Rendering verwenden, können Grafikkarten den Stencil Buffer zur Verfügung stellen. Dieser besitzt die gleiche Auflösung, also die gleiche Anzahl von Pixeln wie die andern beiden Buffer. Die Bit-Tiefe des Stencil Buffer ist nicht fest vorgegeben. Unterschied&shy;liche Hardware stellt unterschied&shy;liche Bitbreiten zur Verfügung. Je nach Anwendung benötigen Sie mehr oder weniger Bits pro Pixel. Sie können mindestens ein Bit oder auch acht Bit Stencil Buffer anfordern. Für den Stencil Buffer benötigen Sie keine speziellen OpenGL-Erweiterungen (Extensions), weil ihn fast jede 3D-Hardware zur Verfügung stellt.</p>
+		<p>In Ihrer Render-Pipeline können Sie den Stencil Buffer löschen und beschreiben. Zunächst müssen Sie OpenGL aber mitteilen, dass Sie einen Stencil Buffer verwenden möchten. Das erledigen Sie dadurch, dass Sie das gewünschte Pixelformat beschreiben, während Sie den Render-Kontext erzeugen. Ansonsten unterscheidet sich die Initialisierung nicht von der herkömmlichen. Den zugehörigen Sourcecode finden Sie auf der Heft CD. Zusätzlich experimentieren Sie mit dem vollständigen Programm.</p>
+		<figure class="large">
+			<img src="assets/200210_3.jpg" width="1088" height="266" alt="UNSER BEISPIELPROGRAMM zeigt die drei CSG-Operationen.">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> zeigt die drei CSG-Operationen.</figcaption>
+		</figure>
+		<p>Stencil Buffers löschen Sie, wie die anderen Buffers mit dem folgenden OpenGL-Befehl:</p>
+		<pre><code>
+glClear(GL_STENCIL_BUFFER_BIT);
+		</code></pre>
+		<p>Stencil Buffers beschreiben Sie mit Rendering-Optionen, etwa denen für Polygone. Sie aktivieren den Aufruf mit</p>
+		<pre><code>
+glEnable(GL_STENCIL_TEST);
+		</code></pre>
+		<p>Jetzt führt OpenGL beim Setzen jedes Pixels eine Vergleichs&shy;operation durch, die Sie mit dem Befehl</p>
+		<pre><code>
+glStencilFunc(...)
+		</code></pre>
+		<p>festlegen. Der erste Parameter gibt die Vergleichs&shy;funktion an. Diese legt fest, ob der Wert im Stencil Buffer kleiner (gleich), größer (gleich) oder gleich einem Referenzwert (der zweite Parameter) sein muss, um ein positives Testresultat zu erhalten. Sie können auch festlegen, dass der Test immer ein positives oder negatives Ergebnis liefert, wenn Sie den Stencil Buffer mit bestimmten Werten füllen wollen.</p>
+		<p>Mit dem dritten Parameter übergeben Sie eine Bitmaske. Für den Wert aus dem Stencil Buffer und dem Referenzwert führt OpenGL vor dem Vergleich eine bitweise <i>AND</i>-Operation durch.</p>
+		<p>Mit der OpenGL Funktion <i>glStencilOp(...)</i> bestimmen Sie, was nach dem Stencil-Test passieren soll: Setzt das Ergebnis ein Pixel oder nicht, verändert es den Stencil-Buffer-Wert oder nicht? Sie können unterschied&shy;liche Operationen für drei denkbare Fälle angeben, die dadurch entstehen, dass auch das Ergebnis des Z-Buffer-Tests relevant ist:<br>
+		• Der Stencil-Buffer-Test liefert ein negatives Ergebnis.<br>
+		• Der Stencil-Buffer-Test liefert ein positives Ergebnis, aber der Z-Buffer-Test ein negatives.<br>
+		• Beide Tests liefern ein positives Ergebnis.</p>
+		<p>Beachten Sie dabei, dass der Z-Buffer-Test immer als positiv angenommen wird, wenn das Z-Buffering deaktiviert ist.</p>
+		<p>Für jeden dieser drei Fälle gibt der <i>glStencilOp(...)</i>-Befehl an, welche Operation durchgeführt werden soll. Diese Operationen sind: Stencil-Buffer-Wert unverändert lassen, Wert auf Null setzen, auf den Referenz Wert (der <i>glStencilFunc(...)</i>-Funktion) setzen, erhöhen, erniedrigen oder bitweise invertieren. Die Steuerung der Stencil-Buffer-Operationen gestattet viele verschiedene Spezialeffekte.</p>
+	</section>
+
+	<aside>
+		<h2>GLSTENCILFUNC – STENCIL-BUFFER-VERGLEICHE</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Funktion</th><th>Resultat</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>GL_NEVER</td><td>immer negativ</td></tr>
+					<tr><td>GL_LESS</td><td>positiv, wenn (ref &amp; mask) &lt;(stencil &amp; mask).</td></tr>
+					<tr><td>GL_LEQUAL</td><td>positiv, wenn (ref &amp; mask) ? (stencil &amp; mask).</td></tr>
+					<tr><td>GL_GREATER</td><td>positiv, wenn (ref &amp; mask) &gt; (stencil &amp; mask).</td></tr>
+					<tr><td>GL_GEQUAL</td><td>positiv, wenn (ref &amp; mask) ? (stencil &amp; mask).</td></tr>
+					<tr><td>GL_EQUAL</td><td>positiv, wenn (ref &amp; mask) = (stencil &amp; mask).</td></tr>
+					<tr><td>GL_NOTEQUAL</td><td>positiv, wenn (ref &amp; mask) != (stencil &amp; mask).</td></tr>
+					<tr><td>GL_ALWAYS</td><td>immer positiva</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<aside>
+		<h2>STENCIL-BUFFER OPERATIONEN</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Operation</th><th>Stencil-Buffer-Werte</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>GL_KEEP</td><td>unverändert</td></tr>
+					<tr><td>GL_ZERO</td><td>auf Null setzen</td></tr>
+					<tr><td>GL_REPLACE</td><td>auf Referenzwert setzen</td></tr>
+					<tr><td>GL_INCR</td><td>erhöhen, mit Sättigung</td></tr>
+					<tr><td>GL_DECR</td><td>niedriger, nicht kleiner Null</td></tr>
+					<tr><td>GL_INVERT</td><td>bitweise invertieren</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>CSG-Operationen mit Stencil Buffers</h2>
+		<p>Bei CSG-Operationen handelt es sich nur um einen Rendering-Trick. Das Dreiecksnetz, welches das Ergebnis einer geometrisch durchgeführten CSG-Operation wäre, wird nicht erzeugt. Sie verwenden den Z-Buffer und den Stencil Buffer, um Teile der Ausgangs&shy;primitive zu rendern oder wegzuschneiden.</p>
+		<p>Die geometrischen Primitive im Beispiel&shy;programm erzeugen Sie mit den OpenGL-Befehlen für Quadriken. Das Beispiel zeigt, wie Sie eine Display-Liste für eine texturierte Kugel generieren:</p>
+		<pre><code>
+GLUquadric *sphere;
+GLuint sphereList;
+
+GLfloat mat[] = { 0.0f, 0.5f, 0.0f, 1.0f };
+
+sphereList = glGenLists(1);
+glNewList(sphereList, GL_COMPILE);
+
+sphere = gluNewQuadric();
+gluQuadricTexture(sphere, GL_TRUE);
+glMaterialfv(GL_FRONT_AND_BACK,
+	GL_AMBIENT_AND_DIFFUSE, mat);
+gluSphere(sphere, 20.0f, 64, 64);
+
+glEndList();
+		</code></pre>
+		<p>Für die spätere Verwendung kapseln Sie den Aufruf zum Rendern einer Displayliste in eine Funktion:</p>
+		<pre><code>
+void drawSphere()
+{
+	glPushMatrix();
+	// event. Transformationen
+	...
+
+	glCallList(sphereList);
+	glPopMatrix();
+}
+		</code></pre>
+		<p>Die <i>Oder</i>-Verknüpfung bzw. die Vereinigung können Sie einfach rendern. Dazu benötigen Sie lediglich den Z-Buffer. Die zwei Parameter der Funktion sind Zeiger auf weitere Funktionen, die jeweils das Rendern eines der geometrischen Primitive gekapselt haben:</p>
+		<pre><code>
+void renderUnion(void (*A)(), void (*B)())
+{
+	glEnable(GL_DEPTH_TEST);
+	A();
+	B();
+}
+		</code></pre>
+		<p>Für die Subtraktion und die <i>Und</i>-Verknüpfung definieren Sie zwei Hilfs&shy;funktionen, um den Überblick über die einzelnen Render-Schritte zu behalten. Die erste Funktion dient dazu, ein Objekt zu rendern und dabei die Z-Buffer-Werte zu schreiben. Sie deaktivieren dabei den Z-Buffer-Test, den Stencil-Test und das Schreiben der Farbwerte in den Framebuffer:</p>
+		<pre><code>
+void fixZBuffer(void (*A)())
+{
+	glColorMask(GL_FALSE, GL_FALSE,
+		GL_FALSE, GL_FALSE);
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_STENCIL_TEST);
+	glDepthFunc(GL_ALWAYS);
+	A();
+	glDepthFunc(GL_LESS);
+}
+		</code></pre>
+		<p>Die zweite Funktion ist das Herzstück der CSG-Operationen. Hiermit rendern Sie den Teil des Objekts <i>A</i>, der sich innerhalb des Objekts <i>B</i> befindet. Um die Funktion flexibel einsetzen zu können, geben weitere Parameter an, ob die Innen- oder Außenseiten von <i>A</i> gerendert werden, und wie der abschließende Stencil-Test durchgeführt werden soll.</p>
+		<p>Als erstes rendern Sie die gewünschte Seite von <i>A</i>, ohne Stencil-Test und ohne den Framebuffer zu beschreiben:</p>
+		<pre><code>
+void AinsideB(void(*A)(),void(*B)(),
+	GLenum cullFace, GLenum test)
+{
+	glEnable(GL_DEPTH_TEST);
+	glColorMask(GL_FALSE, GL_FALSE,
+		GL_FALSE, GL_FALSE);
+	glCullFace(cullFace);
+	A();
+		</code></pre>
+		<p>Anschließend markieren Sie die Teile des Bildes (bzw. des Stencil Buffers), an denen sich ein Teil des Objekts <i>A</i> innerhalb des Objekts <i>B</i> befindet. Dazu rendern Sie die Vorderseite von <i>B</i>, mit dem Z-Buffer-Test, ohne den Frame- oder Z-Buffer zu beschreiben. Dabei inkrementieren Sie den Stencil-Wert jedes Pixels:</p>
+		<pre><code>
+	glDepthMask(GL_FALSE);
+	glEnable(GL_STENCIL_TEST);
+	glStencilFunc(GL_ALWAYS, 0, 0);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+	glCullFace(GL_BACK);
+	B();
+		</code></pre>
+		<p>Umgekehrt dekrementieren Sie die Stencil-Buffer-Werte dort, wo auch die Rückseite von <i>B</i> den Z-Buffer-Test besteht:</p>
+		<pre><code>
+	glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
+	glCullFace(GL_FRONT);
+	B();
+		</code></pre>
+		<p>Diese Operationen sehen Sie im Bild an einem zwei&shy;dimensionalen Beispiel: die zwei Objekte (im Z-Buffer) vor der Stencil-Operation nach dem In- und nach dem Dekrementieren.</p>
+		<p>Im letzten Schritt unserer Funktion zeichnen Sie den sichtbaren Teil des Objekts <i>A</i> (abhängig vom Stencil-Test) in den Framebuffer:</p>
+		<pre><code>
+	glDepthMask(GL_TRUE);
+	glColorMask(GL_TRUE, GL_TRUE,
+		GL_TRUE, GL_TRUE);
+
+	glDisable(GL_DEPTH_TEST);
+	glStencilFunc(test, 0, 1);
+	glCullFace(cullFace);
+	A();
+}
+		</code></pre>
+		<p>Mit diesen beiden Routinen gestalten sich die CSG-Operationen übersicht&shy;licher, trotzdem benötigen Sie Vorstellungs&shy;kraft, um die Schritte nachzuvoll&shy;ziehen. Am Besten Sie fertigen Hand-Skizzen an, in denen Sie die Einzelschritte einzeichnen. Für die <i>Und</i>-Verknüpfung, also die CSG-Schnitt&shy;operation, rufen Sie folgende Funktionen auf:</p>
+		<pre><code>
+void renderIntersection(void (*A)(), void (*B)())
+{
+	AinsideB(A,B,GL_BACK,GL_NOTEQUAL);
+	fixZBuffer(B);
+	AinsideB(B,A,GL_BACK,GL_NOTEQUAL);
+	glDisable(GL_STENCIL_TEST);
+}
+		</code></pre>
+		<p>Im ersten Schritt zeichnen Sie den Teil der Vorderseite des Objekts <i>A</i>, der sich innerhalb des Objekts <i>B</i> befindet. Den Teilbereich bestimmen Sie durch die Paramter <i>GL_BACK</i> und <i>GL_NOTEQUAL</i>. Als nächstes fixieren Sie die Tiefen&shy;information auf das <i>B</i>-Objekt. Dadurch können Sie jetzt den Teil der <i>B</i>-Vorderseite rendern, der sich in <i>A</i> befindet.</p>
+		<p>Bei der CSG-Substraktion verwenden Sie leicht abgeänderte Parameter:</p>
+		<pre><code>
+void renderSubstraction(void (*A)(), void (*B)())
+{
+	AinsideB(A,B,GL_FRONT,GL_NOTEQUAL);
+	fixZBuffer(B);
+	AinsideB(B,A,GL_BACK,GL_EQUAL);
+	glDisable(GL_STENCIL_TEST);
+}
+		</code></pre>
+		<p>Der Unterschied zur <i>Und</i>-Verknüpfung liegt beim zweiten Teil des Renderings. Hier wird nicht der Teil von <i>B</i> gerendert, der sich innerhalb vom Objekt <i>A</i> befindet, sondern genau das Gegenteil: durch den <i>GL_EQUAL</i>-Test werden die nicht im Inneren liegenden Teile gerendert.</p>
+		<p>Im Bild links oben sehen Sie Screenshots von unserem Beispiel&shy;programm, die die Vereinigung, Schnittmenge und Subtraktion eines Würfels und einer Kugel zeigen.</p>
+	</section>
+
+	<section>
+		<h2>Radial-Blur-Effekte</h2>
+		<figure class="large">
+			<img src="assets/200210_4.jpg" width="640" height="480" alt="DER RADIAL BLUR EFFEKT mit Luminanz">
+			<figcaption><span>DER RADIAL BLUR EFFEKT</span> mit Luminanz</figcaption>
+		</figure>
+		<p>Im zweiten Teil dieses Artikels wollen wir Ihnen einen Textur-Effekt vorstellen, der aus technischer Sicht nichts mit den CSG-Operationen oder dem Stencil Buffering zu tun hat. Allerdings lassen sich in Verbindung mit den CSG-Körpern interessante Effekte erzeugen, wie Sie im Bild oben können.</p>
+ 		<p>Der Effekt basiert darauf, Teile des Bildes von der Mitte nach außen zu ziehen und zu verwaschen. Effekte dieser Art nennt man auch Radial-Blur-Effekte. <i>Radial</i>, weil die Vergrößerung des Bildteile (nach außen ziehen) kreisförmig um die Mitte stattfindet, und <i>Blur</i>, weil die weiter außen liegenderen Teile verwaschen erscheinen.</p>
+		<p>Für diesen Effekt benötigen Sie zunächst eine OpenGL-Textur, die Sie während der Initialisierungs&shy;phase des Programms anlegen. Damit legen Sie die Filter für die Textur-Skalierung fest. Mit einer Konstante bestimmen Sie die Größe der Textur für den späteren Gebrauch.</p>
+		<pre><code>
+#define BLURSIZE 256
+GLuint blurTexture;
+
+glGenTextures(1, &amp;blurTexture);
+glBindTexture(GL_TEXTURE_2D, blurTexture);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		</code></pre>
+		<p>Vor dem Rendering des eigentlichen Bildes bzw. des CSG-Objekts rendern Sie die Szene in dieser Blur-Textur. Diesen Vorgang fassen Sie am Besten in einer Funktion zusammen:</p>
+		<pre><code>
+void render2Texture(GLenum format)
+{
+	// Viewport: Texgröße + löschen
+	glViewport(0, 0, BLURSIZE, BLURSIZE);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+	glClear(GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT |
+		GL_STENCIL_BUFFER_BIT);
+
+	renderCSG();
+
+	// Texture kopieren
+	glBindTexture(GL_TEXTURE_2D, blurTexture);
+	glCopyTexImage2D(GL_TEXTURE_2D,
+		0, format, 0, 0, BLURSIZE, BLURSIZE, 0);
+
+	// Viewport wieder restaurieren
+	glClearColor(0.0f, 0.0f, 0.5f, 0.5f);
+	glClear(GL_COLOR_BUFFER_BIT |
+		GL_DEPTH_BUFFER_BIT |
+		GL_STENCIL_BUFFER_BIT);
+
+	extern int windowX, windowY;
+	glViewport(0,0,windowX,windowY);
+}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200210_5.jpg" width="640" height="480" alt="DER RADIAL-BLUR-EFFEKT mit RGB-Farbwerten">
+			<figcaption><span>DER RADIAL-BLUR-EFFEKT</span> mit RGB-Farbwerten</figcaption>
+		</figure>
+		<p>Für den <i>format</i>-Parameter wählen Sie entweder <i>GL_LUMINANCE</i> oder <i>GL_RGB</i>, je nachdem, welche Effekte Sie bei den vorigen beiden Bildern erhalten wollen.</p>
+		<p>In Ihrer Render-Pipeline erzeugen Sie die Blur-Textur, zeichnen die 3D-Szene und rendern den Radial-Blur-Effekt mit der folgenden Funktion, die wir Ihnen als Ausschnitt zeigen. Der weggelassene Teil deaktiviert den Z-Buffer und die Beleuchtungs&shy;berechnung und initialisiert die OpenGL-Matrizen, um eine orthogonale Abbildung zu bekommen.</p>
+		<p>Die Blur-Textur wird n-mal über das Bild gezeichnet, wobei die Farb- oder die Luminanz-Werte jedesmal leicht auf das Bild addiert werden. Die Intensität bestimmen Sie über den Alphawert. Die Stärke des Zooms (wie die Textur in jedem Schritt vergrößert wird) geben Sie mit dem zweiten Parameter an:</p>
+		<pre><code>
+void renderBlur(int n, float delta)
+{
+	float texZoom = 0.0f;
+	float alpha = 0.15f;
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glBindTexture(GL_TEXTURE_2D, blurTexture);
+	// ... Matrizen &amp; Co ...
+
+	glBegin(GL_QUADS);
+	for(int i = 0; i &lt; n; i++)
+	{
+		glColor4f(1, 1, 1, alpha);
+		glTexCoord2f(0 + texZoom, 1 - texZoom);
+		glVertex2f(-1, 1);
+		glTexCoord2f(0 + texZoom, 0 + texZoom);
+		glVertex2f(-1, -1);
+		glTexCoord2f(1 - texZoom, 0 + texZoom);
+		glVertex2f(1, -1);
+		glTexCoord2f(1 - texZoom, 1 - texZoom);
+		glVertex2f(1, 1);
+		texZoom += delta;
+		alpha -= 0.15f / (float)n;
+	}
+	glEnd();
+}
+		</code></pre>
+		<p>Sie erhalten schöne Resultate, wenn Sie die Textur 50-mal vergrößern und zeichnen. Als Delta-Wert hat sich <i>0.01</i> bewährt. Beachten Sie, dass die Grafikkarte den Framebuffer 50-mal beschreiben muss. Das belastet die Hardware.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur</b></p>
+		<p class="footnote">James D. Foley, Andries van Dam, Steven K. Feiner, John F. Hughes: Computer Graphics Principles and Practice, Addison Wesley Professional 1996, 1200 Seiten, 75 US-Dollar, ISBN 0-201-84840-6</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200209.html">9/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200211.html">11/2002</a>
+	</nav>
+</body>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Ein Bild wie der Blitz (PC Underground, PC Magazin 1/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;1/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200212.html">12/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200302.html">2/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>High Performance Rendering</h2>
+		<h1>Ein Bild wie der <span class="highlight">Blitz</span></h1>
+		<p class="summary">Die Leistung moderner Grafikkarten ist beeindruckend – wird aber kaum genutzt. Bringen Sie Ihre nVidia- oder ATI-Grafikkarte und OpenGL ans <span class="highlight">theoretische Leistungs&shy;maximum</span>.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Die Leistung moderner Grafikkarten ist in den letzten Jahren rapide gestiegen. Der Trend wird sich voraus&shy;sichtlich fortsetzen. Mit den neuen Features und zunehmender Leistung steigen auch die Anforderungen an die Programmierer, diese auszunutzen. In dieser Ausgabe lernen Sie, die Performance-Engpässe eines OpenGL-Programms zu identifizieren und der Graphic Processing Unit (GPU) die Geometriedaten optimal bereit&shy;zustellen. </p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200301.zip">💾 200301.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Die Grafik-Pipeline</h2>
+		<p>In der Grafik-Pipeline sind schematisch die benötigten Operationen für 3D-Grafik aufgezeigt. Sie lässt sich in drei große Bereiche aufteilen:<br>
+		• die Geometrie&shy;verarbeitung (Geometry Processing), auch als Transform and Lighting bezeichnet, ist für die Koordinaten-Transformation, die Beleuchtungs&shy;berechnung und das Clipping zuständig und kann durch Vertex-Shader ersetzt werden.<br>
+		• In der zweiten Stufe namens Rasterisierung (Rasterization) werden Dreiecke, Linien und Punkte gezeichnet.<br>
+		• Den letzten Teil stellen die Fragment-Operationen dar, bei denen es sich unter anderem um Alpha-, Stencil- und Z-Buffer-Tests handelt.</p>
+		<figure class="large">
+			<img src="assets/200301_1.jpg" width="676" height="170" alt="DIE GRAFIK-PIPELINE zeigt die anfallenden Aufgaben beim Rendering.">
+			<figcaption><span>DIE GRAFIK-PIPELINE</span> zeigt die anfallenden Aufgaben beim Rendering.</figcaption>
+		</figure>
+		<p>Um die Geschwindig&shy;keit eines OpenGL-Programms zu optimieren, mass man die möglichen Schwachstellen kennen. Dazu betrachten Sie den Weg der Grafikdaten durch die Grafik-Pipeline. Gehen Sie zunächst von einem Dreiecksnetz in der Shared-Vertex-Struktur aus: Darin bestehen Ihre Grafikdaten zum einen aus der Geometrie&shy;information, den Vertices, eventuell mit Normalen, Textur&shy;koordinaten usw. und zum anderen aus einer Indexliste, in der für jedes Dreieck die drei Indizes der Eckpunkte gespeichert sind (Topologie-Information).</p>
+		<p>Fürs Rendering verarbeiten Sie zunächst die Geometriedaten in der ersten Stufe der Pipeline. Die trans&shy;formierten, beleuchteten Koordinaten werden zusammen mit der Topologie-Information für das Rasterizer Setup (dem Vorbereiten des Rasterisierens) benötigt. Jetzt werden die Dreiecke gezeichnet, und jeder Pixel durchläuft die letzte Stufe der Pipeline. Statt <i>Pixel</i> finden Sie in der Experten&shy;literatur häufiger die Bezeichnung <i>Fragment</i>.</p>
+		<p>Die GPUs bieten nur begrenzte Rechenleistung für die Geometrie&shy;verarbeitung. Diese hängt von der Taktfrequenz der GPUs und dem Modell der GPU ab. Die Anzahl der Vertices, die verarbeitet werden kann, sinkt auch, wenn komplexe Beleuchtungs&shy;berechnungen durchgeführt werden oder die Anzahl der Lichtquellen zunimmt.</p>
+		<p>Als Anhaltspunkt für die reine Transformations&shy;leistung (ohne Beleuchtung) können Sie für eine GeForce-3-GPU mit 200 MHz etwa 40 Millionen, für eine GeForce-4-Ti4200 etwa 95 Millionen Vertices pro Sekunde ansetzen. Eine ATI Radeon 8500 mit 250 MHz erreicht etwa bis zu 40 Millionen Vertices pro Sekunde.</p>
+		<p>Ein weiterer Engpass liegt in der Übertragung der Geometriedaten zur GPU selbst. Wenn die Geometriedaten sich im Hauptspeicher des Rechners befinden, müssen sie jedes Mal über den AGP-Bus transferiert werden. Angenommen, Sie verwenden pro Vertex Daten mit Koordinate, Normal und zwei Textur&shy;koordinaten-Paaren (jeweils 32-Bit-Float-Werte). Sie benötigen 40 Byte pro Vertex. Selbst bei der theoretischen maximalen Transfer&shy;leistung, beispielsweise des AGP-4x-Busses mit 1066 MByte/s, reicht diese Transfer&shy;leistung nicht aus, um die Geometrie&shy;verarbeitungs&shy;geschwindigkeit einer GeForce 4 auszunutzen. Sie können <i>1066*1024<sup>2</sup>/40</i>, also etwa 28 Millionen Vertices transferieren (theoritisches Maximum). Da es sich bei diesem Punkt um eine kritische Stelle der Grafik-Pipeline handelt, existieren OpenGL-Erweiterungen, die diesen Flaschenhals umgehen. Damit greifen Sie auf die Geometriedaten direkt im Speicher der Grafikkarte oder in einem Speicher&shy;bereich zu, den Sie mittels Direct Memory Access (DMA) Transfer, also an der CPU vorbei, manipulieren können.</p>
+		<p>Beim letzten wichtigen Punkt handelt es sich um die begrenzte Rasterisierungs&shy;leistung, oft als Fill Rate bezeichnet. Diese ist ein Engpass auf Grund begrenzter Speicher&shy;bandbreite und GPU -Geschwindigkeit. Diese interne Speicher&shy;bandbreite, die bei heutigen General-Purpose-Grafikkarten im Bereich von 7 GByte/s bis 12 GByte/s liegt, ist von Bedeutung, da beim Rendering auf Texturen, Frame und Z-Buffer usw. zugegriffen werden muss.</p>
+		<p>Die GPU-Geschwindigkeit kommt beim Verarbeiten dieser Informationen zum Tragen. Beispielsweise sind verschiedene Textur-Mapping-Techniken unterschied&shy;lich schnell. Ein- oder zwei&shy;dimensionale Texturen und Cube Maps sind schnell, die Passthrough- oder Pixel- Kill-Operationen der Texture-Shader (nVidia) bzw. Pixel-Shader sind schon langsamer. Noch aufwändiger sind die Dependent Lookups oder die Dot-Product-Operationen.</p>
+	</section>
+
+	<section>
+		<h2>Die Geometrie</h2>
+		<figure class="floatright">
+			<img src="assets/200301_2.png" width="271" height="498" alt="DIESES 3D-MODELL besteht aus 1 087 716 Dreiecken. Eine GeForce-3 (200 MHz GPU) schafft mit den Optimierungen dieses Artikels etwa 17 Bilder pro Sekunde.">
+			<figcaption><span>DIESES 3D-MODELL</span> besteht aus 1 087 716 Dreiecken. Eine GeForce-3 (200 MHz GPU) schafft mit den Optimierungen dieses Artikels etwa 17 Bilder pro Sekunde.</figcaption>
+		</figure>
+		<p>Wenn Sie wissen, wo sich die Performance-Fallen verbergen, versuchen Sie, diese zu umgehen, bzw in einer bestehenden Implementation zu identifizieren. Zunächst lernen Sie die Methoden kennen, um die Geometriedaten in einem geeigneten Speicher&shy;bereich abzulegen und somit eine weit höhere Leistung zu erreichen, als dies mit Compiled Vertex Arrays (CVA) möglich ist. Für das spätere Rendering verwenden Sie im Folgenden wie bei CVAs jeweils Daten-Streams: ganze Arrays von Vertexdaten und -attributen bzw. Indexlisten. Diese können Sie mit dem <i>glDrawElements</i>-Befehl von OpenGL rendern.</p>
+		<p>Wie nicht anders zu erwarten war, haben Sie es, je nach Grafikkarten&shy;hersteller, mit unterschied&shy;lichen Extensions zu tun. Hier stellen wir Ihnen beide vor, beginnend mit der nVidia Vertex Array Range Extension (VAR). Diese bietet eine Funktion an, mit der Sie Speicher für Geometriedaten allokieren können, der entweder auf dem Grafikkarten-Speicher liegt oder für die Grafikkarte per DMA-Zugriff erreichbar ist.</p>
+		<p>Der Name der Erweiterung im OpenGL Extension String lautet <i>GL_NV_vertex_array_range</i>. Von den benötigten Funktionen fordern Sie die Adressen an:</p>
+		<pre><code>
+void *wglAllocateMemoryNV(
+	GLsizei size,
+	GLfloat readFrequency,
+	GLfloat writeFrequency,
+	GLfloat priority);
+
+void wglFreeMemoryNV(void *ptr);
+
+void glVertexArrayRangeNV(
+	GLsizei size, const GLvoid *pointer);
+		</code></pre>
+		<p>Wenn Sie unter Linux arbeiten, lautet das <i>Namesprefix</i> der obigen Befehle nicht <i>wgl</i>, sondern <i>glX</i>. Mit der ersten Funktion können Sie den Speicher mit der Größe <i>size</i> (in Bytes) allokieren. Mit <i>readFrequency, writeFrequency</i> und <i>priority</i> können Sie die Zugriffs&shy;charakteristik und die Priorität des Speicher&shy;bereichs festlegen.</p>
+		<p>Allerdings sind lediglich zwei Parameter&shy;kombinationen praxisrelevant. Wenn Sie Speicher für DMA-/ AGP-Zugriffe allokieren wollen, verwenden Sie <i>0.2 / 0.2 / 0.5</i> und für Videospeicher <i>0.2 / 0.2 / 1.0</i>. Wenn der Speicher in der gewünschten Größe verfügbar ist, erhalten Sie als Rückgabewert dessen Speicher&shy;adresse, sonst Null.</p>
+		<p>Anschließend teilen Sie dem Grafikkarten&shy;treiber mit, dass Sie diesen Speicher&shy;bereich mit den <i>Vertex Array Range Extensions</i> nutzen wollen. Dies geschieht mit dem Befehl <i>glVertexArrayRangeNV</i>, wobei die Größe und der Zeiger auf den Speicher&shy;bereich die Parameter der Funktion sind. Wichtig für die Performance ist, dass Sie nur einen Speicher&shy;bereich so allokieren.</p>
+		<p>Wenn Sie mehrere Arrays benötigen, sollten Sie unbedingt diese in einen Speicher&shy;bereich zusammen&shy;kopieren und gegebenenfalls einen kleinen Speicher&shy;manager schreiben. Mit der folgenden Methode können Sie einen Speicher&shy;bereich nach Wunsch ansprechen. Kann kein Videospeicher allokiert werden, wird jeweils der nächst langsamere Speichertyp angefordert, bis dies gelingt. Der Speicher&shy;bereich sollte auf 64-Byte-Grenzen <i>aligned</i> werden, weil dies für manche Vertex-Datenformate wichtig ist:</p>
+		<pre><code>
+void *allocateMemory(U32 size) 
+{
+	size += 64;
+	void *varMemory = NULL;
+
+	// Extension unterstützt ?
+	if(supportVAR)
+	{
+		if(memoryType == VIDEOMEMORY)
+		{
+			varMemory =
+				wglAllocateMemoryNV(size, .2, .2, 1);
+
+			if (varMemory == NULL)
+				memoryType = AGPMEMORY;
+		}
+
+		if(memoryType == AGPMEMORY)
+			varMemory =
+				wglAllocateMemoryNV(size, .2, .2, .5);
+
+		if (varMemory == NULL)
+		{
+			memoryType = SYSTEMMEMORY;
+			varMemory = (void*)new char[size];
+		} else
+			glVertexArrayRangeNV(size, varMemory);
+
+	// Alignment auf 64 Byte
+	varMemory = (void*)
+		(((int)varMemory + 64) &amp; ~ 63);
+	return varMemory;
+}
+		</code></pre>
+		<p>Jetzt können Sie Ihre Vertex- und Attribut-Arrays erzeugen und in den gerade allokierten Speicher&shy;bereich kopieren. Diesen Speicher können Sie nutzen wie jeden anderen. Sie müssen nur, wenn Sie die Daten darin modifizieren, daran denken, dass auch die Grafikkarte diesen Speicher&shy;bereich liest; das heißt, für dynamische Vertexdaten sind Synchronisations&shy;mechanismen notwendig. Dazu steht die Erweiterung <i>GL_NV_fence</i> zur Verfügung. Der folgende Code zeigt exemplarisch die Erzeugung der Arrays für Vertices und Normale:</p>
+		<pre><code>
+// 24 Byte pro Vertex 
+// Koordinate+Normale à 3Floats 
+VERTEX3D *memory = (VERTEX3D*) 
+	allocateMemory(nVertices * 24);
+
+VERTEX3D *varVertex, *varNormal; 
+varVertex = &amp;varMemory[0];
+varNormal = &amp;varMemory[nVertices];
+
+for(i = 0; i &lt; nVertices; i++)
+{ 
+	varVertex[ i ] = ...;
+	varNormal[ i ] = ...;
+}
+		</code></pre>
+		<p>Das Rendering selbst erfolgt genauso, wie Sie es von den Arrays von OpenGL her kennen; abgesehen davon, dass Sie die Erweiterung <i>VAR</i> zuvor aktivieren:</p>
+		<pre><code>
+glEnableClientState(GL_VERTEX_ARRAY_RANGE_NV);
+
+glVertexPointer(3, GL_FLOAT, 0, varVertex);
+glNormalPointer(GL_FLOAT, 0, varNormal);
+
+glEnable(GL_VERTEX_ARRAY);
+glEnable(GL_NORMAL_ARRAY);
+
+// Indexliste pIndexList mit 3
+// Indizes für ‘nFaces’ Dreiecke
+glDrawElements(GL_TRIANGLES, nFaces * 3,
+	GL_UNSIGNED_INT, pIndexList);
+
+glDisableClientState(GL_VERTEX_ARRAY);
+
+glDisableClientState(GL_NORMAL_ARRAY);
+
+glDisableClientState(GL_VERTEX_ARRAY_RANGE_NV);
+		</code></pre>
+		<p>Am Ende Ihres Programms müssen Sie nur noch den Speicher freigeben. Sollten Sie ihn mit dem <i>VAR</i>-Befehlen allokiert haben, verwenden Sie <i>wglFreeMemoryNV</i>.</p>
+		<p>Der Grafikkarten&shy;hersteller ATI bietet für seine Radeon-GPUs die <i>ATI_vertex_array_object</i>-Extension an, die auch der Optimierung dient, aber eine andere Syntax und Semantik besitzt. Diese erlaubt es zunächst, so genannte <i>Array Objects</i> zu allokieren. Dabei handelt es sich um Speicher&shy;bereiche, in denen die Arrays für die Vertexoder Normalendaten liegen. Wenn zusätzlich die <i>ATI_element_array</i>-Extension unterstützt wird, lassen sich die Indexlisten auch in einem <i>Array Object</i> ablegen. Dieses erzeugen Sie mit folgender Funktion. Zuvor müssen Sie deren Adresse, wie die anderen OpenGL-Extension-Funktionen laden:</p>
+		<pre><code>
+GLuint glNewObjectBufferATI(
+	GLsizei size,
+	const GLvoid *pointer,
+	GLenum usage);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200301_3.jpg" width="398" height="165" alt="DIESE DIALOG-BOX des Beispielprogramms gibt Auskunft über den Renderer, die Daten und deren Lage im Speicher.">
+			<figcaption><span>DIESE DIALOG-BOX</span> des Beispielprogramms gibt Auskunft über den Renderer, die Daten und deren Lage im Speicher.</figcaption>
+		</figure>
+		<p>Dabei ist <i>size</i> die Größe des Speicher&shy;bereichs, <i>pointer</i> der Zeiger auf Ihre Daten im Speicher und <i>usage</i> ist entweder <i>GL_STATIC_ATI</i> oder <i>GL_DYNAMIC_ATI</i> für eher statische oder dynamische Daten. Auch statische Daten können Sie im Nachhinein modifizieren, aber dabei an Performance verlieren. Der Rückgabewert ist entweder Null, wenn der Aufruf fehlgeschlagen ist, oder ein Integer als Identifier, den Sie für den späteren Gebrauch speichern müssen.</p>
+		<p>Erzeugen Sie für all Ihre Daten, und wenn die <i>ATI_element_array</i>-Extension unterstützt wird, auch für die Indexliste solche <i>Array Objects</i>. Jetzt sind Sie schon an der Stelle angelangt, an der es zum Rendering geht. Um die Array Objects an OpenGL als Daten-Arrays zu übergeben, gibt es folgenden Befehl:</p>
+		<pre><code>
+void glArrayObjectATI(
+	GLenum array, GLint size,
+	GLenum type, GLsizei stride,
+	GLuint buffer, GLuint offset);
+		</code></pre>
+		<p><i>Array</i> gibt an, welchem OpenGL-Array ein Array Object zugewiesen werden soll. Parameter ist beispielsweise <i>GL_VERTEX_ARRAY</i>. Die Größe eines Elements übergeben Sie in <i>size</i>, das Datenformat in <i>type</i>. Der <i>stride</i>-Wert ist Null, wenn die Daten dicht gepackt im Speicher liegen. Wenn Sie z.B. jeweils pro Vertex alle Attribute in Folge speichern, gibt der <i>Stride</i>-Wert die Größe der Datenstruktur an. Der <i>buffer</i>-Parameter enthält den Identifier des Array-Object, und der <i>offset</i>-Wert gibt an, wo die entsprechenden Daten in diesem Buffer starten. Das folgende Beispiel verdeutlicht die Aufrufe:</p>
+		<pre><code>
+// Daten pro Vertex: 24 Byte
+// typedef struct {
+// // Koordinate
+// float x, y, z;
+// // Normale
+// float nx, ny, nz; };
+
+glEnableClientState(GL_VERTEX_ARRAY);
+glEnableClientState(GL_NORMAL_ARRAY);
+
+// Array Objects
+glArrayObjectATI(GL_NORMAL_ARRAY,
+	3, GL_FLOAT,24, atiVertexObject,
+	sizeof(float) * 3);
+
+glArrayObjectATI(
+	GL_VERTEX_ARRAY, 3,GL_FLOAT,24,
+	atiVertexObject, 0);
+
+glDrawElements(GL_TRIANGLES,
+	nFaces * 3, GL_UNSIGNED_INT,
+	pIndexList);
+
+glDisableClientState(GL_VERTEX_ARRAY);
+glDisableClientState(GL_NORMAL_ARRAY);
+		</code></pre>
+		<p>Wenn Sie die Indexliste ebenfalls in einem Array Object gespeichert haben, fügen Sie die folgenden Befehle hinzu und ersetzen den <i>glDrawElements</i>-Aufruf durch eine neue Funktion der ATI-Erweiterung:</p>
+		<pre><code>
+glEnableClientState (GL_ELEMENT_ARRAY_ATI);
+... 
+glArrayObjectATI(GL_ELEMENT_ARRAY_ATI, 1,
+	GL_UNSIGNED_INT, 0,
+	atiArrayElement, 0);
+... 
+glDrawElementArrayATI(GL_TRIANGLES, nFaces * 3);
+... 
+glDisableClientState(GL_ELEMENT_ARRAY_ATI);
+		</code></pre>
+		<p>Damit haben Sie endgültig die Probleme der Geometrie-Speicherband&shy;breite gelöst. Das ist die Voraussetzung für hochper&shy;formantes Rendering mit vielen bzw. komplexen 3D-Objekten.</p>
+	</section>
+
+	<section>
+		<h2>Triangle Strips und Cache-Optimierung</h2>
+		<figure class="floatright">
+			<img src="assets/200301_4.png" width="519" height="273" alt="DIESE BILD VERDEUTLICH wie fein aufgelöst die Beispiels-Dreiecksnetze sind.">
+			<figcaption><span>DIESE BILD VERDEUTLICH</span> wie fein aufgelöst die Beispiels-Dreiecksnetze sind.</figcaption>
+		</figure>
+		<p>Verwenden Sie Triangle Strips ausgiebig. Wenn Sie Triangle Strips aus beliebigen 3D-Objekten anlegen, gibt es einiges zu beachten. Moderne GPUs verfügen unter anderem über zwei Caches: Der eine speichert untrans&shy;formierte Vertexdaten, um die Geometrie&shy;bandbreite zu schonen.</p>
+		<p>Diese hat eine Größe von mehreren Kilobyte. Viel kritischer für die Performance ist aber der Cache für bereits transformierte und beleuchtete Vertices. Er fasst bei GeForce-1/2-Karten beispielsweise 16, für GeForce-3 schon 24 Vertices. Triangle Strips können Sie so anlegen, dass möglichst Vertices, die bereits im Cache liegen, zur Fortführung des Strips verwendet werden. Glücklicher&shy;weise bietet nVidia die <i>NvTriStripLibrary</i> (inklusive Quelltext) zum Download an, die die Aufgabe der Triangle-Strip-Generierung übernimmt. Im Sourcecode zu dieser Ausgabe befindet sich eine leicht modifizierte Variante (um 32 Bit Indizes verwenden zu können), deren Benutzung Ihnen die folgenden Quellcode-Fragmente verdeutlichen.</p>
+		<p>Fürs Stripping benötigen Sie lediglich die Indexliste der Shared-Vertex- Struktur. Damit füllen Sie die folgende Struktur aus:</p>
+		<pre><code>
+#include "nvtristrip.h"
+
+PrimitiveGroup triangles;
+
+triangles.type = PT_LIST;
+triangles.numIndices = nFaces * 3;
+triangles.indices =
+	new unsigned int[nFaces*3];
+
+// Indizes für jedes Dreieck
+for(int i = 0; i &lt; nFaces; i++)
+{
+	triangles.indices[i * 3 + 0] =...;
+	triangles.indices[i * 3 + 1] =...;
+	triangles.indices[i * 3 + 2] =...;
+}
+		</code></pre>
+		<p>Jetzt legen Sie die Cache-Größe fest, die bei der Generierung berücksichtigt werden soll, und teilen mit, dass Sie einen großen Triangle Strip (und nicht mehrere) wollen:</p>
+		<pre><code>
+SetCacheSize(CACHESIZE_GEFORCE3);
+SetStitchStrips(true);
+		</code></pre>
+		<p>Damit können Sie die Strips erzeugen lassen, wobei der <i>nGroups</i>-Parameter <i>1</i> sein wird, weil nur ein Strip erzeugt wird:</p>
+		<pre><code>
+PrimitiveGroup *strip;
+
+strip = new PrimitiveGroup;
+
+unsigned short nGroups;
+GenerateStrips(
+	triangles.indices,
+	triangles.numIndices,
+	&amp;strip, &amp;nGroups);
+</code></pre>
+		<p>Zugriff auf die Indizes erhalten Sie mit <i>strip-&gt;indices</i>, wobei es sich um <i>strip-&gt;numIndices</i> handelt. Der Vorteil der Triangle Strips ist, dass Sie es meist mit weniger Indizes als bei der Shared-Vertex-Darstellung zu tun haben. Vor allem werden die Caches ausgenutzt und der Clipping-Aufwand reduziert.</p>
+		<p>Diese Funktionalen, die Sie in Ihre eigenen Programme zur Beschleunigung einbauen können, finden Sie in unseren Beispiel&shy;programmen zu dieser Ausgabe.</p>
+	</section>
+
+	<section>
+		<h2>Analyse weiterer Engpässe</h2>
+		<p>Wenn Sie trotz der obigen Optimierungen mit Ihren Programmen noch nicht nahe an die maximale theoretische Leistungs&shy;fähigkeit Ihrer Grafikkarte stoßen, stellen Sie mit einfachen Tests fest, ob und wo der begrenzende Faktor in der Grafik-Pipeline liegt. Denken Sie daran, dass die Render-Performance der meisten Spiele und Demos durch die CPU (bzw. eine nicht optimale Umsetzung der Renderloops) oder so genannte <i>Stalls</i> (erzwungene Synchroni&shy;sationen zwischen CPU und Grafikkarte) beschränkt ist.</p>
+		<p>Ob die Performance durch die Transform-and-Lighting-Berechnung begrenzt ist, können Sie einfach feststellen, indem Sie die Anzahl der Lichtquellen erhöhen oder reduzieren. Sollte sich die Geschwindig&shy;keit beim Rendering ändern, ist das ein Indiz dafür. Ähnlich verhält es sich, wenn Sie Vertex-Shader verwenden. Deren Ausführungs&shy;zeit ist proportional zu ihrer Länge. Durch Hinzufügen oder Entfernen von Instruktionen können Sie feststellen, ob es sich hierbei um einen Flaschenhals handelt. Aber beachten Sie, dass offensichtlich unnötige Operationen in Vertex-Shadern meist automatisch eliminiert werden. Für die künstliche Verlängerung der Shader addieren Sie am besten eine Null aus dem Konstanten&shy;speicher auf ein Ausgabe&shy;register.</p>
+		<p>Die Geometrie-Bandbreite können Sie testen, indem Sie unbenutzte Attribute wie weitere Textur&shy;koordinaten mitübertragen. Wenn die Geschwindig&shy;keit sinkt, befinden Sie sich an der Grenze dieser Bandbreite.</p>
+		<p>Die Füllrate können Sie in vielerlei Hinsicht untersuchen. Zum einen ist unterschied&shy;liche Performance bei geänderter Bildschirm&shy;auflösung bzw. Fenstergröße ein Indiz. Zum anderen sollten Sie aufwändige Blending-Operationen und Multitexturing-Teile Ihres Programmes untersuchen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote">Infos zu Grafikkarten und zum Artikel finden Sie unter folgenden Web-Adressen:</p>
+		<p class="footnote"><a href="https://www.nvidia.com" rel="external nofollow noreferrer">www.nvidia.com</a></p>
+		<p class="footnote"><a href="https://www.ati.org" rel="external nofollow noreferrer">www.ati.org</a></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200212.html">12/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200302.html">2/2003</a>
+	</nav>
+</body>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Komplexe Objekte (PC Underground, PC Magazin 12/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;12/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200311.html">11/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200403.html">3/2004</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Effizientes Rendering mit Normal Maps</h2>
+		<h1><span class="highlight">Komplexe</span> Objekte</h1>
+		<p class="summary">Mit <span class="highlight">Normal Mapping</span> lassen Sie Low-Polygon-3D-Modelle detailliert erscheinen. Die fehlenden Informationen zur High-Polygon-Variante speichern Sie in Texturen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200312_1.jpg" width="391" height="248" alt="Stanford Bunny aus 4800 Dreiecken: Links mit Gouraud Shading, rechts mit Normal Maps.">
+			<figcaption><span>Stanford Bunny aus 4800 Dreiecken:</span> Links mit Gouraud Shading, rechts mit Normal Maps.</figcaption>
+		</figure>
+		<p>Das Normal-Mapping ist eine Technik, mit der Sie die Low-Polygon-3D-Modelle so beleuchten können, dass sie wie deutlich höher aufgelöste Dreiecksnetze aussehen. Dabei speichert eine Textur für jeden Oberflächen&shy;punkt der Low-Polygon-Variante die Normale als Farbwert codiert, die dem detaillierten Dreiecksnetz an dieser Stelle entspricht.</p>
+		<p>Das Ziel ist also das gleiche, das Sie vom üblichen Bump Mapping kennen: Das Rendering durch eine modifizierte Normale für die Beleuchtungs&shy;berechnung soll detaillierter beeindrucken, als die Geometrie des Dreiecksnetzes tatsächlich vorgibt. Solche Normal-Maps können Sie automatisch berechnen lassen, wenn Sie eine niedrig und eine hoch aufgelöste Variante eines Dreiecksnetzes vorliegen haben. Das Programm <i>Normal Mapper</i>, das Sie dazu benötigen, können Sie von der ATI Developer Homepage downloaden: <a href="https://www.ati.com/developer/NormalMapper_3_1.zip" rel="external nofollow noreferrer">www.ati.com/developer/NormalMapper_3_1.zip</a>.</p>
+		<p>Es gibt auch noch weitere Programme dieser Art, wie Polybump von Crytek (<a href="https://www.crytek.de" rel="external nofollow noreferrer">www.crytek.de</a>) oder Open Render Bump von Soclab (<a href="https://www.soclab.bth.se/practices/orb.html" rel="external nofollow noreferrer">www.soclab.bth.se/practices/orb.html</a>). Diese Ausgabe verwendet das ATI-Tool.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200312.zip">💾 200312.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Das Prinzip</h2>
+ 		<p>Wie bereits erwähnt, berechnen diese Tools für jeden Oberflächen&shy;punkt des niedrig aufgelösten Dreiecksnetzes die Normale, die das besser aufgelöste Netz an der entsprechenden Stelle der Oberfläche hat. Um diese Information zu speichern, benötigen Sie als erstes eine Para&shy;metrisierung (auch <i>UV Mapping</i> genannt) für eine Normal Map (also eine Textur). Die Textur-Koordinaten der Dreiecke für die Normal Map müssen so gewählt sein, dass sich keine Dreiecke – in der Textur – überschneiden. Solche Textur-Koordinaten zuzuweisen, ist von Hand viel zu aufwändig und für komplexe Objekte schlichtweg unmöglich, deshalb bieten Modelling Tools, wie Maya oder 3D-Studio Max, die entsprechende Funktionalität – entweder direkt als Bestandteil der Software oder per Plug-in. Sollten Sie keines dieser Tools zur Verfügung haben, empfehlen wir Ihnen als Startpunkt für eine eigene Implementation die Webpage <a href="https://www.realistic3d.com/" rel="external nofollow noreferrer">www.realistic3d.com/</a> von K. Hurley, der Source Code für ein solches 3D-Studio Max Plug-in zum Download anbietet. Eine weitere sehr gute Quelle ist die Homepage von C. Bloom (<a href="https://www.cbloom.com/" rel="external nofollow noreferrer">www.cbloom.com/</a>).</p>
+		<figure class="large">
+			<img src="assets/200312_2.jpg" width="1039" height="523" alt="UV Mapping: Die Dreiecke überlappen sich nicht in Textur Space.">
+			<figcaption><span>UV Mapping:</span> Die Dreiecke überlappen sich nicht in Textur Space.</figcaption>
+		</figure>
+		<p>Das Bild zeigt eine geeignete UV-Para&shy;metrisierung. Damit entspricht nun jeder Punkt der Textur keinem oder genau einem Punkt auf der Objekt&shy;oberfläche.</p>
+		<p>Das Normal Mapper Tool geht wie folgt vor: Es zeichnet die Dreiecke des Low-Polygon-Modells entsprechend ihrer Textur-Koordinaten in die Normal Map. Für jeden Texel wird der dazugehörige Punkt auf der Oberfläche und die interpolierte Normale (jeweils der Low-Polygon Modells) bestimmt. Anschließend berechnen Sie mit dem High-Polygon-Modell die Schnittpunkte des Strahls, gegeben durch den Oberflächen&shy;punkt und die Normale. Anhand des Schnittpunkts lässt sich die dazugehörige Normale bestimmen, die dann in der Normal Map gespeichert wird.</p>
+		<p>Bei mehreren Schnittpunkten gibt es verschiedene Heuristiken, welcher der Schnittpunkte als Kriterium herangezogen wird. Die Dreiecksnetze übergeben Sie dem ATI Normal Mapper jeweils im <i>nmf</i>-Format, das Sie wiederum mit Plug-ins aus Maya und 3D-Studio Max exportieren können, oder auch mit dem Dreams3D Model Editor (<a href="https://www.sibvrv.km.ru/products/svd3d.htm" rel="external nofollow noreferrer">www.sibvrv.km.ru/products/svd3d.htm</a>). Weitere Informationen zum <i>nmf</i>-Format finden Sie im Kasten.</p>
+	</section>
+
+	<section>
+		<h2>Object versus Tangent Space</h2>
+		<p>Beim Bump Mapping unterscheiden Sie prinzipiell zwischen zwei verschiedenen Ansätzen. Der erste, den Sie bereits aus früheren PC-Underground-Artikeln kennen, ist das so genannte Tangent Space Bump Mapping.</p>
+		<figure class="floatright">
+			<img src="assets/200312_4.jpg" width="443" height="297" alt="Tangent Space: Jeder Vertex ist mit einem Koordinatensystem assoziiert.">
+			<figcaption><span>Tangent Space:</span> Jeder Vertex ist mit einem Koordinatensystem assoziiert.</figcaption>
+		</figure>
+		<p>Dabei definieren Sie für jeden Vertex ein Koordinaten&shy;system (den Tangent Space), den Normale, Binormale und Tangente bilden. Eine entsprechende Bump Map speichert die Normalen relativ zu diesem Koordinaten&shy;system, d.h. eine Normale, die entlang der Normale des Tangent Space zeigt, ist in der Bump Map als Vektor <i>(0, 0, 1)T</i> definiert. Diese Technik ist relativ Textur sparend und erlaubt beliebige Textur Mappings. Allerdings müssen Sie dafür im Vertex Shader einige Vorbe&shy;rechnungen durchführen.</p>
+		<p>Den anderen Ansatz gestalten Sie mit dem UV-Mapping. Da Sie jedem Punkt der Oberfläche genau einen Teil der Textur zuweisen, können Sie direkt die Normale im Object Space (also relativ zu den Koordinaten der Vertices) speichern. Dadurch vermeiden Sie etwas Aufwand bei den Vertex Shadern, da Sie nur einmalig innerhalb der Applikation die Lichtquelle in den Object Space transformieren müssen, und außerdem einige Artefakte, die bei Tangent Space Bump Mapping in Zusammenhang mit bestimmten UV-Mappings auftreten können. Im Bild sehen Sie den – in der Computergrafik – berühmten <i>Stanford Bunny</i>, der auf etwa 4 800 Dreiecke und die entsprechende Normal Map reduziert ist. Die Normal Map wurde mithilfe des voll aufgelösten Dreiecksnetzes mit knapp 70 000 Dreiecken gebildet. Die Normalen sehen Sie rechts im Bild als Farbe codiert, wobei sich kaum noch Unterschiede zum original Datensatz ausmachen lassen. Das Bild auf Seite XXX zeigt ein weiteres bekanntes Modell: Der Drache wurde ebenfalls auf 3 500 Dreiecke reduziert, doch das Rendering mit den Normal Maps lässt kaum Wünsche offen.</p>
+	</section>
+
+	<aside>
+		<h2>nmf-Format</h2>
+		<div>
+			<p>Das <i>nmf</i>-Dateiformat ist <i>Chunk</i>-basierend, das heisst, es besteht aus verschiedenen Typen von Datenblöcken, die teilweise ineinander geschachtelt sein können. Jeder Datenblock wird durch einen Bezeichner identifiziert und kann bei Bedarf übersprungen werden. Der Vorteil eines solchen Aufbaus ist, dass die Datei schnell nach interessanten Blöcken durchsucht werden kann und unbekannte Blöcke ignoriert werden können.</p>
+			<p>Die <i>nmf</i>-Daten finden Sie in einer Datei, indem Sie nach dem <i>nmf</i>- Header suchen. Jeder Chunkheader ist acht Byte groß, und besteht aus einem vier Byte Identifier und einem DWORD, das die Größe des Chunks angibt:</p>
+			<pre><code>
+typedef struct
+{
+	char hdr[4];
+	DWORD size;
+} NmHeader;
+			</code></pre>
+			<p>Der Header Chunk enthält die Kennung <i>NMF</i>. Wenn Sie diesen Chunk gefunden haben, suchen Sie darin wiederum einen Chunk mit der Kennung <i>TRIS</i>. Haben Sie diesen gefunden, können Sie die Daten der Dreiecke lesen.</p>
+			<p>Der <i>TRIS</i>-Chunk beginnt mit einem DWORD, das die Anzahl der Dreiecke in diesem Chunk angibt. Jedes dieser Dreiecke besteht aus einer <i>NmRawTriangle</i>-Struktur.</p>
+			<pre><code>
+typedef struct
+{
+	NmRawPoint vert[3];
+	NmRawPoint norm[3];
+	NmRawTexCoord texCoord[3];
+} NmRawTriangle;
+
+typedef struct
+{
+	float x, y, z;
+} NmRawPoint;
+
+typedef struct {
+	float u, v;
+} NmRawTexCoord;
+			</code></pre>
+			<p>So ist das <i>nmf</i>- Dateiformat leicht zu lesen und zu schreiben, da es sich lediglich um zwei Chunk-Header und die Liste aller Dreiecke mit deren Vertices und Vertex&shy;attributen handelt.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Normal Maps erzeugen</h2>
+		<figure class="floatright">
+			<img src="assets/200312_3.jpg" width="516" height="265" alt="Das Prinzip: Sie bestimmen die Normale anhand der detaillierten Geometrie.">
+			<figcaption><span>Das Prinzip:</span> Sie bestimmen die Normale anhand der detaillierten Geometrie.</figcaption>
+		</figure>
+		<p>Nach dem wir Ihnen nun das Prinzip verdeutlicht und hoffentlich schmackhaft gemacht haben, zeigen wir Ihnen jetzt, wie Sie es Schritt für Schritt selbst durchführen. Der Normal Mapper ist ein Kommandozeilen-Tool, dem Sie die Dateinamen der Low- und High-Polygon-Variante des 3D-Objektes übergeben:</p>
+		<pre><code>
+normalmapper w lowpoly.nmf highpoly.nmf
+	512 512 normalmap.tga
+		</code></pre>
+		<p>Den Parameter <i>w</i> geben Sie an, um Object Space Normal Maps zu generieren, die restlichen Parameter bezeichnen die Größe und den Dateinamen der Textur. Typischerweise gestalten Sie in einem Modelling&shy;programm zunächst die detaillierte Version des 3D-Modells.</p>
+		<p>Die niedriger aufgelöste Variante erhalten Sie entweder durch automatische Dreiecksnetz Reduzierer (enthalten im Modelling Paket oder bei <a href="https://lodbook.com/" rel="external nofollow noreferrer">http://lodbook.com/</a>) oder durch Handarbeit. Bei Computer&shy;spielen investieren die Programmierer meist viel Handarbeit, da dies bessere Ergebnisse erzielt.</p>
+		<p>Um Ihnen weitere Konvertier&shy;arbeit zu ersparen, finden Sie auf der CD zu dieser Ausgabe ein Konverter-Tool von dem <i>nmf</i> in das <i>obj</i>-Dateiformat, das unser Direct3D-Beispiel&shy;programm verwendet. Dieser Konverter setzt auf den Normal Mapper Source Code, den Sie auch bei ATI downloaden können, auf. Auch können Sie damit gleich Tangent Spaces berechnen und speichern.</p>
+	</section>
+
+	<section>
+		<h2>Rendern mit Object Space Normal Maps</h2>
+		<figure class="large">
+			<img src="assets/200312_5.jpg" width="935" height="282" alt="Bunny und Normal Map: So erhalten Sie die Normalen für die Beleuchtungsberechnung, um das Bild ausdrucksvoller gestalten zu können.">
+			<figcaption><span>Bunny und Normal Map:</span> So erhalten Sie die Normalen für die Beleuchtungsberechnung, um das Bild ausdrucksvoller gestalten zu können.</figcaption>
+		</figure>
+		<p>Mit unserem Direct3D Framework können Sie die so konvertierten <i>obj</i>-Dateien laden. Es wurde der Vollständig&shy;keit halber modifiziert, weil das ursprüngliche OBJ-Format keine Tangent Spaces vorsieht. Statt dem Token <i>vn</i> für Normale wurde das <i>vx</i> Token gefolgt von drei Vektoren (Normale, Binormale, Tangente) eingeführt.</p>
+		<p>Bei der hier vorgestellten Object-Space-Bump Mapping-Technik benötigen Sie pro Vertex aber nur die Textur-Koordinaten. Die Vertex und Pixel Shader definieren Sie zum Beispiel wieder in einer Direct3D-Effect-Datei, die wir Ihnen an dieser Stelle für Pixel Shader 2.0 Karten zeigen.</p>
+		<figure class="floatright">
+			<img src="assets/200312_6.jpg" width="860" height="408" alt="Stanford Dragon: Die Qualität der Darstellung beeindruckt mit nur 3500 Dreiecken.">
+			<figcaption><span>Stanford Dragon:</span> Die Qualität der Darstellung beeindruckt mit nur 3500 Dreiecken.</figcaption>
+		</figure>
+		<p>Der benötigte Vertex Shader ist denkbar einfach. Sie transformieren einfach die Vertices entsprechend der World-View-Projection-Matrix, reichen die Textur-Koordinaten für die Normal Map durch und übergeben die World Space Koordinate (in diesem Fall entspricht das auch der Object Space Koordinate) in der zweiten Textur Koordinate an die Rasterisierungs&shy;stufe:</p>
+		<pre><code>
+struct FRAGMENT {
+	float4 position : POSITION;
+	...//siehe Heft-CD
+};
+
+FRAGMENT vsBump(VERTEX vertex)
+{
+	FRAGMENT result;
+	....
+	return result;
+}
+		</code></pre>
+		<p>Während der Rasterisierung berechnen Sie dann das Modell per Pixel, nachdem Sie die dazu benötigte Normale aus der Normal Map ausgelesen und auf das entsprechende Intervall skaliert haben:</p>
+		<pre><code>
+FRAGRESULT psBump(FRAGMENT fragment)
+{
+	FRAGRESULT result; //siehe Heft-CD
+	....
+	return result;
+}
+		</code></pre>
+	</section>
+	<section>
+		<h2>Rendern mit Tangent Space Normal Maps</h2>
+		<p>Auch wenn Sie Tangent Space Normal Maps verwenden, bringt das Vorteile: Durch die Auflösung der generierten Normal Map ist auch der Detailgrad der Oberfläche eines Objektes begrenzt und die Auflösung der Textur lässt sich natürlich nicht beliebig steigern. Wie beim herkömmlichen Texturieren können Sie Detail Maps einsetzen, d.h. Texturen oder in diesem Fall Bump Maps, die nur sichtbar sind, wenn sich der Betrachter nahe am Objekt befindet, die zudem feine Strukturen aufweisen.</p>
+		<p>Aber genau für diese Detail Maps, die mehrfach aneinander&shy;gelegt auf die Oberfläche gemapped sind, benötigen Sie Tangent Space Bump Mapping, da Sie sonst die Textur-Koordinaten nicht frei wählen können. Glücklicher&shy;weise können Sie mit dem Normal Mapper Tools auch diese Art der Normal Maps erzeugen und mit dem Konverter gleich die entsprechenden Tangent Spaces im <i>obj</i>-Format speichern. Somit ändern Sie nur noch das Effect File. Zunächst benötigen Sie mehr Attribute pro Vertex, eben den Tangent Space:</p>
+		<pre><code>
+struct VERTEX {
+	float4 position : POSITION;
+	float3 normal : NORMAL;
+	float3 tangent : TEXCOORD0;
+	float3 binormal : TEXCOORD1;
+	float4 texcoord : TEXCOORD2;
+};
+		</code></pre>
+		<p>Im Vertex Shader berechnen Sie dann den Vektor von jedem Vertex zur Lichtquelle und transformieren ihn mit drei Skalar&shy;produkten in den Tangent Space:</p>
+		<pre><code>
+struct FRAGMENT
+{
+	float4 position: POSITION;
+	float3 texture0: TEXCOORD0;
+	float3 osPos : TEXCOORD1;
+	float3 tsLight : TEXCOORD2;
+};
+
+FRAGMENT vsBump(VERTEX vertex)
+{
+	FRAGMENT result;
+	result.position = mul(matWVP, vertex.position);
+	float4 lightDir =
+		normalize(lightPosition - vertex.position);
+
+	result.tsLight.x =
+		dot(lightDir, vertex.tangent);
+	result.tsLight.y =
+		dot(lightDir, vertex.binormal);
+	result.tsLight.z =
+		dot(lightDir, vertex.normal);
+	result.tsLight.w = 1.0;
+
+	result.tsLight = normalize(result.tsLight);
+	result.osPos = vertex.position;
+	result.texture0 = vertex.texcoord;
+
+	return result;
+}
+		</code></pre>
+		<p>Im Pixel Shader lesen Sie wie bisher die Normale aus, die dann bereits im Tangent Space vorliegt. Da die Komponenten des Vektors zur Lichtquelle während der Rasterisierung linear interpoliert werden, müssen Sie diesen für jeden Pixel <i>normalisieren</i>:</p>
+		<pre><code>
+FRAGRESULT psBump(FRAGMENT fragment)
+{
+	FRAGRESULT result;
+	float4 normal, lightDir; // normale auslesen
+	normal = tex2D(normalSampler, ..
+	// beispiel: diffuse beleuchtung
+	result.color= dot(lightDir, normal);
+	return result;
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Ausblick</h2>
+		<p>Ein UV-Mapping, wie Sie es für die Normal Maps benötigen, erlaubt es, nahezu beliebig kontinuier&shy;liche Werte für Punkte auf der Objekt&shy;oberfläche zu speichern. Dadurch ergeben sich weitere Einsatzgebiete. Mit dem ATI Normal Mapper können Sie zusätzlich zu den Normalen eine so genannte Bent Normal berechnen. Um die Bent Normal zu bestimmen, verfolgen Sie zunächst einen Strahl von der Oberfläche der Low-Polygon-Objektes und berechnen den Schnittpunkt mit dem hoch aufgelösten Dreiecksnetz. Anschließend tasten Sie von diesem Schnittpunkt aus die Halbkugel über der Oberfläche durch eine größere Anzahl von Strahlen ab. Strahlen, die keine Flächen des Objektes schneiden, werden gemittelt und das Resultat ist die Bent Normal. Dieser Vektor zeigt in die Richtung, aus der am meisten Licht auf die Objekt&shy;oberfläche einfällt. Sie verwenden dies, um diffuses Environment Mapping zu simulieren.</p>
+		<p>Ähnliches berechnet der Normal Mapper auch beim Occlusion Term Modus. Wiederum tasten Sie die Hemisphäre über dem Schnittpunkt mit dem High-Polygon-Modell ab, wozu übrigens 261 oder 581 Strahlen verschossen werden, und Sie speichern den Prozentsatz der Strahlen ohne weitere Schnittpunkte. Dieser Term dient dann dazu, die ambiente Beleuchtung abzudunkeln, um eine Art Selbst&shy;beschattung zu simulieren.</p>
+		<p>Eine ganz andere Art der Anwendung solcher UV-Mappings vermag, Subsurface Scattering Effekte darzustellen. Da grundlegende Idee ist dabei folgende: Sie zeichnen das 3D-Objekt in eine Textur. Allerdings verwenden Sie die Textur-Koordinaten als 2D-Koordinaten für das Rendering und transformieren nicht etwa die Modell-Koordinaten. Bei diesem Rendering Pass berechnen Sie neben der Beleuchtung, wie viel Licht an der entsprechenden Stelle des Objekts in das Material eindringt. Anschließend setzen Sie eine vorberechnete Tabelle ein, um für jeden Vertex des Dreiecksnetzes zu bestimmen, wie viel Licht von den anderen Oberflächen&shy;teilen bis zu ihm durch das Material dringt. Hier reicht eine Rechnung pro Vertex, da die Intensitäts&shy;verläufe meist niederfrequent sind. Auch dieser Schritt lässt sich mit Multipass Rendering und Dependent Textur Lookups in Hardware durchführen. Im abschließenden Render Pass verwenden Sie die Vertex-Intensitäten, die auch in einer Textur gespeichert wurden. Genaueres zu diesem Verfahren finden Sie in dem Paper: <i>GPU Algorithms for Radiosity and Subsurface Scattering</i> (<a href="https://graphics.cs.uiuc.edu/~nacarr/papers/gpuradsub.pdf" rel="external nofollow noreferrer">http://graphics.cs.uiuc.edu/~nacarr/papers/gpuradsub.pdf</a>).</p>
+	</section>
+
+	<aside>
+		<h2>Links zum Thema</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Beschreibung</th><th>Link-Adresse</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>3D Studio Max Plugin für UV Mapping</td><td><a href="https://www.mankua.com/quickuvw.cfm" rel="external nofollow noreferrer">www.mankua.com/quickuvw.cfm</a></td></tr>
+					<tr><td>Dream3D Model Editor</td><td><a href="https://www.sibvrv.km.ru/products/svd3d.htm" rel="external nofollow noreferrer">www.sibvrv.km.ru/products/svd3d.htm</a></td></tr>
+					<tr><td>Open Render Bump</td><td><a href="https://www.soclab.bth.se/practices/orb.html" rel="external nofollow noreferrer">www.soclab.bth.se/practices/orb.html</a></td></tr>
+					<tr><td>Source Code für 3DSMax Plugin</td><td><a href="https://www.realistic3d.com/source_code.htm" rel="external nofollow noreferrer">www.realistic3d.com/source_code.htm</a></td></tr>
+					<tr><td>Tools, z.B. Normal Mapper</td><td><a href="https://www.ati.com" rel="external nofollow noreferrer">www.ati.com</a></td></tr>
+					<tr><td>Informationen über Bump Mapping</td><td><a href="https://www.nvidia.com" rel="external nofollow noreferrer">www.nvidia.com</a></td></tr>
+					<tr><td>Source Code für UV Mapping u.v.m.</td><td><a href="https://www.cbloom.com/3d/galaxy3/" rel="external nofollow noreferrer">www.cbloom.com/3d/galaxy3/</a></td></tr>
+					<tr><td>Literatur</td><td><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200311.html">11/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200403.html">3/2004</a>
+	</nav>
+</body>

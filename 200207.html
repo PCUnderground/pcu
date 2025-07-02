@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Nacht und Nebel (PC Underground, PC Magazin 7/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;7/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200206.html">6/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200208.html">8/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Rendering von Nebeleffekten</h2>
+		<h1><span class="highlight">Nacht</span> und <span class="highlight">Nebel</span></h1>
+		<p class="summary">Mit wenig Aufwand können Sie Nebeleffekte darstellen, die über das, was die 3D-Hardware bietet, hinausgehen. Programmieren Sie <span class="highlight">volumetrische Nebeleffekte</span>, wie sie in Ego-Shootern zu sehen sind.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Die 3D-Grafikkarten erlauben es, 3D-Szenen mit einem Nebeleffekt zu versehen. Der Programmierer kann diese Funktionalität mit Parametern festlegen: die Dichte des Nebels oder dessen exponenziellen bzw. linearen Verlauf.</p>
+		<p>Stimmungsvolle 3D-Szenen, beispielsweise nur mit Bodennebel, lassen sich damit nicht darstellen. Wir zeigen Ihnen, wie Sie die volumetrischen Nebeleffekte programmieren. Volumetrisch bedeutet, das der Nebel in einem bestimmten Volumen eingeschlossen ist, etwa in einem Quader, einem Zylinder oder einer Kugel.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200207.zip">💾 200207.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>OpenGL Fogging</h2>
+		<figure class="large">
+			<img src="assets/200207_1.jpg" width="627" height="471" alt="MORGENDLICHER FRÜHNEBEL taucht diese 3D-Szene in geheimnisvolles Licht.">
+			<figcaption><span>MORGENDLICHER FRÜHNEBEL</span> taucht diese 3D-Szene in geheimnisvolles Licht.</figcaption>
+		</figure>
+		<p>Nebel, wie Sie ihn im obigen Bild sehen, kann Ihre Grafikkarte selbstständig darstellen. Dafür gibt es Unterstützung seitens der Hardware und der Grafik-APIs. Die Grafik-Hardware berechnet für jeden Vertex oder jeden Pixel (je nach Modus) die Entfernung der dort sichtbaren Oberfläche zum Betrachter. Abhängig von dieser Entfernung ist der Nebeleffekt stärker oder schwächer.</p>
+		<p>In OpenGL aktivieren Sie den Nebel (Fogging) mit <i>glEnable(GL_FOG)</i>. Anschließend müssen Sie die Parameter für das Fogging angeben. Legen Sie den Tiefen-Bereich fest, in dem sich der Nebel befindet. Dazu geben Sie einen Start- und einen Endwert an und legen die Dichte des Nebels und die Farbe fest:</p>
+		<pre><code>
+glFogf(GL_FOG_START, 0.0f);
+glFogf(GL_FOG_END, 100.0f);
+glFogf(GL_FOG_DENSITY, 1.0f);
+GLfloat fogColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+glFogfv(GL_FOG_COLOR, fogColor);
+		</code></pre>
+		<p>Für die Berechnung der Nebel&shy;intensität <i>f</i>, abhängig von der Entfernung <i>z</i>, wählen Sie mit dem Eintrag <i>glFogi(GL_FOG_MODE, mode)</i> eine der folgenden drei Optionen:</p>
+		<pre><code>
+GL_LINEAR f = (end - z) / (end - start)
+GL_EXP f = e^(-density * z)
+GL_EXP2 f = e^((-denstity * z)^2)
+		</code></pre>
+		<p>Diese Optionen bestimmen, wie die Stärke des Effekts von der Entfernung <i>z</i> und dem Start- bzw. End-Wert des Nebels abhängt.</p>
+		<p>Als nächstes berechnen Sie die Farbe jedes Pixels im Nebel, abhängig vom Wert <i>f</i>. Die ursprüngliche Farbe wird in die Nebelfarbe übergeblendet, wobei sich der Bereich <i>f</i> von <i>0</i> bis <i>1</i> beschränkt:</p>
+		<pre><code>
+//für jede Farbkomponente:
+color_new = f * color + (1 - f) * fogColor
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Volumetric Fog</h2>
+		<figure class="floatright">
+			<img src="assets/200207_2.jpg" width="631" height="474" alt="DIESEN BODENNEBEL gestaltet das Beispielprogramm.">
+			<figcaption><span>DIESEN BODENNEBEL</span> gestaltet das Beispielprogramm.</figcaption>
+		</figure>
+		<p>Wenn Sie die Nebelschwaden berechnen, kommen Sie mit volumetrische Nebeleffekten zu eindrucks&shy;vollen Bildern.</p>
+		<p>Lesen Sie, wie Sie diese Effekte ohne die OpenGL-Fog-Funktionalität gestalten. Als mögliche Volumina für den Nebel kommen einfache geometrische Primitive wie Quader, Zylinder oder Kugeln oder daraus zusammen&shy;gesetzte Primitive in Betracht. Das befähigt Sie, den Nebel schnell zu berechnen. Der Trick besteht darin, für jeden Vertex der sichtbaren 3D-Objekte die Nebel&shy;intensität zu berechnen. Diese Intensität hängt davon ab, wieviel Nebel sich zwischen Kamera und Objekt befindet. Da Sie die Intensität pro Vertex berechnen, bestimmen Sie zunächst die Halbgerade (Strahl), beginnend bei der Kameraposition in Richtung des Vertex.</p>
+		<p>Anschließend berechnen Sie alle Schnittpunkte des Strahls und der Nebelvolumina. Es gibt nicht für jeden Strahl einen Schnittpunkt. An Hand der Schnittpunkte können Sie die Länge der im Nebel zurückgelegten Strecken und somit die Nebel&shy;intensität bestimmen.</p>
+		<figure class="floatright">
+			<img src="assets/200207_4.jpg" width="614" height="461" alt="DIESE NEBELEFFEKTE strahlen aus einer Kugel.">
+			<figcaption><span>DIESE NEBELEFFEKTE</span> strahlen aus einer Kugel.</figcaption>
+		</figure>
+		<p>Wir zeigen Ihnen Schritt für Schritt, wie Sie das Grundprinzip umsetzen, um quader- und kugelförmige Nebelvolumina darzustellen. Voraussetzung ist, dass Sie ein geladenes 3D-Objekt im Speicher haben, bestehend aus einer Vertex und einer Flächen-Index-Liste:</p>
+		<pre><code>
+typedef struct
+{
+	float x, y, z;
+} VERTEX3D;
+
+typedef struct
+{
+	int a, b, c;
+	VERTEX3D normal;
+} FACE;
+
+VERTEX3D *pVertexList;
+FLOAT *pFogList;
+VERTEX3D *pNormalList;
+FACE *pFaceList;
+int nVertices, nFaces;
+		</code></pre>
+		<p>Bestimmen Sie für jeden Vertex – für jeden Frame – die Nebel&shy;intensität. Dazu benötigen Sie eine Halbgerade, die sich aus Koordinaten der Vertex- und der Kameraposition bestimmen lässt. Beide Koordinaten müssen Sie in dasselbe Koordinaten&shy;system transformieren. Dazu bieten sich zwei Wege an:<br>
+		• Sie führen alle Berechnungen im Objektspace durch und transformieren die Kamera in den Objectspace,<br>
+		• oder Sie transformieren alle Vertices in den Worldspace, in dem sich die Kamera befindet. Die erste Variante ist weniger zeitaufwändig, da nur die Kameraposition transformiert werden muss. Beginnen Sie mit der Kamera&shy;transformation:</p>
+		<pre><code>
+typedef struct
+{
+	// Ursprung, Richtung
+	VERTEX3D from, d;
+} RAY3D;
+
+MATRIX44 modelView, invModelView;
+
+// Modelview Matrix holen...
+glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
+
+// ... invertieren
+InverseMatrixAnglePreserving(modelView, invModelView);
+// Kameraposition aus den Kameraeinstellungen bekannt!
+VERTEX3D camPos = { 0.0f, 0.0f, 70.0f };
+
+// Start der Halbgerade
+// = Kamera im Objectspace !
+ray.from = invModelView * camPos;
+		</code></pre>
+		<p>Jetzt bestimmen Sie die Richtung der Halbgeraden für jeden Vertex <i>i</i>:</p>
+		<pre><code>
+// Richtung (normalisiert)
+ray.d = pVertexList[i] - ray.from;
+~ray.d;
+		</code></pre>
+		<p>Anschließend berechnen Sie, ob Schnittpunkte mit Nebelvolumina existieren und wenn ja, die Nebel&shy;intensität. Die Details der verwendeten Subroutinen betrachten Sie folgendermaßen:</p>
+		<pre><code>
+// Eckpunkte des Nebelquaders
+VERTEX3D minBox = { -100.0f, 0.0f, -100.0f };
+VERTEX3D maxBox = { 100.0f, 10.0f, 100.0f };
+
+// Abschnitte an der Halbgerade,
+// falls es Schnittpunkte gibt
+float tmin, tmax;
+if (boxIntersection(ray, &amp;tmin, &amp;tmax,
+	minBox, maxBox, pVertexList[i]))
+{
+	// Schnittpunkte existieren
+	fog = distanceInFog(ray, tmin, tmax,
+		pVertexList[i]);
+}
+		</code></pre>
+		<p>Der Rückgabewert von <i>distanceInFog(...)</i> ist die Strecke, die der Strahl durch das Nebelvolumen zurücklegt. Mit diesem Wert können Sie analog zur OpenGL-Nebel&shy;berechnung einen linearen oder exponenziellen Verlauf modellieren, wie die folgenden Beispiele zeigen:</p>
+		<pre><code>
+// linearer Nebel
+// einfaches Skalieren
+fog *= 0.05f;
+
+// exponenzieller Verlauf
+fog *= 0.03f;
+fog = exp(fog) - 1;
+
+// exponenziell/quadr.Verlauf
+fog *= 0.04f;
+fog = exp(fog * fog) - 1;
+		</code></pre>
+		<p>Sie können Lookup-Tabellen verwenden, um Nebelschwaden darzustellen. Das folgende Beispiel verwendet eine Tabelle mit 256 Einträgen für Nebel&shy;intensität, zwischen denen interpoliert wird:</p>
+		<pre><code>
+fog *= 255.0f;
+if(fog &gt; 254)
+	fog = 254;
+
+int fogi = (int)fog;
+float fogf = fog - fogi;
+fog = table[fogi] * (1.0f - fogf)+
+	table[fogi + 1] * fogf;
+		</code></pre>
+		<p>Mit der berechneten Neben&shy;intensität skalieren Sie die gewünschte Farbe des Nebels und speichern diese zusammen mit dem ursprünglichen Wert zunächst für jeden Vertex für das spätere Rendering:</p>
+		<pre><code>
+GLfloat fogColor[] = { 0.7f, 0.7f, 0.5f };
+float *pFog = pFogList;
+*(pFog++) = fog * fogColor[0];
+*(pFog++) = fog * fogColor[1];
+*(pFog++) = fog * fogColor[2];
+*(pFog++) = fog;
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Schnittpunkt-Berechnungen</h2>
+		<figure class="large">
+			<img src="assets/200207_3.jpg" width="866" height="605" alt="DER STRAHL von der Kamera zu einem Vertex durch ein quaderförmiges Nebelvolumen">
+			<figcaption><span>DER STRAHL</span> von der Kamera zu einem Vertex durch ein quaderförmiges Nebelvolumen</figcaption>
+		</figure>
+		<p>In der Routine <i>boxIntersection(...)</i> verbirgt sich die Schnittpunkt-Berechnung zwischen einem Strahl und einem Quader mit achsen&shy;parallelen Kanten (aus Performance-Gründen). Solche Quader werden auch als <i>AABB</i> (Axis Aligned Bounding Boxes) bezeichnet. Dafür gibt es hochoptimierte Schnittpunkt&shy;berechnungen, von denen wir Ihnen eine hier vorstellen: die <i>Slab</i>-Methode. Slab bezeichnet ein paralleles Ebenenpaar. Drei Slabs bilden einen Quader. Im zwei&shy;dimensionalen Fall bilden zwei Slab-Paare ein Rechteck.</p>
+		<p>Für ein Slab-Paar können Sie die beiden Schnittpunkte berechnen, hier für das X-Slab-Paar:</p>
+		<pre><code>
+// Strahl darf nicht parallel zu
+// den Ebenen verlaufen
+if(fabs(ray.d.x) &gt; epsilon)
+{
+	tmin_x = (minB.x - ray.from.x) / ray.d.x;
+	tmax_x = (maxB.x - ray.from.x) / ray.d.x;
+} else
+	return 0; // kein Schnittpunkt
+		</code></pre>
+		<p>Bei geschickter Betrachtung der Schnittpunkte oder der berechneten <i>tmin/</i> <i>tmax</i>-Parameter stellen Sie fest, ob der Strahl die AABB schneidet. Berechnen Sie für jedes der drei Slab-Paare <i>tmin</i> und <i>tmax</i>:</p>
+		<pre><code>
+tmin = max(tmin_x, tmin_y, tmin_z)
+tmax = min(tmax_x, tmax_y, tmax_z)
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200207_5.png" width="415" height="449" alt="DIE SLAB-METHODE hilft, um Schnittpunkte mit AABBs zu bestimmen.">
+			<figcaption><span>DIE SLAB-METHODE</span> hilft, um Schnittpunkte mit AABBs zu bestimmen.</figcaption>
+		</figure>
+		<p>Wenn <i>tmin</i> kleiner oder gleich <i>tmax</i> ist, schneidet der Strahl den Quader, sonst verfehlt er ihn. Betrachten Sie dazu die zwei einge&shy;zeichneten Strahlen im vorigen Bild. Die ausschlag&shy;gebenden <i>tmin</i> und <i>tmax</i>-Werte sind rot gekennzeichnet. Bevor Sie in der <i>boxIntersection(...)</i>-Routine die Slab-Methode anwenden, wird noch ein Trivial-Reject-Test (Rückweisungs-Test) durchgeführt. Dabei überprüfen Sie mit einfachen, rechenzeit&shy;unkritischen Befehlen, ob der Strahl den Quader überhaupt schneiden könnte. Das können Sie beispielsweise ausschließen, wenn sowohl der Ursprung als auch das Ziel des Strahls über, unter oder links bzw. rechts vom Quader liegen.</p>
+		<p>Als zweites Nebelvolumen verwenden Sie die Kugel, für die sich die Schnittpunkte einfach berechnen lassen. Eine Kugel ist definiert durch ihren Mittelpunkt <i>m</i> und ihren Radius <i>r</i>. Alle Punkte <i>x</i> auf der Oberfläche der Kugel, also auch potenzielle Schnittpunkte mit einer Geraden, haben den gleichen Abstand vom Mittelpunkt, nämlich den Radius:</p>
+		<pre><code>
+|x - m| = r
+(x - m) * (x - m) = r * r
+		</code></pre>
+		<p>Wenn Sie die (Halb-)Geraden&shy;gleichung in die Abstands&shy;berechnung für <i>x</i> einsetzen, erhalten Sie eine quadratische Gleichung, deren Lösung oder Lösungen die Parameter der Geraden&shy;gleichung sind. In C-Code sieht das Resultat wie folgt aus:</p>
+		<pre><code>
+VERTEX3D delta = ray.from - center;
+a = ray.d * ray.d;
+b = ray.d * delta * 2.0f;
+c = center * center +
+	ray.from * ray.from -
+	2.0f * (center * ray.from) -
+	radius * radius;
+
+d = b * b - 4.0f * a * c;
+if (d <= 0.0)
+	return 0;
+
+d = (float)sqrt(d);
+a = 1.0f / (2.0f * a);
+t1 = (-b + d) * a;
+t2 = (-b - d) * a;
+
+// Schnittpunktparameter
+tmin = min(t1, t2);
+tmax = max(t1, t2);
+		</code></pre>
+		<p>Mit den <i>tmin/tmax</i>-Parametern, also der Information, wo der Strahl in ein Nebelvolumen eintritt oder es verlässt, können Sie die Strecke berechnen, die er im Nebel zurücklegt. Dabei müssen Sie eine Fallunter&shy;scheidung machen – je nachdem, ob sich der Betrachter und/oder der betrachtete Vertex selbst im Volumen befindet. Diese Bestimmung übernimmt die <i>distanceInFog(...)</i>-Methode, die als Parameter <i>tmin/tmax</i>, die Halbgerade <i>ray</i> und den betrachteten Vertex <i>v</i> bekommt.</p>
+		<p>Zunächst berechnen Sie, wie weit Sie ausgehend von der Kameraposition in Richtung des Strahls gehen müssen, bis Sie den Vertex <i>v</i> erreichen:</p>
+		<pre><code>
+if(ray.d.x != 0)
+	tv = (v.x - ray.from.x) / ray.d.x;
+else
+	// ray.d.y oder ray.d.z
+		</code></pre>
+		<p>Anschließend folgt die Fallunter&shy;scheidung:</p>
+		<pre><code>
+// Kamera blickt von der Box weg
+if(tmax &lt; 0)
+	return 0;
+
+// Fog Volume befindet sich
+// hinter dem Vertex
+if(tmin &gt; tv)
+	return 0;
+
+// Vertex im Fog Volume
+if (tv &gt; tmin &amp;&amp; tv &lt; tmax)
+{
+	// Kamera auch im Fog Volume ?
+	if (tmin &lt; 0)
+		/* ja */ return tv;
+	else
+		/* nein */ return tv - tmin;
+} else
+{
+	// Fog Volume befindet sich
+	// zw. Kamera und Vertex
+	return tmax - tmin;
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Volumetrischen Nebel rendern</h2>
+		<p>Um volumetrischen Nebeleffekte ohne spezielle Funktionen oder OpenGL-Extensions zu rendern, verwenden Sie eine <i>2-Pass</i>-Methode: Sie zeichnen die Szene zweimal.</p>
+		<p>Im ersten Renderpass zeichnen Sie die 3D-Szene mit den gewünschten Parametern für Beleuchtung, Texturen und Materialien:</p>
+		<pre><code>
+// Material Parameter
+glEnable(GL_COLOR_MATERIAL);
+glColorMaterial(...);
+glMaterialfv(...);
+
+// einfach flatshaded Zeichnen
+glBegin(GL_TRIANGLES);
+for(int i = 0;i &lt; nFaces; i++)
+{
+	glNormal3fv((float*)&amp;pFaceList[i].normal);
+	glVertex3fv((float*)&amp;pVertexList[pFaceList[i].a]);
+	glVertex3fv((float*)&amp;pVertexList[pFaceList[i].b]);
+	glVertex3fv((float*)&amp;pVertexList[pFaceList[i].c]);
+}
+glEnd();
+		</code></pre>
+		<p>Im zweiten Renderpass benötigen Sie die oben berechneten Nebel&shy;intensitäten. In diesem Pass zeichnen Sie ohne Beleuchtung und Texturen. Allerdings aktivieren Sie das Blending und wählen additives Rendering: Die Nebelfarbe hellt das Bild auf.</p>
+		<pre><code>
+glDisable(GL_TEXTURE_2D);
+glDisable(GL_LIGHTING);
+glEnable(GL_BLEND);
+glBlendFunc(GL_ONE, GL_ONE);
+
+// Interpolation Nebelintensität
+glShadeMode(GL_SMOOTH);
+		</code></pre>
+		<p>Nach dieser Initialisierung zeichnen Sie die 3D-Szene und übergeben für jeden Vertex seine Nebelfarbe:</p>
+		<pre><code>
+glBegin(GL_TRIANGLES);
+for(i = 0; i &lt; nFaces; i++)
+{
+	glColor4fv((GLfloat*)&amp;pFogList[pFaceList[i].a * 4]);
+	glVertex3fv((GLfloat*)&amp;pVertexList[pFaceList[i].a]);
+	glColor4fv((GLfloat*)&amp;pFogList[pFaceList[i].b * 4]);
+	glVertex3fv((GLfloat*)&amp;pVertexList[pFaceList[i].b]);
+	glColor4fv((GLfloat*)&amp;pFogList[pFaceList[i].c * 4]);
+	glVertex3fv((GLfloat*)&amp;pVertexList[ pFaceList[i].c]);
+}
+glEnd();
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200207_6.jpg" width="" height="" alt="DAS 3D-MODELL des Bodens ist nicht fein genug tesseliert.">
+			<figcaption><span>DAS 3D-MODELL</span> des Bodens ist nicht fein genug tesseliert.</figcaption>
+		</figure>
+		<p>Die Neben&shy;intensitäten, die Sie für die Vertices berechnet haben, werden beim Rendering über die Dreiecke interpoliert. Um eine gute Darstellungs&shy;qualität zu erhalten, benötigen Sie Dreiecksnetze, die fein tesseliert sind (= aus vielen kleinen Dreiecken bestehen). Gegebenenfalls müssen Sie mit einem 3D-Modelling&shy;programm vorhandene 3D-Modelle verfeinern (so genanntes Subdividing). Vor allem, wenn die Grenzen von Nebelvolumina sichtbar sind, benötigen Sie sehr feine 3D-Modelle, oder Sie erhalten störende Effekte.</p>
+	</section>
+
+	<section>
+		<h2>Schneller im Nebel</h2>
+		<p>Es gibt noch eine andere Art, die Neben&shy;intensitäten zu bestimmen, als lediglich die Strecke zwischen den Schnittpunkten des Strahls und den Nebelvolumina als Wert heranzuziehen: Sie können einem quaderförmigen Nebel eine 3D-Textur zuweisen. Da viele 3D-Karte mit 3D-Texturen nicht arbeiten können, müssen Sie diese Aufgabe selbst in Ihrem Programm lösen. Dazu betrachten Sie den Eintrittspunkt eines Strahls in ein Nebelvolumen und den Austrittspunkt. Dann untersuchen Sie jeden 3D-Texel der Textur, den der Strahl im Nebelvolumen berührt, und summieren deren Intensitäten auf.</p>
+		<p>So könnten Sie Nebelschwaden und komplexe Strukturen im Nebel darstellen. Allerdings ist diese Methode sehr rechnen&shy;zeitintensiv und bedarf einiger Optimierung.</p>
+		<p>Beschleunigt rendern Sie anders: Mit einer OpenGL Extension <i>EXT_fog_coord</i>, die Sie beim OpenGL-Treiber anfragen können, gelingt es, einen der Renderpasses einzusparen. Diese Extension erlaubt es, für jeden Vertex eine selbst&shy;berechnete Nebel&shy;intensität anzugeben. Ohne diese Erweiterung berechnet OpenGL bei angeschaltetem Fogging diesen Wert selbst. Mit folgenden Befehlen befragen Sie Ihren Grafikkarten-Treiber, ob er diese Extension anbietet:</p>
+		<pre><code>
+const GLubyte *glExtString;
+char glExtName[] = "EXT_fog_coord";
+
+glExtString = glGetString(GL_EXTENSIONS);
+if(strstr(glExtString, glExtName) == NULL)
+{
+	// nicht unterstützt !!!
+	return false;
+}
+// sonst Adresse holen:
+glFogCoordfEXT = (void*)wglGetProcAddress("glFogCoordfEXT");
+		</code></pre>
+		<p>Zu dieser Extension gehören einige weitere Funktionen für das Rendering mit Streaming- und Interleaved-Daten. Diese finden Sie zusammen mit den benötigten Konstanten&shy;definitionen in der <i>glext.h</i>-Datei.</p>
+		<p>Bei dieser <i>1-Pass</i>-Rendering Methode aktivieren Sie wieder das OpenGL-Rendering und teilen ihm mit, dass Sie die Nebel&shy;intensitäten selbst berechnen:</p>
+		<pre><code>
+glEnable(GL_FOG);
+glFogi(GL_FOG_MODE, GL_LINEAR);
+glFogfv(GL_FOG_COLOR, fogColor);
+glFogf(GL_FOG_START, 0.0f);
+glFogf(GL_FOG_END, 100.0f);
+glFogi(GL_FOG_COORDINATE_SOURCE_EXT, GL_FOG_COORDINATE_EXT);
+		</code></pre>
+		<p>Damit reduziert sich das Rendering auf folgende Schleife (analog zum obigen ersten Renderpass):</p>
+		<pre><code>
+// Material Parameter
+glEnable(GL_COLOR_MATERIAL);
+
+glColorMaterial(...);
+glMaterialfv(...);
+
+// einfach flatshaded Zeichnen
+glBegin(GL_TRIANGLES);
+
+for(int i = 0; i &lt; nFaces; i++)
+{
+	glNormal3fv((float*)&amp;pFaceList[i].normal);
+	glFogCoordfEXT(pFogList[pFaceList[i].a * 4]);
+	glVertex3fv((float*)&amp;pVertexList[pFaceList[i].a]);
+	glFogCoordfEXT(pFogList[pFaceList[i].b * 4]);
+	glVertex3fv((float*)&amp;pVertexList[pFaceList[i].b]);
+	glFogCoordfEXT(pFogList[pFaceList[i].c * 4]);
+	glVertex3fv((float*)&amp;pVertexList[pFaceList[i].c]);
+}
+
+glEnd();
+		</code></pre>
+		<p>Wie Sie in der obigen Programm&shy;schleife sehen, müssten Sie nicht einmal selbst die Farbe des Nebels mit der Intensität skalieren, da OpenGL das automatisch mit der eingestellten Fog-Farbe tut. Somit würde die <i>pFogList</i> nur noch ein Viertel der Einträge benötigen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur und Web-Verweise:</b></p>
+		<p class="footnote">Advanced Rendering Techniques Using OpenGL, SIGGRAPH 99 Course Notes</p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.pouet.net/prod.php?which=5624" rel="external nofollow noreferrer">www.pouet.net/prod.php?which=5624</a></p>
+		<p class="footnote"><a href="https://www.opengl.org/developers/code/sig99/index.html" rel="external nofollow noreferrer">www.opengl.org/developers/code/sig99/index.html</a></p>
+	</footer>
+</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200206.html">6/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200208.html">8/2002</a>
+	</nav>
+</body>
+

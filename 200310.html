@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Von Schein und Sein (PC Underground, PC Magazin 10/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;10/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200309.html">9/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200311.html">11/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Translucency-Effekte mit Direct 3D 9</h2>
+		<h1>Von <span class="highlight">Schein</span> und Sein</h1>
+		<p class="summary">Mit Direct3D und den richtigen Vertex und Pixel Shaders erzielen Sie <span class="highlight">Transparenz&shy;effekte</span>. Mit Multi-Pass Rendering rechnen Sie bis auf Pixel-Ebene genau.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200310_1.jpg" width="336" height="387" alt="Translucency: Beethoven stellen Sie eindrucksvoll als durchscheinendes Objekt in Echtzeit dar.">
+			<figcaption><span>Translucency:</span> Beethoven stellen Sie eindrucksvoll als durchscheinendes Objekt in Echtzeit dar.</figcaption>
+		</figure>
+		<p>Nach den letzten Ausgaben der PC-Underground-Reihe verfügen Sie mit den Grundlagen der Direct3D-Programmierung nun über alle Werkzeuge, um eindrucksvolle Grafiken zu gestalten. Diese Ausgabe stellt Ihnen die Techniken vor, die Sie immer wieder für Spezialeffekte benötigen. Damit implementieren Sie eine Pixel genaue Darstellung von transparenten 3D-Modellen.</p>
+		<p>Das Aussehen vieler realer Materialien wie Marmor, Milch oder menschliche Haut hängt nicht nur von dem an der Oberfläche reflektierten Licht ab. Ein Teil des Lichts dringt an einem bestimmten Punkt in das Material ein, wird dort mehrfach gestreut und reflektiert und kann das Material an einer anderen Stelle wieder verlassen. Diese Prozesse werden unter der Bezeichnung <i>Subsurface Scattering</i> zusammen&shy;gefasst. Solche Material&shy;eigenschaften rendern Sie nicht allein mit einem lokalen Beleuchtungs&shy;modell, mit dem Programmierer in der Echtzeit-Computergrafik kämpfen. An dieser Technik wird gegenwärtig intensiv geforscht.</p>
+		<p>Wenn Sie lediglich optische Spezialeffekte gestalten wollen, können Sie durch eine starke Vereinfachung des Sachverhalts in Echtzeit durch&shy;scheinende (translucent) Objekte darstellen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200310.zip">💾 200310.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Ein einfaches Modell</h2>
+		<figure class="floatright">
+			<img src="assets/200310_2.jpg" width="448" height="348" alt="Zurückgelegte Strecke: Mit der Grafikhardware können Sie die Dicke des Materials bestimmen.">
+			<figcaption><span>Zurückgelegte Strecke:</span> Mit der Grafikhardware können Sie die Dicke des Materials bestimmen.</figcaption>
+		</figure>
+		<p>Dabei gehen Sie zunächst davon aus, dass eine unendliche Flächen&shy;lichtquelle das Objekt von hinten beleuchtet. Nehmen Sie nun an, dass das aus parallelen Strahlen bestehende eindringende Licht nicht gestreut oder reflektiert, sondern lediglich absorbiert wird. Die Lichtmenge, die durch das Objekt hindurch&shy;scheint, lässt sich dann durch eine exponenzielle Funktion beschreiben. Deren Parameter gibt die Strecke vor, die das Licht durch das Material zurückgelegt hat. Für den Rest der 3D-Welt nehmen Sie ein Vakuum an, welches die Lichtstrahlen nicht beeinflusst.</p>
+		<p>Für diese Berechnung – im Detail später – müssen Sie also für jeden Lichtstrahl, der jeweils einem Pixel im Bild entspricht, die Strecke durch das 3D-Objekt bestimmen. Dieses können Sie analytisch per CPU rechnen lassen, was allerdings keine Darstellung in Echtzeit ergibt. Stattdessen zweckent&shy;fremden Sie dafür Ihre Grafikhardware. Das Prinzip zeigt das Bild (links): Die Strecke, die ein Lichtstrahl durch das Material zurücklegt, entspricht der Differenz des Abstands der Vorder- (<i>fi</i>) bzw. Rückseiten (<i>bi</i>) des Objektes vom Betrachter. Wenn der Strahl mehrfach in das Objekt eindringt und es wieder verlässt, müssen Sie die Summe der Differenzen berechnen:</p>
+		<pre><code>
+(b<sub>1</sub> -f<sub>1</sub>) + (b<sub>2</sub> - f<sub>2</sub>) + ...
+		</code></pre>
+		<p>Durch eine andere Klammerung dieser Summe erhalten Sie:</p>
+		<pre><code>
+∑ b<sub>i</sub> – ∑ f<sub>i</sub>
+		</code></pre>
+		<p>Das bedeutet, Sie können zuerst die Tiefenwerte aller Rückseiten (Back Faces) bzw. Vorderseiten (Front Faces) summieren und anschließend die Differenz bilden. Dieser Ansatz ist schon durchaus tauglich für eine Umsetzung mittels Grafikhardware. Es bleibt lediglich zu klären, wie Sie die Tiefenwerte aufsummieren. Deren Berechnung können Sie leicht in einem Vertex Shader erledigen. Das Problem ist das Aufsummieren selbst: Ein Framebuffer hat eine Genauigkeit von 8 Bit pro Farbkomponente. Bei der Akkumulation mehrerer Werte und anschließender Differenz&shy;bildung bleibt Ihnen eine Genauigkeit von wenigen Bits für die Repräsentation der zurückgelegten Strecke. Somit ist dieser Ansatz nicht zu gebrauchen.</p>
+		<figure class="floatright">
+			<img src="assets/200310_4.jpg" width="447" height="215" alt="Abbildung: So wird die Tiefe in den RGB-Werten kodiert.">
+			<figcaption><span>Abbildung:</span> So wird die Tiefe in den RGB-Werten kodiert.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200310_5.jpg" width="256" height="64" alt="Verlauf: Mit dieser Textur werden die Farbwerte den Strecken durch das Material zugewiesen.">
+			<figcaption><span>Verlauf:</span> Mit dieser Textur werden die Farbwerte den Strecken durch das Material zugewiesen.</figcaption>
+		</figure>
+		<p>Auch die Framebuffers mit Floating-Point-Genauigkeit, die von den neuesten Grafikkarten unterstützt werden, können Sie nicht verwenden. Der Grund ist, dass Sie Werte aufsummieren wollen, was zunächst nichts anderes ist als additives Blending. Leider unterstützt bislang keine Grafikkarte solche Operationen bei Floating Point Rendertargets. Aber Sie können sich mit einem Trick weiterhelfen, der es Ihnen gestattet, einen Wert mit hoher Genauigkeit in einem herkömmlichen RGBA-32-Bit-Rendertarget zu speichern. Dabei wird ein Float-Wert <i>D</i> (aus dem Intervall <i>[0;1]</i>) auf alle vier Komponenten <i>R, G, B, A</i> verteilt:</p>
+		<pre><code>
+R = frac(D * 1.0)
+G = frac(D * 2<sup>L</sup>)
+B = frac(D * 2<sup>2L</sup>)
+A = frac(D * 2<sup>3L</sup>)
+		</code></pre>
+		<p>Die Funktion <i>frac(..)</i> liefert dabei jeweils den Nachkomma-Anteil des Arguments zurück.</p>
+		<p>Die Konstante <i>L</i> bestimmt, wie sich die Floating-Point-Zahl auf die vier Komponenten aufteilt. Jede dieser vier Komponenten wird für die Verwendung im Framebuffer auf 8 Bit quantisiert. Eben wegen dieses herkömmlichen Framebuffers können Sie mit einer derartigen Repräsentation alle Blending-Modi der Grafikkarte nutzen. Wenn Sie für <i>L</i> den Wert 8 verwenden, schöpfen Sie die Genauigkeit des Framebuffers voll aus. Wollen Sie allerdings mehrere solcher kodierten Werte aufsummieren, müssen Sie kleinere Werte wählen. Sie können dann genau <i>2<sup>(8-L)</sup></i> Werte aufsummieren. Diese Werte können Sie etwa mit einem Pixel Shader in nur einem Befehl dekodieren! Bei der benötigten Operation handelt es sich um ein einfaches Skalarprodukt, wobei jede Komponente mit einer Konstanten multipliziert und anschließend aufsummiert wird:</p>
+		<pre><code>
+D = R * 1.0 + G * 2<sup>-L</sup> + B * 2<sup>-2L</sup> +
+	A * 2<sup>-3L</sup> = (R,G,B,A) T dot (1.0, 2<sup>-L</sup> , 2<sup>-2L</sup> ,2<sup>-3L</sup>)<sup>T</sup>
+		</code></pre>
+		<p>Diese Operationen müssen Sie allerdings jeweils mit Floating-Point-Genauigkeit ausführen, benötigen aber dafür keine Grafikkarte der neuesten Generation. Es genügt bereits eine GeForce-3-Karte, um diese Effekte darzustellen.</p>
+	</section>
+
+	<aside>
+		<h2>Subsurface Scattering</h2>
+		<div>
+		<figure class="large">
+			<img src="assets/200310_3.jpg" width="477" height="215" alt="Unterschied: Die BRDFs (links) können nur lokale Beleuchtungseffekte beschreiben. Die BSSRDF (rechts) erfassen den Lichttransport durch das Material.">
+			<figcaption><span>Unterschied:</span> Die <i>BRDFs</i> (links) können nur lokale Beleuchtungseffekte beschreiben. Die <i>BSSRDF</i> (rechts) erfassen den Lichttransport durch das Material.</figcaption>
+		</figure>
+
+			<p>Mit dem Rendering von Subsurface Scattering, also von allen Lichtreflexions&shy;prozessen innerhalb eines Körpers, in Echtzeit bzw. mit interaktiven Frame Rates beschäftigt sich derzeit auch die Forschung. Ein kurzer Einblick in die Theorie: Ein allgemeines Modell für die lokale Beleuchtungs&shy;berechnung sind die so genannten Bidirectional Reflectance Distribution Functions (BRDFs). Diese Funktionen bestimmen für einen Oberflächen&shy;punkt, den Teil des auftreffenden Lichtes, der aus einer in eine andere Richtung reflektiert wird. Es handelt sich dabei also um vier&shy;dimensionale Funktionen – zwei Dimensionen pro Richtung. Diese Funktionen können natürlich nicht den Lichttransport durch das Material modellieren. Deshalb gibt es eine weiter verallge&shy;meinerte Klasse von Funktionen, die <i>Bidirectional Surface Scattering Reflectance Distribution Function</i> (BSSRDF). Sie beschreiben den Lichttransport zwischen zwei Lichtstrahlen, die auf der Oberfläche auftreffen oder abgehen, und sind daher acht&shy;dimensional. Aufgrund der Komplexität sind diese Funktionen nicht für Echtzeit-Rendering zu gebrauchen, können aber durch geeignete Verfahren und bestimmte Materialen gut approximiert werden.</p>
+			<p>Das Prinzip dahinter: Die BSSRDF können Sie für stark lichtstreuende Materialtypen sehr wirklichkeits&shy;getreu gestalten, indem nur Mehrfach&shy;streuung angenommen wird. Strahlen, die nur einmal gestreut wurden und das Material gleich wieder verlassen, sind dabei selten.<br>
+			● In einem ersten Abschnitt wird das eintreffende Licht auf der Oberfläche berechnet, etwa an vielen Punkten, die zufällig auf der Oberfläche verteilt sind. Die Menge des Lichtes, das jeweils reflektiert wird bzw. in das Material eindringt, hängt vom so genannten <i>Fresnel Term</i> ab.<br>
+			● Im zweiten Abschnitt wird anschließend der Lichttransport durch das Material berechnet. Für jeden Oberflächen&shy;punkt bestimmen Sie die Menge des Lichts, das von allen anderen Oberflächen&shy;punkten zu einem Punkt dringt. Dieser Term lässt sich berechnen: Er hängt von der Transport&shy;richtung und -strecke des Lichts und der Normalen am Eintrittspunkt eines Lichtstrahls ab. Doch selbst mit diesem Verfahren benötigen Sie noch einige Sekunden pro Bild! Doch mit moderner Grafikhardware sind interaktive Frame Rates zu erreichen, wie die Literatur angibt.</p>
+			<p>
+				<a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a><br>
+				<a href="https://www.ati.com" rel="external nofollow noreferrer">www.ati.com</a><br>
+				<a href="https://www.nvidia.com" rel="external nofollow noreferrer">www.nvidia.com</a><br>
+				<a href="https://graphics.stanford.edu/papers/bssrdf/" rel="external nofollow noreferrer">http://graphics.stanford.edu/papers/bssrdf/</a><br>
+				<a href="https://www9.informatik.uni-erlangen.de/Research/Rendering/TSM" rel="external nofollow noreferrer">http://www9.informatik.uni-erlangen.de/Research/Rendering/TSM</a>
+			</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Rendertargets anlegen</h2>
+		<p>Für diesen Spezialeffekt benötigen Sie mehrere Renderpasses, deren Resultate erst später mit dem endgültigen Bild kombiniert werden. Mit Direct3D ist es einfach, in eine Textur statt in den Framebuffer zu zeichnen. Sie müssen das lediglich beim Anlegen der Textur berück&shy;sichtigen. Das erledigen Sie während der Initialisierung. Beachten Sie dabei, dass eine Textur, die als Rendertarget verwendet wird, auch einen eigenen Z-Buffer besitzt:</p>
+		<pre><code>
+LPDIRECT3DTEXTURE9 pDynamicTexture;
+LPD3DXRENDERTOSURFACE pRenderSurface;
+LPDIRECT3DSURFACE9 pTextureSurface;
+
+// dynamische Textur erzeugen
+D3DXCreateTexture (....);
+
+// Off-Screen Surface anlegen
+D3DSURFACE_DESC desc;
+pDynamicTexture-&gt;GetSurfaceLevel(0,
+	&amp;pTextureSurface);
+pTextureSurface-&gt;GetDesc(&amp;desc);
+D3DXCreateRenderToSurface(....);
+		</code></pre>
+		<p>Wenn Sie nun diese Textur als Rendertarget statt des normalen Framebuffers verwenden wollen, modifizieren Sie die <i>BeginScene/EndScene</i>-Aufrufe:</p>
+		<pre><code>
+pRenderSurface-&gt;BeginScene(pTextureSurface, NULL);
+pD3DDevice-&gt;Clear(...);
+renderScene();
+pRenderSurface-&gt;EndScene(0);
+		</code></pre>
+		<p>Den Inhalt der Textur können Sie wie jede andere für ein anderes Rendertarget mit</p>
+		<pre><code>
+pD3DDevice-&gt;SetTexture(0, pDynamicTexture)
+		</code></pre>
+		<p>verwenden.</p>
+	</section>
+
+	<section>
+		<h2>Codierung und Akkumulation der Tiefenwerte</h2>
+		<figure class="large">
+			<img src="assets/200310_6.jpg" width="698" height="169" alt="Farbberechnung: Tiefenwerte für Vorder- und Rückseiten werden aufsummiert, die Differenz ist die Farbe.">
+			<figcaption><span>Farbberechnung:</span> Tiefenwerte für Vorder- und Rückseiten werden aufsummiert, die Differenz ist die Farbe.</figcaption>
+		</figure>
+		<p>Im zweiten Schritt müssen Sie die Tiefenwerte jeweils für die Front und Back Faces getrennt aufsummieren. Zunächst müssen Sie diese aber für jeden Pixel berechnen. Die Berechnung beginnt in einem Vertex Shader. Dieser transformiert natürlich die Vertex Koordinaten entsprechend der <i>konkatenierten</i> Projektion und <i>World Matrix</i> (gespeichert in den Konstanten <i>c0</i> bis <i>c3</i>). Als Tiefenwert verwenden Sie die vierte Komponente (homogene Koordinaten) dieses Resultats, die Sie noch abhängig von den <i>Near</i> und <i>Far Planes</i> auf das Intervall <i>[0;1]</i> abbilden:</p>
+		<pre><code>
+vs.1.0
+...
+; Tiefenwert berechnen
+dp4 r0.w, v0, c3
+
+; Abbilden auf [0;1]
+mad r0, r0.w, c10.xxxz, c10.yyyw
+		</code></pre>
+		<p>Die Konstante <i>c10</i> enthält dabei:</p>
+		<pre><code>
+c10.x = 1.0 / (zFar – zNear)
+c10.y = -zNear / (zFar – zNear)
+c10.z = 0.0
+c10.w = 1.0
+		</code></pre>
+		<p>Die Kodierung des Tiefenwerts muss nun in der Fragment-Stufe über die Bühne gehen. Wenn Sie sich auf eine Kodierung in drei der Farb&shy;komponenten beschränken, was immer noch eine genaue Darstellung ist, können Sie das durch eine 3D-Textur erledigen. Dazu berechnen Sie im Vertex Shader lediglich die Textur-Koordinaten:</p>
+		<pre><code>
+mul oT0, r0, c20
+		</code></pre>
+		<p>Wobei die Konstante <i>c20</i> den Vektor <i>(1.0, 2L,</i> <i>22L, 0.0)T</i> enthält. Unser Beispiel&shy;programm wählt für <i>L</i> den Wert <i>4</i>, womit Sie mindestens 16 Tiefenwerte fehlerfrei akkumulieren können. Die 3D-Textur muss also <i>16x16x16</i> Werte enthalten, wobei Sie den Farbwert eines Texels (32 Bit ARGB) bestimmen. Der Wertebereich pro Komponente liegt von <i>0-255</i>:</p>
+		<pre><code>
+// pRampTexture
+for(z = 0..16)
+	for(y = 0..16)
+		for (x = 0..16)
+			tex3d(x, y, z) = (x << 16) | (y << 8) | x;
+		</code></pre>
+		<p>Die Abbildung(links unten) verdeutlicht, wie sich Tiefenwerte auf den RGB-Tripel darstellen. Gehen Sie beim Rendering (pro Frame) zunächst wie folgt vor: Im Rendertarget <i>#1</i> akkumulieren Sie die Tiefenwerte der Back Faces. Dazu schalten Sie den Z-Buffer-Test aus, denn jede Fläche soll gezeichnet werden:</p>
+		<pre><code>
+pD3DDevice-&gt;SetRenderState(D3DRS_ZENABLE, false);
+pD3DDevice-&gt;SetRenderState(D3DRS_ZWRITEENABLE, false);
+		</code></pre>
+		<p>Das Akkumulieren erledigen Sie mittels additivem Blending:</p>
+		<pre><code>
+pD3DDevice-&gt;SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+pD3DDevice-&gt;SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+pD3DDevice-&gt;SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+pD3DDevice-&gt;SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+		</code></pre>
+		<p>Anschließend aktivieren Sie den obigen Vertex Shader, setzen die Abbildungs&shy;matrizen und zeichnen die Back Faces der durch&shy;scheinenden Objekte:</p>
+		<pre><code>
+pD3DDevice-&gt;SetTexture(...);
+pD3DDevice-&gt;SetSamplerState(...);
+pD3DDevice-&gt;SetSamplerState(...);
+
+// Render Back Faces
+pD3DDevice-&gt;SetRenderState(...);
+obj-&gt;drawModel(pD3DDevice);
+		</code></pre>
+		<p>Im zweiten Rendertarget gehen Sie analog vor, abgesehen davon, dass Sie mit <i>D3DCULL_CCW</i> die Front Faces zeichnen.</p>
+	</section>
+
+	<section>
+		<h2>Differenz und Dekodieren</h2>
+		<figure class="floatright">
+			<img src="assets/200310_7.jpg" width="451" height="440" alt="Optische Aufbesserung: Die zusätzliche lokale Beleuchtung fügen Sie durch Addition der Farbwerte hinzu.">
+			<figcaption><span>Optische Aufbesserung:</span> Die zusätzliche lokale Beleuchtung fügen Sie durch Addition der Farbwerte hinzu.</figcaption>
+		</figure>
+		<p>Für die bisherigen Operationen brauchen Sie keine Unterscheidung, ob Sie eine neue oder ältere Grafikkarte programmieren. Die folgenden Teilaufgaben lassen sich mit einer Grafikkarte, die Pixel Shader der Version 2 unterstützt, einfacher ausführen. Deshalb betrachten Sie zunächst diese Variante.</p>
+		<p>Zunächst lesen und subtrahieren Sie die kodierten Tiefenwerte der beiden Rendertargets. Nach der Dekodierung per Skalarprodukt wandeln Sie die resultierende Tiefen&shy;differenz in einen Farbwert um. Dazu verwenden Sie eine Textur mit einem entsprechenden Farbverlauf, den Sie dann auslesen.</p>
+		<p>Sie beginnen, ein Rechteck über den gesamten sichtbaren Bereich zu zeichnen. Auf dieses Rechteck bilden Sie die obigen Rendertargets als Textur <i>#0</i> und <i>#1</i> ab. Auf die dritte Textur-Stage legen Sie die Textur mit dem Farbverlauf, die Textur-Stage <i>#2</i> halten Sie für einen zusätzlichen Effekt zunächst frei. Für das Zeichnen dieses Rechtecks verwenden Sie den folgenden Pixel Shader (Version 2.0), bei dem die Deklaration der Textur-Stages entfällt.</p>
+		<p>Als Erstes lesen Sie die Texturen mit den Tiefenwerten aus, subtrahieren diese und berechnen das Skalarprodukt zum Dekodieren:</p>
+		<pre><code>
+ps.2.0
+...
+texld r8, t0, s0
+texld r9, t1, s1
+sub r0, r8, r9
+dp4_sat r0, r0, c20
+		</code></pre>
+		<p>Die Konstante <i>c20</i> enthält den bereits erwähnten Vektor <i>(1.0, 2-L, 2-2L, 0.0)T</i>, den Sie aber mit einer beliebigen Konstante multiplizieren können, um eine variable Dichte des Materials zu modellieren.</p>
+		<p>Mit der berechneten Tiefen&shy;differenz greifen Sie auf die Textur mit dem Farbverlauf zu und verwenden das Resultat als endgültigen Farbwert:</p>
+		<pre><code>
+texld r0, r0, s3
+mov oC0, r0
+		</code></pre>
+		<p>Der oben erwähnte Spezialeffekt ist eine zusätzliche lokale Beleuchtungs&shy;berechnung, um etwa Glanzlichter auf den durch&shy;scheinenden Objekten darzustellen. Sehen Sie, wie zwei Bestandteile das endgültige Bild ergeben.</p>
+		<p>Diese lokale Beleuchtungs&shy;berechnung rendern Sie, bevor Sie das Bild endgültig zeichnen, in ein weiteres Rendertarget. Diese Textur können Sie analog auslesen und einfach zu dem Farbwert addieren:</p>
+		<pre><code>
+texld r10, t2, s2
+add r0, r0, r10
+mov oC0, r0
+		</code></pre>
+		<p>Etwas komplizierter fällt diese Berechnung für ältere Grafikkarten aus. Denn dort besteht das Problem, dass Sie nicht in einem Renderpass Textur&shy;koordinaten beliebig berechnen (in diesem Fall die dekodierte Tiefe) und gleich damit auf eine Textur zugreifen können. Deshalb müssen Sie die Auswertung in zwei Renderpasses aufteilen.</p>
+		<p>Im ersten Pass führen Sie lediglich die Subtraktion durch. Dazu legen Sie die beiden Rendertargets mit den akkumulierten Tiefenwerten auf die ersten beiden Textur-Stages und zeichnen wieder ein Rechteck über den Bildschirm. Dabei verwenden Sie den folgenden Pixel Shader, um die Werte zu subtrahieren und anschließend <i>0.5</i> auf jede Komponente zu addieren (Konstante <i>c3</i>):</p>
+		<pre><code>
+ps.1.0
+...
+tex t0 tex t1
+add r0, t1, -t0
+add r0, r0, c3
+		</code></pre>
+		<p>In diesem Renderpass zeichnen Sie noch nicht in den später sichtbaren Back Buffer, sondern nochmals in ein extra Rendertarget. Diese verwenden Sie nun im endgültig letzten Renderpass als Textur auf Stage <i>#0</i>. Der Pixel Shader für das Dekodieren sieht wie folgt aus:</p>
+		<pre><code>
+ps.1.0 tex t0
+; Skalarprodukt: t1 dot (2 * (t0 - 0.5))
+texm3x2pad t1, t0_bx2
+texm3x2tex t2, t0_bx2
+tex t3 ; lokale Beleuchtung auslesen
+add r0, t2, t3 ; Finaler Farbwert
+		</code></pre>
+		<p>Die zwei Textur-Operationen zu Beginn des Shaders müssen zusammen auftreten, können also nicht einzeln verwendet werden.</p>
+		<p>Sie berechnen das Skalarprodukt von dem ausgelesenen Farbwert der Textur <i>#0</i> (Register <i>t0</i>) und dem Wert in der Textur Koordinate <i>t1</i>. Der Register Modifier <i>_bx2</i> bewirkt, dass von den RGBA-Werten aus der Textur <i>#0</i> zunächst <i>0.5</i> abgezogen und anschließend mit <i>2.0</i> multipliziert wird. Vielleicht fragen Sie sich, was es nun mit dieser Befehls&shy;konstellation auf sich hat?</p>
+		<p>Wenn Sie einen kleinen zusätzlichen Vertex Shader für diesen Renderpass verwenden, der in die Textur-Koordinate <i>t1</i> jeweils den Vektor <i>(1.0, 2-L, 2-2L, 0.0)T</i> schreibt, führen Sie so das Dekodieren der Tiefe und das Auslesen der Farbverlauf-Textur (auf Stage <i>#2</i>) aus. Der Rest des Pixel Shaders liest lediglich wieder die lokale Beleuchtung aus und addiert diese zu dem vorher bestimmten Farbwert.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200309.html">9/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200311.html">11/2003</a>
+	</nav>
+</body>

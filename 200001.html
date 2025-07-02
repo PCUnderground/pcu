@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Primitive in Perfektion (PC Underground, PC Magazin 1/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;1/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+	<nav class="pagenav">
+		<a rel="prev" href="199912.html">12/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200002.html">2/2000</a>
+	</nav>
+	<article>
+
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/98/NT</h2>
+		<h1><span class="highlight">Primitive</span> in Perfektion</h1>
+		<p class="summary">Zwei neue Klassen von Primitiven vervoll&shy;ständigen den bisher entwickelten Raytracer, den Sie zudem <span class="highlight"> gezielt optimieren</span>.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Unsere Welt besteht aus einer Vielzahl von Formen. Daher verlangt die Gestaltung wirklichkeits&shy;getreuer Szenerien in einem Raytracer auch nach komplexeren Objekten. Diese bauen Sie am einfachsten aus Polygonen und sogenannten CSG-Primitiven (Constructed Solid Geometry) zusammen. Dadurch steigt der Anspruch an die Rechen-Performance – dem werden Sie durch gezielte Verbesserungen gerecht.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Polygon-Primitive</h2>
+		<p>An dieser Stelle lernen Sie die Primitive kennen, die Sie wahrscheinlich schon am längsten vermißt haben: Polygone. Wir beschränken uns dabei auf ihre einfachsten Vertreter, die Dreiecke. Für Schnittpunkt&shy;berechnungen mit Dreiecken existieren verschiedener Algorithmen. Wir stellen Ihnen das allgemeine Prinzip vor – eine besonders elegante Variante finden Sie im Quellcode. Sie stammt aus dem <i>Journal of Graphics Tools</i> (siehe Literaturtips am Ende).</p>
+		<p>Ein Dreieck definieren Sie durch seine drei Eckpunkte. Vielleicht erinnern Sie sich, daß Sie auf die gleiche Weise auch eine Ebene im Raum plaziert haben. Um einen Schnittpunkt mit einem Dreieck zu besitzen, muß eine Gerade notwendiger&shy;weise auch die Ebene schneiden, in der das Dreieck liegt – also die Ebene, die durch die drei Eckpunkte bestimmt wird.</p>
+		<p>Zudem muß der berechnete Schnittpunkt innerhalb des Dreiecks liegen. Betrachten Sie dazu das Koordinaten&shy;system in der Abbildung unten.</p>
+		<p>Dort finden Sie die Funktion <span class="code">y = -x + 1</span> eingezeichnet. Durch Umformen erhalten Sie daraus <span class="code">x + y = 1</span>. Außerdem sehen Sie im Bild ein Dreieck, dessen linker unterer Eckpunkt durch den Ortsvektor <i>a⃗</i> festgelegt ist und dessen Kanten mit <i>b⃗</i> bzw. <i>c⃗</i> beschriftet sind.</p>
+		<p>Definieren Sie, daß der Einheitsvektor der x-Achse gleich <i>b⃗</i> und der Einheitsvektor der y-Achse gleich <i>c⃗</i> ist, können Sie in der obigen Formel <i>x</i> durch <i>u, y</i> durch <i>v</i> und das Gleichheits&shy;zeichen durch „kleiner gleich“ ersetzen. Daraus ergeben sich folgende Bedingungen für die Dreiecksfläche:</p>
+		<pre><code>
+u + v <= 1
+u >= 0
+v >= 0
+		</code></pre>
+		<p>Die Werte <i>u</i> und <i>v</i> für einen berechneten Schnittpunkt <i>s⃗</i> der Geraden mit der Ebene entnehmen Sie dem Skalarprodukt. Dieses berechnet, wie lang die Projektion eines Vektors auf einen anderen ist. Die Differenz zwischen <i>s⃗</i> und <i>a⃗</i> ergibt genau den Vektor, den Sie auf die Kanten des Dreiecks projizieren:</p>
+		<pre><code>
+x⃗= s⃗- a⃗
+u<sup>1</sup> = x⃗ * b⃗
+v<sup>1</sup> = x⃗ * c⃗
+		</code></pre>
+		<p>Für das Skalarprodukt gilt ganz allgemein:</p>
+		<pre><code>
+t * (x⃗* y⃗) = (t * x⃗) * y⃗
+		</code></pre>
+		<p>Um <i>u<sup>1</sup></i> und <i>v<sup>1</sup></i> richtig zu skalieren, genügt es daher, sie durch die Länge der Kanten zu teilen:</p>
+		<pre><code>
+u = u <sup>1</sup> / |b⃗|
+v = v <sup>1</sup> / |c⃗|
+		</code></pre>
+		<p>Daraus ersehen Sie, ob der Schnittpunkt im Dreieck liegt:</p>
+		<pre><code>
+if (u &gt; 0 &amp;&amp; v>0 &amp;&amp; (u + v) &lt;= 1)
+	return true;
+else
+	return false;
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200001_1.png" width="577" height="259" alt="ANHAND DER WERTE u und v sehen Sie, ob ein Punkt im Dreieck liegt.">
+			<figcaption><span>ANHAND DER WERTE</span> <i>u</i> und <i>v</i> sehen Sie, ob ein Punkt im Dreieck liegt.</figcaption>
+		</figure>
+		<p>Nachdem Sie jetzt Schnittpunkte mit Dreiecken berechnen können, bleibt die Frage der Beleuchtung. Natürlich haben Dreiecke eine gerade Oberfläche – genauso wie die Ebenen, in denen sie liegen. Die Normale bleibt also überall dieselbe. Daher bräuchten Sie nur die einmal berechnete Normale in der Beleuchtungs&shy;gleichung verwenden.</p>
+		<p>Allerdings dienen Dreiecke oft dazu, beliebig geformte Flächen anzunähern. Um zum Beispiel runde Flächen rund erscheinen zu lassen, benötigen Sie eigentlich Unmengen von Dreiecken. Dadurch steigt auch der Rechenaufwand immens. Möchten Sie mit wenigen Dreiecken auskommen, können Sie zumindest in der Beleuchtung die Fläche runder erscheinen lassen, als sie wirklich ist.</p>
+		<p>Die Phong-Schattierung täuscht gewölbte Flächen durch die Interpolation des Normalen&shy;vektors vor. Dazu weisen Sie nicht jedem Dreieck, sondern jedem Eckpunkt eine Normale zu. Die Normale an einem Schnittpunkt innerhalb des Dreiecks erhalten Sie dann durch die Interpolation der Normalen an den drei Eckpunkten. Zu jedem Dreieck berechnen Sie dazu die Normale an einem der Eckpunkte sowie die Differenzen zu den Normalen an den zwei anliegenden Kanten.</p>
+		<figure class="floatright">
+			<img src="assets/200001_2.png" width="400" height="300" alt="DIE PHONG-SCHATTIERUNG rundet die Kanten des Springers etwas ab.">
+			<figcaption><span>DIE PHONG-SCHATTIERUNG</span> rundet die Kanten des Springers etwas ab.</figcaption>
+		</figure>
+		<p>Sind also <i>n⃗<sub>1</sub></i>, <i>n⃗<sub>2</sub></i> und <i>n⃗<sub>3</sub></i> die Normalen an den Eckpunkten, dann berechnen Sie:</p>
+		<pre><code>
+k⃗= n⃗<sub>2</sub> - n⃗<sub>1</sub>
+l⃗= n⃗<sub>3</sub> - n⃗<sub>1</sub>
+		</code></pre>
+		<p>Aus der Schnittpunkt&shy;berechnung besitzen Sie bereits die beiden Parameter <i>u</i> und <i>v</i>. Für die Normale am Schnittpunkt gilt dann:</p>
+		<pre><code>
+n⃗ = n⃗<sub>1</sub> + u * k⃗ + v * l⃗
+		</code></pre>
+		<p>Bevor Sie diese in die Berechnung der Beleuchtung einsetzen, normalisieren Sie sie noch: Auch wenn die ursprünglichen Normalen an den Eckpunkten bereits normalisiert vorliegen, ist durch die Interpolation nicht mehr gewährleistet, daß <i>n⃗</i> die Länge <i>1</i> besitzt.</p>
+		<p>In der Skriptsprache des Parsers können Sie sowohl Dreiecke mit konstanter Normale als auch solche mit Phong-Schattierung definieren. Ein 3D-Objekt aus Dreiecken beginnen Sie zunächst mit <span class="code">mesh {...}</span>
+		Innerhalb der geschweiften Klammern geben Sie die zwei Dreiecks&shy;primitive an:</p>
+		<pre><code>
+triangle
+{
+	&lt;x1, y1, z1&gt;, &lt;x2, y2, z2&gt;,
+	&lt;x3, y3, z3&gt;
+}
+		</code></pre>
+		<p>definiert Dreiecke mit konstanter Normale, die dann berechnet wird. Für Dreiecke mit Phong-Schattierung geben Sie in</p>
+		<pre><code>
+smooth_triangle
+{
+	&lt;x1, y1, z1&gt;, &lt;x2, y2, z2&gt;
+	&lt;x3, y3, z3&gt;, &lt;nx1, ny1, nz1&gt;
+	&lt;nx2, ny2, nz2&gt;, &lt;nx3, ny3, nz3&gt;
+}
+		</code></pre>
+		<p>zusätzlich noch die Normalen der Eckpunkte an.</p>
+		<p>Ein solches Polygonobjekt sehen Sie im Bild unten. Die Polygondaten dafür stammen aus einer mit POV-Ray generierten Szenerie.</p>
+	</section>
+
+	<section>
+		<h2>CSG-Primitive</h2>
+		<p>Auch wenn sich durch Polygone prinzipiell alle Oberflächen annähern lassen, ist dies manchmal nicht die einfachste oder genaueste Lösung. Dann eignet sich vielleicht eher die Klasse der durch Constructed Solid Geometry (CSG) erzeugten Körper. Hinter dieser Bezeichnung, die sich nur schwer ins Deutsche übersetzen läßt, verbirgt sich ein Verfahren, mit dem Sie zwei oder mehrere einfache Primitive wie Kugel, Ebene oder Zylinder miteinander verknüpfen.</p>
+		<p>Die möglichen Verknüpfungen sind dabei Vereinigung, Schnitt und Differenz. Diese Begriffe aus der Mengenlehre können Sie ohne weiteres auf die Primitive übertragen, da diese gewissermaßen Teilmengen des Raums darstellen. Anhand zweier Kugeln können Sie sich die erlaubten Operationen leicht vor Augen führen. Betrachten Sie dazu die rot schraffierte Schnittmenge zweier Kugeln im folgenden Bild.</p>
+		<figure class="floatright">
+			<img src="assets/200001_3.png" width="491" height="651" alt="DURCH SCHNITT und Differenz von Primitiven schaffen Sie CSG-Primitive.">
+			<figcaption><span>DURCH SCHNITT</span> und Differenz von Primitiven schaffen Sie CSG-Primitive.</figcaption>
+		</figure>
+		<p>Um die Schnittpunkte mit der Schnittmenge festzustellen, berechnen Sie zunächst alle Schnittpunkte der betrachteten Geraden mit den beiden Primitiven. Die Schnittpunkte mit der Schnittmenge finden Sie durch folgenden Algorithmus in Pseudocode:</p>
+		<pre><code>
+Betrachte alle Schnittpunkte der Primitive:
+	Ist der Punkt von Primitiv 1 und liegt in Primitiv 2
+	oder
+	ist der Punkt von Primitiv 2 und liegt in Primitiv 1
+dann Schnittpunkt gefunden
+		</code></pre>
+		<p>Sie sehen: Die Primitive – oder vielmehr die entsprechenden C++-Klassen – verlangen eine Methode, die angibt, ob ein Punkt im Inneren des Primitivs liegt. Im Falle der Kugel berechnet diese einfach den Abstand des Punkts vom Kugel&shy;mittelpunkt. Ist er kleiner oder gleich dem Radius, dann liegt der Punkt im Inneren.</p>
+		<p>Bei einer Ebene ist zunächst unklar, welche Seite den inneren bzw. äußeren Teil darstellen soll. Per Definition sei daher festgelegt, daß der Halbraum – eine Ebene teilt den Raum in zwei Hälften – außen ist, in den die Normale zeigt.</p>
+		<p>Dadurch reduziert sich der Aufwand für den Innen-/Außen-Test auf ein Skalarprodukt des zu prüfenden Punkts mit der Normalen, wovon Sie noch den (immer vorberechneten) Abstand der Ebene zum Ursprung subtrahieren. Ist das Resultat kleiner oder gleich Null, liegt der Punkt im Inneren.</p>
+		<p>Natürlich können Sie CSG-Objekte auch aus solchen Primitiven zusammensetzen, die ihrerseits CSG-Objekte sind. Auch diese haben alle für die Schnittpunkt&shy;berechnung notwendigen Methoden implementiert.</p>
+		<figure class="floatright">
+			<img src="assets/200001_4.jpg" width="318" height="238" alt="DIE AUGEN DES WÜRFELS sind halbkugelförmige Vertiefungen.">
+			<figcaption><span>DIE AUGEN DES WÜRFELS</span> sind halbkugelförmige Vertiefungen.</figcaption>
+		</figure>
+		<p>Eine weitere mögliche Verknüpfung zweier Objekte ist die Vereinigung. Diese gestaltet sich besonders einfach, da Sie alle Schnittpunkte der Einzel&shy;primitive auch als Schnittpunkte des CSG-Objekts verwenden können. Das ist deshalb erlaubt, da beim Raytracing sowieso der nächste Schnittpunkt gesucht wird. Alle weiter entfernten Schnittpunkte – auch die im Inneren des Vereinigungs&shy;objekts – fallen nicht ins Gewicht.</p>
+		<p>Die letzte Verknüpfungs&shy;methode ist die Differenz. Sie können sich das als das Heraus&shy;schneiden eines Objekts aus einem anderen vorstellen.</p>
+		<p>In diesem Fall gilt für die Schnittpunkt&shy;klassifikation:</p>
+		<pre><code>
+Betrachte alle Schnittpunkte der Primitive:
+	Ist der Punkt von Primitiv 1 und liegt nicht in Primitiv 2
+	oder
+	ist der Punkt von Primitiv 2 und liegt in Primitiv 1
+dann Schnittpunkt gefunden
+		</code></pre>
+		<p>Damit haben Sie das Prinzip der CSG-Objekte erfaßt. Ein Beispiel für ein komplexeres CSG-Objekt ist der Würfel in der Abbildung auf der nächsten Seite. Der Würfel ist die Schnittmenge aus sechs Ebenen. Die Vertiefungen der Augenzahlen entstehen durch heraus&shy;geschnittene Kugeln. Die Skriptdatei dazu finden Sie auf der Heft-CD bei den Quelltexten.</p>
+	</section>
+
+	<section>
+		<h2>Schnittpunkt&shy;berechnungen optimieren</h2>
+		<p>Wollen Sie die Berechnung eines Bilds mit dem Raytracer beschleunigen, beginnen Sie bei den am häufigsten verwendeten Routinen. Ihr Augenmerk fällt dabei wohl zuerst auf die Schnittpunkt&shy;berechnungen, die den größten Teil der Rechenzeit in Anspruch nehmen. An diesen mathematischen Problemen haben sich bereits viele versucht, und dement&shy;sprechend viele Algorithmen für Schnittpunkt&shy;berechnungen für Primitive aller Art gibt es.</p>
+		<p>Im Quelltext <i>RTTriangle.cpp</i> des Polygon&shy;primitivs finden Sie etwa einen eleganten Ansatz, um einen Schnittpunkt einer Gerade und eines Dreiecks zu berechnen. An dieser Stelle möchten wir Ihnen zeigen, wie Sie die Schnittpunkte einer Kugel anhand geometrischer Überlegungen schneller berechnen.</p>
+		<p>Vor einer Schnittpunkt&shy;berechnung wissen Sie nicht, ob es überhaupt einen Schnittpunkt gibt. Eine oft verwendete Technik bei der Optimierung von Schnittests ist es, durch möglichst einfache Berechnungen bereits sehr früh festzustellen, ob der Strahl das Objekt sicher verfehlt. Diese Tests werden Rejection-Tests genannt – verläuft der Test negativ, gibt es keinen Schnittpunkt. Für den Fall der Kugel betrachten Sie am besten die drei Skizzen unten, die sich jeweils nur in der Lage von <i>o⃗</i> unterscheiden. <i>o⃗</i> ist dabei der Startpunkt der Halbgeraden, ∂x⃗ die Richtung der Geraden. Für die Halbgerade gilt:</p>
+		<pre><code>x⃗ = o⃗ + t * ∂x⃗</code></pre>
+		<p>Schließlich gibt es noch den Vektor <i>c⃗</i> für den Kugelmittel&shy;punkt. Der erste Rejection-Test berücksichtigt die Lage der Kugel bezüglich <i>o⃗</i>. Von Interesse sind nur Kugeln, die vor dem Startpunkt der Geraden liegen. Dazu berechnen Sie den Vektor vom Startpunkt zum Kugelmittel&shy;punkt, also</p>
+		<pre><code>l⃗ = c⃗ - o⃗</code></pre>
+		<p>Daraus ermitteln Sie die quadrierte Länge von <i>l⃗</i> – also das Quadrat des Abstandes – mit:</p>
+		<pre><code>l<sup>2</sup> = l⃗ * l⃗</code></pre>
+		<p>Gleichzeitig haben Sie mit <i>r<sup>2</sup></i> das Quadrat des Kugelradius gegeben, der bei der Initialisierung eines Kugelobjekts vorberechnet wird. Damit entscheiden Sie nun folgendes: Ist <i>l<sup>2</sup></i> kleiner als <i>r<sup>2</sup></i>, befindet sich <i>o⃗</i> in der Kugel, und es gibt (genau) einen Schnittpunkt. Wollen Sie nur feststellen, ob es überhaupt einen Schnittpunkt gibt, können Sie an dieser Stelle die Berechnung abbrechen.</p>
+		<p>Da Sie allerdings den Schnittpunkt bestimmen wollen, berechnen Sie als nächstes die Projektion von <i>l⃗</i> auf <i>d⃗</i>. Dies geschieht mit dem Skalarprodukt</p>
+		<pre><code>d = l⃗ * ∂x⃗</code></pre>
+		<p>Nun wenden Sie den ersten Rejection-Test an: Liegt <i>o⃗</i> außerhalb der Kugel – also ist <i>l<sup>2</sup></i> größer als <i>r<sup>2</sup></i> –, und ist <i>d</i> negativ? Falls ja, gibt es keinen Schnittpunkt. Ansonsten fahren Sie mit der Berechnung fort.</p>
+		<p>Als nächstes interessiert Sie <i>m<sup>2</sup></i>, das Abstands&shy;quadrat des Kugelmittel&shy;punkts zu der Projektion von <i>l⃗</i>. Da es sich um ein rechtwinkliges Dreieck handelt, wenden Sie den Satz des Pythagoras an:</p>
+		<pre><code>m<sup>2</sup> = l<sup>2</sup> - d<sup>2</sup></code></pre>
+		<p>Nun sind Sie am zweiten Rejection-Test angelangt: Ist <i> m<sup>2</sup></i> größer als <i>r<sup>2</sup></i>, dann wird der Strahl am Objekt vorbeischießen, ansonsten sicher treffen. Im letzteren Fall existieren also Schnittpunkte, die es zu berechnen gilt. Lösen Sie dazu die Gleichung</p>
+		<pre><code>q<sup>2</sup>= r<sup>2</sup> - m<sup>2</sup></code></pre>
+		<p>Da wegen des letzten Rejection-Tests <i>m<sup>2</sup> &lt;= r<sup>2</sup></i> gilt, ist <i>q<sup>2</sup></i> größer oder gleich Null. Das bedeutet, daß Sie ohne Probleme die Wurzel daraus ziehen können:</p>
+		<pre><code>q = sqrt(q<sup>2</sup>)</code></pre>
+		<p>Um schließlich die Schnittpunkte zu bestimmen, berechnen Sie die Entfernungen zu den Schnittpunkten – also die Werte für <i>t</i> aus der Geraden&shy;gleichung. Dabei gilt:</p>
+		<pre><code>
+t1 = d - q
+t = d + q
+		</code></pre>
+		<p>Die Routine sieht dann in etwa folgendermaßen aus:</p>
+		<pre><code>
+bool RaySphereIntersect(VERTEX3D o, d, c, float r)
+{
+	VERTEX3D l = c - o;
+	Float d = l * d;
+	float l2 = l * l;
+	float r2 = r * r;
+
+	if(d &lt; 0 &amp;&amp; l2 &gt; r2) return 0;
+
+	float m2 = l2 - d2;
+	if(m2 &gt; r2) return 0;
+
+	q = sqrt(r2 - m2);
+	t1 = d-q;
+	t2 = d+q;
+	return 1;
+}
+		</code></pre>
+		<p>Wie Sie sehen, reduziert sich der Aufwand für eine Schnittpunkt&shy;berechnung im Vergleich zur ursprünglichen Implementierung in Ausgabe 10/99 deutlich. Der damalige Ansatz verfolgt gewissermaßen eine analytische Lösung und dient vor allem als Einführung in die Schnittpunkt&shy;berechnungen.</p>
+	</section>
+
+	<section>
+		<h2>Schnittpunkt&shy;berechnungen vermeiden</h2>
+		<p>Schnelle Algorithmen für effiziente Schnittpunkt&shy;berechnungen sind eine gute Grundlage für einen Raytracer. Bei Szenen mit Tausenden von Objekten wird Ihr Rechner trotzdem unerträglich lange arbeiten, da er für jedes Pixel des Bildes, für jede Rekursions&shy;tiefe und für jeden Schattenstrahl Schnittpunkt&shy;tests mit allen Objekten durchführen muß. Deshalb erzielen Sie bei komplexen Szenen deutliche Geschwindigkeits&shy;steigerungen, wenn Sie sich darüber Gedanken machen, wie Sie Schnitttests ganz vermeiden können.</p>
+		<figure class="large">
+			<img src="assets/200001_5.png" width="926" height="335" alt="MIT REJECTION-TESTS bestimmen Sie frühzeitig, ob der Strahl ein Objekt verfehlt.">
+			<figcaption><span>MIT REJECTION-TESTS</span> bestimmen Sie frühzeitig, ob der Strahl ein Objekt verfehlt.</figcaption>
+		</figure>
+		<p>Nutzen Sie für drei&shy;dimensionale Umgebungen das sogenannte Octrees-Verfahren: Octrees sind baumartige Speicher&shy;strukturen mit jeweils acht Nachfolgern.</p>
+		<p>Im zwei&shy;dimensionalen Raum läßt sich das Prinzip noch anschaulicher an den dort verwendeten Quadtrees verdeutlichen. Wie ihr Name besagt, besitzen diese jeweils vier Nachfolger.</p>
+		<p>Stellen Sie sich eine beliebige Anordnung mehrerer Objekte in einer Ebene vor, wie etwa in der Abbildung auf der nächsten Seite links oben. Nun ordnen Sie die Objekte in einer hierarchischen Struktur wie folgt an: Legen Sie ein möglichst kleines Quadrat so um die Objekte, daß diese vollständig darin enthalten sind. Vierteln Sie das Quadrat, und Sie erhalten vier kleinere, im ursprünglichen Quadrat enthaltene Quadrate. Diesen Vorgang wiederholen Sie so lange, bis jedes Quadrat entweder leer ist oder genau ein Objekt enthält. Sie erhalten dann ein Gittermuster.</p>
+		<figure class="floatright">
+			<img src="assets/200001_6.png" width="640" height="325" alt="REKURSIV BAUEN SIE einen Octree für eine Szene auf.">
+			<figcaption><span>REKURSIV BAUEN SIE</span> einen Octree für eine Szene auf.</figcaption>
+		</figure>
+		<p>Wollen Sie einen Schnittest eines Strahls mit einem Objekt durchführen, testen Sie nur die Objekte, bei denen Sie auch das dazugehörige Quadrat treffen.Trifft ein Strahl ein Quadrat nicht, so können Sie auch alle Objekte, die in den darin enthaltenen Quadraten liegen, von dem Schnittest ausschließen.</p>
+		<p>Bei den drei&shy;dimensionalen Octrees teilen Sie einen Würfel rekursiv in seine acht Unterwürfel auf. Um herauszufinden, wieviel Platz ein Primitiv benötigt, geben Sie einen möglichst kleinen Würfel an, der ein Primitiv vollständig enthält. Das gestaltet sich relativ einfach, wenn Sie einen Würfel – eine sogenannte Bounding Box – verwenden, dessen Kanten parallel zu den Koordinaten&shy;achsen verlaufen. Somit sind seine Seitenflächen parallel zu den x/y- und x/z-Ebenen des Koordinaten&shy;systems.</p>
+		<p>Solche Würfel heißen Axis-Aligned Bounding Boxes (AABBs). Eine AABB legen Sie durch zwei Ortsvektoren fest: Diese geben jeweils die minimalen bzw. maximalen x-, y- und z-Koordinaten an, die das einge&shy;schlossene Primitiv annimmt. Für eine Kugel bestimmen Sie eine AABB also wie folgt:</p>
+		<pre><code>
+Kugelmittelpunkt o⃗ = (x,y,z)
+Kugelradius r
+minV = (x-r, y-r, z-r)
+maxV = (x+r, y+r, z+r)
+		</code></pre>
+		<p>Nicht für alle Primitive können Sie ohne weiteres eine AABB bestimmen: Das Ebenenprimitiv besitzt zum Beispiel keine endliche Ausdehnung. Diese speziellen Primitive behandeln Sie deshalb unabhängig vom Octree-Verfahren.</p>
+		<p>Um den Octree für eine 3D-Szenerie aufzubauen, berechnen Sie die AABBs für alle Primitive, bei denen dies möglich ist. Dann bestimmen Sie einen Würfel, dessen Mitte im Koordinaten&shy;ursprung liegt und der alle AABBs enthält. Nun fügen Sie jedes Primitiv mit einer rekursiven Prozedur in den Octree ein. Die Speicherungs&shy;struktur eines Octree-Würfels bezeichnet man – analog zur Namengebung bei strukturierten Bäumen – als Node (Knoten).</p>
+		<p>Folgender Pseudecode fügt ein Objekt in den Octree ein:</p>
+		<pre><code>
+BOOL InsertObject(OCTREENODE *node, RTObject *o, const EXTEND *e)
+{
+	Liegt die AABB des Objekts (EXTEND e) in dem Node?
+	Wenn nein, return False;
+	if (noch nicht maximale Unterteilung)
+	{
+		Erzeuge 8 Unterwürfel
+		Versuche, das Objekt dort einzufügen
+	}
+	Wenn noch nicht eingefügt, dann in den aktuellen Octreenode einfügen
+	return True;
+}
+		</code></pre>
+		<p>Den programmierten Code zeigt der Ausschnitt aus der Datei <i>RTOctree.cpp</i> (Listing 1) auf der nächsten Seite oben.</p>
+		<p>Bei einer Schnittpunkt&shy;berechnung testen Sie einfach rekursiv den Octree mit den darin enthaltenen Objekten. Sie starten an der Wurzel, dem ersten Node des Octrees. Schneidet der Strahl die dazugehörige AABB, berechnen Sie die Schnittpunkte mit den Objekten in diesem Node.</p>
+		<figure class="floatright">
+			<img src="assets/200001_7.png" width="413" height="459" alt="DIE ROT MARKIERTEN WERTE sagen aus, ob der Strahl das Rechteck schneidet.">
+			<figcaption><span>DIE ROT MARKIERTEN WERTE</span> sagen aus, ob der Strahl das Rechteck schneidet.</figcaption>
+		</figure>
+		<p>Anschließend rufen Sie die Berechnungs&shy;routine für jeden der acht Subnodes (Unterwürfel) auf. Dadurch schließen Sie bei den meisten Schnittpunkt&shy;berechnungen viele Objekte durch wenige Schnittests mit AABBs aus.</p>
+		<p>Die Objekte, zu denen Sie keine AABBs berechnen konnten, speichern Sie in einer Liste. All diese Objekte unterziehen Sie wie bisher den Schnittpunkt&shy;tests. Die gesamte Schnittpunkt&shy;berechnung läuft schematisch wie im zweiten Listing auf der nächsten Seite.</p>
+		<p>Damit haben Sie fast alle Routinen für das Octree-Verfahren zusammen. Es fehlt noch der Schnittest für einen Strahl und eine AABB. Begrenzungs&shy;volumen für Körper wie AABBs sind in der 3D-Grafik ein weit&shy;verbreitetes Mittel für Geschwindigkeits&shy;steigerungen. Daher gibt es für solche Problem&shy;stellungen verschiedene Algorithmen.</p>
+		<p>Unser Raytracer verwendet die sogenannte Slab-Methode. Diese kommt auch mit Bounding Boxes zurecht, bei denen die Kanten nicht Axis-Aligned sind – also wie die AABBs an den Koordinaten&shy;achsen ausgerichtet. Der Begriff Slab bezeichnet hier zwei parallele Ebenen, die aus Geschwindigkeits&shy;gründen bei der Berechnung gruppiert sind.</p>
+		<p>Da eine AABB durch drei parallele Ebenenpaare begrenzt wird, können Sie sie durch drei Slabs darstellen. Diese Slabs benennen Sie mit <i>u, v</i> und <i>w</i>. Für ein Slab können Sie – analog zu Ebenen&shy;primitiven – Schnittpunkte berechnen. Da es sich immer um zwei Ebenen handelt, erhalten Sie jeweils einen maximalen und einen minimalen Wert für die Schnittpunkte.</p>
+		<p>In diese Werte – zum Beispiel <i>t_u_min</i> oder <i>t_v_max</i> – fließt noch der Faktor <i>t</i> aus der Geraden&shy;gleichung ein. Die nächste Berechnung ist dann der eigentliche Trick:</p>
+		<pre><code>
+t_min = max(t_u_min, t_v_min, t_w_min);
+t_max = min(t_u_max, t_v_max, t_w_max);
+		</code></pre>
+		<p>Bei <i>t_min <= t_max</i> schneidet der Strahl die Bounding Box, ansonsten verfehlt er sie. Den Sourcecode zu dieser Routine finden Sie in der Datei <i>RTOctree.cpp</i>. Der einfachere zwei&shy;dimensionale Fall in der Skizze unten veran&shy;schaulicht die Arbeitsweise recht gut.</p>
+		<p>Auch Slabs sind hier eine Dimension kleiner, also zwei parallele Geraden. In der Grafik sehen Sie eine zwei&shy;dimensionale Bounding Box aus zwei Slabs sowie zwei Geraden, an denen Schnittests durchgeführt werden sollen.</p>
+		<p>Im ersten Fall ist <i>t_min</i> das Maximum der Werte <i>t_u_min</i> und <i>t_v_min</i>, also <i>t_u_min</i>. Ebenfalls rot gekennzeichnet ist <i>t_v_max</i>, was dem Minimalwert <i>t_max</i> von <i>t_u_max</i> und <i>t_v_max</i> entspricht. Da <i>t_min</i> kleiner als <i>t_max</i> ist, schneidet die linke Gerade die Bounding Box.</p>
+		<p>Im zweiten Fall ist <i>t_min = t_v_min</i> größer als <i>t_max = t_u_max</i>. Daher zielt die rechte Gerade an der Bounding Box vorbei.</p>
+		<p>Mit dem fertigen Raytracing-Programm <i>OORT.exe</i> können Sie nun faszinierende Computerwelten entwerfen und beleuchten. Berechnen Sie schöne Bilder damit, und schicken Sie sie uns zu – wir freuen uns auf Ihre Zusendung.</p>
+		<p>Selbstver&shy;ständlich können Sie das Programm um neue Primitive, Lichtquellen, Beleuchtungs&shy;methoden oder Optimierungen erweitern. Möchten Sie sich weiter über Raytracing informieren, empfehlen wir Ihnen die im Anschluß zitierte Literatur sowie einen Blick in den Sourcecode von POV-Ray. Dessen Webseite finden Sie unter <a href="https://www.povray.org" rel="external nofollow noreferrer">www.povray.org</a></p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur zum Thema Raytracing:</b></p>
+		<p class="footnote">Journal of Graphics Tools (JGT): Online-Magazin, erhältlich unter <a href="www.acm.org/jgt">www.acm.org/jgt</a></p>
+		<p class="footnote">Foley, van Dam, Feiner, Hughes, Phillips: Grundlagen der Computergrafik, Addison Wesley 1994, 100 Mark, ISBN 3-89319-647-1</p>
+		<p class="footnote">Wilt: Object-Oriented Raytracing in C++, John Wiley &amp; Sons 1993, etwa 130 Mark, ISBN 0-47130-415-8</p>
+		<p class="footnote">Watkins, Coy, Finlay: Fotorealismus und Raytracing in C, Heise-Verlag 1993, 88 Mark, ISBN 3-88229024-2</p>
+		<p class="footnote">Müller, Haines: Real-Time Rendering, AK Peters Ltd., ISBN 1-56881-101-2</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199912.html">12/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200002.html">2/2000</a>
+	</nav>
+</body>

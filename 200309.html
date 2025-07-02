@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Grafik durch die Pipeline jagen (PC Underground, PC Magazin 9/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;9/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200308.html">8/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200310.html">10/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Direct-3D-9 – Teil III</h2>
+		<h1>Grafik durch die <span class="highlight">Pipeline</span> jagen</h1>
+		<p class="summary">Direct3D bietet die einheitliche Schnittstelle, um moderne Grafikkarten anzusprechen. Sie programmieren die Grafikpipeline mit den <span class="highlight">Vertex und Pixel Shader</span>. Dadurch eröffnet sich Ihnen eine Fülle von Grafikeffekten. Wenn Sie 3D-Modelle ins Wavefront Format konvertierten, helfen Ihnen Modeling-Programme.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>In den ersten beiden Teilen unseres Direct3D-9-Tutorials haben Sie die Grundlagen für stabile und effiziente Direct3D-Programme kennen gelernt. Für imposante 3D-Effekte benötigen Sie aber mehr: zum Einen Daten und 3D-Modelle, zum Anderen die Fähigkeit, moderne Grafikkarten zu programmieren. Und genau um diese beiden Punkte kümmern Sie sich in diesem Artikel!</p>
+		<p>Im Falle der hardware&shy;beschleunigten 3D-Grafik, gibt es zwei Wege, wie die Geometrie&shy;verarbeitung stattfinden kann. In der ersten, bereits bekannten, Variante arbeiten Sie mit der so genannten <i>Fixed Function Pipeline</i>. Dabei handelt es sich um den Teil der GPU, der die herkömmliche Transformations- und Beleuchtungs&shy;berechnung durchführt. Die Funktionalität ist hier fixiert. Sie können lediglich die Eingabedaten festlegen, also z.B. Renderstates, Lichtquellen und Material&shy;parameter.</p>
+		<figure class="large">
+			<img src="assets/200309_1.jpg" width="800" height="239" alt="Programmierbar: Die Grafikpipeline bietet zwei Stellen, an denen Sie selbst das Geschehen bestimmen können: bei den Vertex und Pixel Shader.">
+			<figcaption><span>Programmierbar:</span> Die Grafikpipeline bietet zwei Stellen, an denen Sie selbst das Geschehen bestimmen können: bei den Vertex und Pixel Shader.</figcaption>
+		</figure>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200309.zip">💾 200309.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Vertex und Pixel Shader</h2>
+		<p>Die Vertex Shader (im OpenGL Kontext Vertex Programs) können die Fixed Function Pipeline ersetzen. Anstatt Parameter zu setzen, um die Pipeline zu konfigurieren, schreiben Sie ein Vertex Shader Programm, das in der GPU ausgeführt wird. Ein solches Programm verarbeitet jeweils nur einen einzigen Vertex. Sie können damit keine Vertices erzeugen oder eliminieren. Solche Programme setzen Sie z. B. ein, um Koordinaten zu berechnen oder prozedural Blending oder Deformationen zu erzeugen. Weiterhin können Sie damit Farbwerte, Textur-Koordinaten, Nebeleffekte und Punktgrößen berechnen. Die Ausgabedaten bestehen zumindest aus einer Clip-Space Koordinate, d.h. Sie müssen die 3D-Transformation des Vertex vornehmen und optional Farbwerte sowie Textur-Koordinaten und dergleichen berechnen.</p>
+		<p>Die Vertex Shader erlauben es Ihnen, eine Reihe von Grafikeffekten zu programmieren, die Sie bisher einzeln pro Bild mit der CPU berechnen mussten. Das Bild zeigt schematisch das Konzept der Vertex Shader (GeForce 3) an. Das Bild <i>Vertex Shader</i> verdeutlicht dies.</p>
+		<p>Unterschied&shy;liche Grafikhardware bietet verschieden leistungs&shy;fähige Vertex Shader an. Je nach GPU-Modell und -Generation unterscheiden sich die Anzahl der zur Verfügung stehenden Instruktionen pro Programm, die Zahl der Register und der Befehlsumfang. Die neuesten Grafikkarten bieten inzwischen auch Schleifen&shy;befehle an – bisher konnten Sie nur sequentiell alle Instruktionen abarbeiten!</p>
+		<p>Mit so genannten Pixel Shader (OpenGL Fragment Programs) programmieren Sie die Rechenwerte pro Pixel (bzw. Fragment), also von Farbwerten. Als solche Erweiterungen wie mit den nVidias Register Combiner eingeführt wurden, konnten Sie noch nicht von Programmierung sprechen – bestenfalls von Konfiguration: Sie konnten gerade einmal mehrere Berechnungs&shy;einheiten hintereinander schalten.</p>
+		<p>Auch wenn damals schon die tatsächlichen Ein&shy;schränkungen der Hardware durch eine Art Assembler&shy;sprache verbessert wurden, ist inzwischen ein Punkt erreicht, an dem die Hardware wirklich frei programmierbar ist. Diese Technik führten Karten wie die ATI Radeon 9500/9700 und nVidia GeForce FX GPUs ein, die Pixel Shader der Version 2.0 unterstützen.</p>
+	</section>
+
+	<section>
+		<h2>Vertex Shader in Direct3D </h2>
+		<figure class="floatright">
+			<img src="assets/200309_2.png" width="451" height="385" alt="Vertex Shader: Sie sehen den schematischen Aufbau – am Beispiel einer GeForce 3 GPU.">
+			<figcaption><span>Vertex Shader:</span> Sie sehen den schematischen Aufbau – am Beispiel einer GeForce 3 GPU.</figcaption>
+		</figure>
+		<p>Direct3D bietet im Gegensatz zu OpenGL (was sich allerdings mit OpenGL 2.0 erübrigen wird) eine einheitliche Schnittstelle, um programmier&shy;bare Grafikhardware anzusprechen. Allerdings müssen Sie abfragen, was Ihnen die verwendete GPU bietet. Wie bei jeder vergleichbaren Hardware verwenden Sie die Device Caps, um die entsprechende Information abzufragen. Um zu überprüfen, ob eine bestimmte Vertex Shader Version unterstützt wird, verwenden Sie folgende Zeilen:</p>
+		<pre><code>
+D3DCAPS9 caps;
+pD3D-&gt;GetDeviceCaps(D3DADAPTER_DEFAULT,
+	D3DDEVTYPE_HAL, &amp;caps);
+if(caps.VertexShaderVersion &lt; D3DVS_VERSION(1,0))
+	// keine Vertex Shader
+		</code></pre>
+		<p>Wenn keine Vertex Shader unterstützt werden, dann schlägt der obige Test fehl, überprüft aber weiter, ob wenigstens Version 1.0 unterstützt wird. Wenn Sie eine GeForce 3, Radeon 8500 oder neuere Grafikkarte besitzen, wird zumindest Version 1.1 unterstützt, die schon beachtliche Optionen bietet. Mit Vertex Shader 2.0 programmieren Sie zusätzlich Schleifen. Version 3 hingegen gibt es bislang nur auf dem Papier – es gibt noch keine Grafikhardware, die diese unterstützt.</p>
+		<p>Im Folgenden beschränken wir uns, ohne den Bezug zur Allgemein&shy;gültigkeit zu verlieren, auf Vertex Shader 1.1. Wie Sie in Bild <i>Vertex Shader</i> bereits gesehen haben, verfügen Sie über eine bestimmte Anzahl von Registern: Ein- und Ausgabe, Temporär-, Konstanten- und Adress-Register. Jedes Register ist ein Vektor, der aus vier Floating Point Zahlen besteht. Mit den Konstanten-Registern können Sie Daten von Ihrer Applikation an den Vertex Shader übergeben. Die Zahl der dazu zur Verfügung stehenden Konstanten-Register ist wieder in der Routine <i>D3DCAPS9.MaxVertexShaderConst</i> enthalten. Einen Überblick über die Register erhalten Sie in den beiden Tabellen.</p>
+	</section>
+
+	<aside>
+		<h2>Die Input Register der Vertex Shader 1.1</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Name</th><th>Typ</th><th>Anzahl</th><th>Daten</th><th>Zugriff</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>a0</td><td>Adressregister</td><td>1</td><td>Integer</td><td>schreiben/adressieren</td></tr>
+					<tr><td>c#</td><td>Float Konstante</td><td>mind. 96</td><td>4 x Float</td><td>definieren/lesen</td></tr>
+					<tr><td>r#</td><td>Arbeitsregister</td><td>12</td><td>4 x Float</td><td>schreiben/lesen</td></tr>
+					<tr><td>v#</td><td>Vertex Parameter</td><td>16</td><td>4 x Float</td><td>lesen</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<aside>
+		<h2>Nur Schreibzugriff auf die Output Register (VS 1.1</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Name</th><th>Typ</th><th>Daten</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>oD0/oD1</td><td>diffuse/spekulare Farbe</td><td>je 4 x Float</td></tr>
+					<tr><td>oFog</td><td>Nebel Intensität</td><td>1 x Float</td></tr>
+					<tr><td>oPos</td><td>Position<sup>*</sup></td><td>4 x Float</td></tr>
+					<tr><td>oPts</td><td>Punktgröße</td><td>1 x Float</td></tr>
+					<tr><td>oT#</td><td>8 Texture Koordinaten</td><td>je 4 x Float</td></tr>
+				</tbody>
+			</table>
+			<p><sup>*</sup>Alle vier Komponenten müssen von einem Vertex Programm gesetzt werden.</p>
+		</div>
+	</aside>
+
+	<section>
+		<p>Inzwischen gibt es eine Reihe verschiedener Wege, ein Vertex Shader Programm anzugeben. Die klassische Variante, die auch dieser Artikel verwendet, setzt auf eine Art Assembler&shy;sprache. Andere Varianten wären beispielsweise nVidias Cg oder die High-Level Shading Language (HLSL) von Direct3D, in denen Sie in einer C Syntax programmieren. Solche Hochsprachen bieten vor allem den Vorteil, einfache Teile eines Programms wiederzu&shy;verwenden und modular zu programmieren. Für komplexere Grafikeffekte werden Sie auch auf diese Variante zurückgreifen.</p>
+		<p>Nun geht es darum, Ihren ersten Vertex Shader zu programmieren. Den vollständigen Befehlssatz finden Sie am einfachsten, indem Sie in der DirectX9-Hilfe im Index <i>vertex shader 1_1</i> eingeben. Zunächst legen Sie für das Programm eine Textdatei an, die Sie dann z.B. in Ihr Visual Studio Projekt einfügen. Ein solches Programm beginnt immer mit der Kennung und Versionsnummer, also in unserem Fall <i>vs.1.1</i>.</p>
+		<p>Wenn Sie Konstanten für Ihr Vertex Shader Programm definieren möchten, tun Sie das gleich im Anschluss. Die folgende Zeile beschreibt das Konstanten Register <i>c10</i> mit vier Float Werten:</p>
+		<pre><code>
+def c10, 0.25, 0.5, 0.75, 1.0
+		</code></pre>
+		<p>Anschließend müssen Sie spezifizieren, welche Eingabedaten Sie verwenden wollen. Zunächst sollen die Vertex Koordinaten genügen, die im ersten Attribut Register für Vertices <i>(v0)</i> stehen. Dazu verwenden Sie:</p>
+		<pre><code>
+dcl_position v0
+		</code></pre>
+		<p>Ihr erstes Programm soll nicht mehr tun, als die Vertices zu transformieren und jedem Vertex eine Konstante <i>Farbe</i> zu verpassen. Die Transformation erledigen Sie durch eine Multiplikation der entsprechenden 4x4-Matrix, die in den Konstanten&shy;registern <i>c0-c3</i> und der Eingabe&shy;position gespeichert ist:</p>
+		<pre><code>
+m4x4 oPos, v0, c0
+		</code></pre>
+		<p>Der <i>m4x4</i> Befehl ist dabei lediglich ein Makro. Tatsächlich werden vier Kreuzprodukte ausgeführt, die genau das Matrix-Vektor-Produkt darstellen. Den eben angesprochenen Farbwert geben Sie den Vertices so mit:</p>
+		<pre><code>
+mov oD0, c10
+		</code></pre>
+		<p>Nun fragen Sie sich vielleicht, woher kennt der Vertex Shader die Matrix? Hier sind wir am Punkt der Integration des Shaders in die Applikation angelangt. Glücklicher&shy;weise bietet die D3DX-Bibliothek wieder eine Reihe von nützlichen Befehlen. Als erstes benötigen Sie eine Variable vom entsprechenden Typ, also einen Zeiger auf ein <i>IDirect3DVertexShader9</i>-Interface:</p>
+		<pre><code>
+LPDIRECT3DVERTEXSHADER9 pVertexShader = NULL;
+		</code></pre>
+		<p>Mit D3DX können Sie den Vertex Shader kompilieren und in einem Speicher&shy;bereich, den ein <i>D3DXBUFFER</i>-Objekt verwaltet, ablegen:</p>
+		<pre><code>
+DWORD flags = 0;
+LPD3DXBUFFER pCode;
+D3DXAssembleShaderFromFile("vs.txt", NULL, NULL,
+	flags, &amp;pCode, NULL);
+		</code></pre>
+		<p>Daraus können Sie Direct3D das Vertex Shader Objekt erzeugen lassen und den Speicher wieder freigeben:</p>
+		<pre><code>
+pD3DDevice-&gt;CreateVertexShader(
+	(DWORD*)pCode-&gt;GetBufferPointer(),
+	&amp;pVertexShader);
+pCode-&gt;Release();
+		</code></pre>
+		<p>Wenn Sie Ihr Programm weitergeben wollen, aber der Quelltext des Vertex Shaders nicht als Textdatei sichtbar sein soll, können Sie auch das Kompilat in eine Datei schreiben, oder später anderweitig zu Ihrem Programm linken:</p>
+		<pre><code>
+FILE *f = fopen("vs.comp", "wb");
+fwrite(pCode-&gt;GetBufferPointer(), 1,
+	pCode-&gt;GetBufferSize(), f);
+fclose(f);
+		</code></pre>
+		<p>Jetzt müssen Sie beim Rendering nur noch mitteilen, dass Sie den Vertex Shader verwenden wollen. Das geht mit einem einzigen Befehl:</p>
+		<pre><code>
+pD3DDevice-&gt; SetVertexShader(pVertexShader);
+		</code></pre>
+		<p>Jetzt verwendet Direct3D den Vertex Shader statt der herkömmlichen Transform&amp;Lighting Stufe der Fixed Function Pipeline solange, bis Sie die obige Funktion mit <i>null</i> als Parameter aufrufen.</p>
+		<p>Als letztes bleibt also die Aufgabe, die benötigten Konstanten&shy;register zu setzen, in unserem Beispiel also die Transformations&shy;matrix. Diese Matrix muss die Vertices vom Object Space in den World Space und weiter in den Clip Space transformieren. Wenn Sie diese Trans&shy;formationen einzeln bestimmt haben (wie aus den letzten Ausgaben bekannt), können Sie die benötigte Matrix durch Konkatenation bestimmen:</p>
+		<pre><code>
+D3DXMATRIX modelViewProjection =
+	matWorld * matView * mProjection;
+		</code></pre>
+		<p>Um den Inhalt der Konstanten-Register für den gerade aktuellen Vertex Shader zu definieren, verwenden Sie den <i>SetVertexShaderConstantF</i>-Befehl. Damit übergeben Sie einen oder mehrere Vektoren, die aus vier Floats bestehen. Der erste Parameter ist dabei der Index des ersten Konstanten-Registers, das beschrieben wird:</p>
+		<pre><code>
+pD3DDevice-&gt;SetVertexShaderConstantF(0,
+	(float*)modelViewProjection, 4);
+		</code></pre>
+		<p>Jetzt können Sie wie schon bekannt, z.B. mit Vertex Buffers, rendern, nur die Transformation übernimmt jetzt Ihr Vertex Shader.</p>
+	</section>
+
+	<section>
+		<h2>Pixel Shader in Direct3D</h2>
+		<p>Pixel Shader definieren Sie in Direct3D nahezu analog zu Vertex Shaders. Auch hier beschränken wir uns zunächst auf die Assembler&shy;sprache und die Pixel Shader Version 1.1. Ein Pixel Shader Programm, für dessen kompletten Befehlssatz wir wieder auf die DirectX-Hilfe verweisen, beginnt wieder mit der Kennung und eventuellen Konstanten&shy;definitionen. Anschließend geben Sie an, welche Texturen Sie auslesen wollen. Wenn Sie die erste Textur-Stage (an der entsprechenden Stelle) auslesen – auch <i>sample</i> genannt –, geben Sie den Befehl ein:</p>
+		<pre><code>
+tex t0
+		</code></pre>
+		<p>Damit steht Ihnen das Resultat, also der ausgelesene Farbwert im Register <i>t0</i> zur Verfügung.</p>
+		<p>Weitere typische Instruktionen sind <i>Addition/Subtraktion</i> (add/sub), <i>Multiply-and-Add</i> (mad) und natürlich <i>Move</i> (mov). Wenn Sie beispielsweise normale Textur auslesen, modulieren und mit der diffusen Farbe nach&shy;programmieren wollen, tun Sie das mit folgendem Befehl:</p>
+		<pre><code>
+mul r0, t0, v0
+		</code></pre>
+		<p>Dabei ist <i>t0</i> das Register mit der Farbe aus der Textur, <i>v0</i> das Eingabe&shy;register der diffusen Farbe und <i>r0</i> ein Arbeits&shy;register, das gleichzeitig auch das Ausgabe&shy;register für den endgültigen Farbwert ist.</p>
+		<p>Sie aktivieren Pixel Shaders analog wie Vertex Shaders, wobei Sie lediglich den Term <i>VertexShader</i> durch <i>PixelShader</i> ersetzen.</p>
+		<p>Im Folgenden zeigen wir Ihnen eine einfache Technik, die beim Rendering den Eindruck von Strich&shy;zeichnungen erwecken soll. Die Umsetzung demonstrieren wir Ihnen anhand von einem Vertex und Pixel Shader.</p>
+	</section>
+
+	<section>
+		<h2>Hatching</h2>
+		<figure class="floatright">
+			<img src="assets/200309_3.png" width="512" height="128" alt="Strichzeichnung: Mit diesen Texturen erreichen Sie Hatching-Effekte.">
+			<figcaption><span>Strichzeichnung:</span> Mit diesen Texturen erreichen Sie Hatching-Effekte.</figcaption>
+		</figure>
+		<p>Die Technik, mit Strichen zu zeichnen, wird auch Hatching genannt. Natürlich ist es nicht ganz einfach, den Eindruck von Strich&shy;zeichnungen per Grafikhardware zu erwecken. Denn dazu müssen Sie recht kompliziert Textur Koordinaten und viele Texturen generieren. Exemplarisch zeigen wir Ihnen an dieser Stelle, was Sie mit einfachen Mitteln und einem Single Pass Rendering Verfahren ohne großen Aufwand bewirken können.</p>
+		<p>Das Prinzip ist folgendes: Sie berechnen zunächst eine diffuse Beleuchtung, bilden also ein Skalarprodukt zwischen Normale und Lichtrichtung. Dadurch erhalten Sie einen Wert im Intervall zwischen <i>-1</i> und <i>+1</i> – negative Werte setzen Sie aber auf Null.</p>
+		<p>Was Sie noch brauchen, ist eine Reihe von Texturen, die unterschied&shy;lich dunkel schraffierte handge&shy;zeichnete Bereiche zeigen. Je nach berechnetem Helligkeits&shy;wert soll die entsprechende Textur zum Zeichnen ausgewählt und verwendet werden. Bei vier verwendeten Texturen (so viele sind bei den meisten Grafikkarten in einem Renderpass addressierbar), stünde Texture <i>0</i> für das Intervall <i>[0;0.25]</i>, Texture <i>1</i> für <i>[0.25;0.5]</i> usw.</p>
+		<figure class="large">
+			<img src="assets/200309_4.jpg" width="595" height="186" alt="Summe gleich eins: Die Gewichte der Hatching-Texturen.">
+			<figcaption><span>Summe gleich eins:</span> Die Gewichte der Hatching-Texturen.</figcaption>
+		</figure>
+		<p>Eine harte Auswahl der Textur würde allerdings keine sehr schönen Ergebnisse liefern, vielmehr ist eine Interpolation von den jeweils zwei nächsten Texturen wünschenswert. Das Bild <i>Summe gleich eins</i> zeigt die Gewichtung der einzelnen Texturen – unterschied&shy;lich eingefärbt – in Abhängigkeit von der berechneten Helligkeit. Mit dieser Gewichtung ist sicher gestellt, dass die Summe aller Gewichte gleich eins ist. Das wiederum ermöglicht es, jeweils die Farbwerte der vier Texturen mit dem entsprechenden Gewicht zu multiplizieren und alle aufzusummieren. Und das ist genau das, was unsere Beispiel-Shader tun sollen. Sie müssen dabei beachten, dass es die Striche in den Texturen sind, die wir gewichten wollen, deshalb müssen Sie die Texturen aus dem Bild <i>Strichzeichnung</i> invertiert verwenden.</p>
+		<p>Betrachten Sie nun also die Shader im Einzelnen. Der Vertex Shader benötigt als Eingabe die Vertex Position, die Normale und die folgenden Konstanten. Die Position wird normal transformiert:</p>
+		<pre><code>
+vs.1.1
+def c11, 0.0, 0.33, 0.66, 1.0 ....
+
+dcl_position v0
+dcl_normal v1
+m4x4 oPos, v0, c0
+		</code></pre>
+		<p>Nun benötigen Sie, sofern für das 3D-Modell keine Textur-Koordinaten für das Hatching vorhanden sind, eben solche. Das Einfachste ist eine planare Projektion, deren Resultat für alle vier Textur Stage verwendet wird:</p>
+		<pre><code>
+mul r0, v0.xyzw, c13
+mov oT0, r0 ....
+		</code></pre>
+		<p>Anschließend kommt der trickreiche Teil. Dieser berechnet zunächst die diffuse Beleuchtung. Negative Werte setzen Sie Null (max), im Konstanten&shy;register <i>c4</i> steht dabei die Lichtrichtung:</p>
+		<pre><code>
+dp3 r0, v1, c4
+max r0, r0, c15
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200309_5.jpg" width="700" height="250" alt="Abwechslung: Ein bekanntes OBJ-Modell dargestellt mit Materialparametern, diffuser Beleuchtung und Hatching.">
+			<figcaption><span>Abwechslung:</span> Ein bekanntes <i>OBJ</i>-Modell dargestellt mit Materialparametern, diffuser Beleuchtung und Hatching.</figcaption>
+		</figure>
+		<p>An dieser Stelle enthält das <i>r0</i>-Register in jeder Komponente die Helligkeit der Oberfläche <i>[0;1]</i>. Es gilt, daraus die vier Gewichte zu bestimmen. Dazu wird der Betrag des Abstands des Helligkeits&shy;wertes von den Maxima der Gewichts&shy;funktionen berechnet.</p>
+		<pre><code>
+sub r0, c11, r0
+max r0, r0, -r0
+		</code></pre>
+		<p>Durch entsprechende Skalierung und Inversion erhalten Sie genau die vier Gewichte in den Komponenten von <i>r0</i>:</p>
+		<pre><code>
+mul r0, r0, c14
+sub r0, c12, r0
+		</code></pre>
+		<p>Als letzte Aufgabe geben Sie die Daten an die Pixel Shader weiter. Pixel Shader 1.1 können nur sehr eingeschränkt auf Daten zugreifen. Farbwerte können Sie nur in <i>oD0</i> und <i>oD1</i> übergeben, wobei Sie aber jeweils nur getrennt auf die ersten drei (RGB) oder die letzte Komponente (Alpha) zugreifen können. Deshalb bleibt nur folgendes:</p>
+		<pre><code>
+mov oD0, r0.x ....
+		</code></pre>
+		<p>Der Pixel Shader muss nun noch die gewichtete Summe der Texturen berechnen. Sie definieren Konstanten und lesen die Texturen aus:</p>
+		<pre><code>
+ps.1.1
+def c1, 1.0, 1.0, 1.0, 1.0
+tex t0 ...
+		</code></pre>
+		<p>Anschließend gewichten Sie den ersten Textur Wert durch Multiplikation mit dem Gewicht aus dem Vertex Shader:</p>
+		<pre><code>
+mul r0, t0, v0
+		</code></pre>
+		<p>Analog gehen Sie mit den drei weiteren Texturen vor, allerdings verwenden Sie den <i>MultiplyAdd</i>-Befehl, um gleich die Summe mit den Zwischen&shy;ergebnis zu erhalten:</p>
+		<pre><code>
+mad r0, t1, v0.a, r0...
+		</code></pre>
+		<p>Zuletzt müssen Sie nur noch die Inversion der Texturen umkehren:</p>
+		<pre><code>
+sub r0, c1, r0
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Datensätze einfach einlesen</h2>
+		<figure class="floatright">
+			<img src="assets/200309_6.jpg" width="645" height="590" alt="Palast: Dieses 3D-Modell, dargestellt mit unse rem Beispielprogramm, gibt es bei 3D-Cafe.">
+			<figcaption><span>Palast:</span> Dieses 3D-Modell, dargestellt mit unse rem Beispielprogramm, gibt es bei 3D-Cafe.</figcaption>
+		</figure>
+ 		<p>Bei der Programmierung von Grafiken bleibt die Frage, wie und woher Ihre Daten für die Modelle kommen. Deshalb enthält unser Beispiel&shy;programm nun eine Klasse, mit der Sie Dateien im <i>Wavefront</i>-Format (.obj) lesen können.</p>
+ 		<p>Dabei handelt es sich um ein weit verbreitetes Format, das viele Modeling-Programme unterstützen. Es kann sowohl Dreiecksnetze als auch parametrische Flächen speichern. Die <i>.obj</i>-Dateien sind Text basiert und daher sehr einfach einzulesen. Eine gute Quelle für Dokumentationen für Dateiformate aller Art finden Sie unter <a href="https://www.wotsit.org" rel="external nofollow noreferrer">www.wotsit.org</a>. Die wichtigsten Tokens finden Sie in der letzten Tabelle aufgelistet.</p>
+		<p>Viele freie Modelle finden Sie unter: <a href="https://www.3dcafe.com" rel="external nofollow noreferrer">www.3dcafe.com</a></p>
+	</section>
+
+	<aside>
+		<h2>Die wichtigsten Tokens im Wavefront-Format (.obj)</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Token/Syntax</th><th>Beschreibung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td># text</td><td>Kommentarzeile</td></tr>
+					<tr><td>v float float float</td><td>Definition einer Vertex Position, Indizierung beginnt bei 1</td></tr>
+					<tr><td>vn float float float</td><td>Definition einer Normalen, Indizierung ab 1</td></tr>
+					<tr><td>vt float float</td><td>Definition einer Texture Koordinate, Indizierung ab 1</td></tr>
+					<tr><td>f int int int ...</td><td>Polygon definiert durch Vertex Indizes</td></tr>
+					<tr><td>f int/int int/int ...</td><td>Polygon definiert durch Vertices und Texture Koordinaten Indizes</td></tr>
+					<tr><td>f int/int/int ...</td><td>Polygon mit Vertex, Texture und Normalen Index</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200308.html">8/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200310.html">10/2003</a>
+	</nav>
+</body>

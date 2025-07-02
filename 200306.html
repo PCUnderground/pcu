@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Bewegende Botschaften (PC Underground, PC Magazin 6/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;6/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200305.html">5/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200307.html">7/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Echtzeit-Image-Post-Processing mit OpenGL</h2>
+		<h1>Bewegende <span class="highlight">Botschaften</span></h1>
+		<p class="summary">Entlocken Sie Ihrer Grafikkarte ungeahnte Effekte wie Dithering, Kantenfilter und Leuchtspuren. Bereichern Sie Ihre Rendering-Szenen mit <span class="highlight">Post-Processing in Echtzeit</span> per OpenGL. Mit der Macht von Bildern spielen Sie mit den Gefühlen des Betrachters.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200306_1.jpg" width="392" height="286" alt="Szene: Mit diesem Bild testen Sie alle Post-Processing-Effekte.">
+			<figcaption><span>Szene:</span> Mit diesem Bild testen Sie alle Post-Processing-Effekte.</figcaption>
+		</figure>
+		<p>Grafikkarten schaffen es mittlerweile, zunehmend komplexe Szenen immer realistischer darzustellen. Das verbessert die Geometrie, Texturierung und Beleuchtung einer virtuellen Szene. Nicht nur das Rendering einer Szene kann den Betrachter überzeugend beeindrucken. Eine wichtige Rolle spielen auch die so genannten Post-Processing-Effekte. Solche Effekte fügen Sie dem Bild nach dem Rendering hinzu. Diese Art der Nachbe&shy;arbeitung kann für viele Effekte auch mit Hilfe der Grafikkarte erfolgen.</p>
+		<p>Einige Beispiele, manche mit Praxisrelevanz, andere eher aus der akademischen Ecke, lernen Sie in dieser Ausgabe kennen und programmieren. Für einige Effekte genügen Grafikkarten der Direct3D-8-Klasse wie nVidia-GeForce-3 und GeForce-4 oder ATI-Radeon-8500/9000. Aber Sie sehen auch, wie viel einfacher und effizienter es ist, solche Effekte auf den Grafikkarten der neuesten Generation, also der ATI-Radeon-9700 und nVidia-GeForce-FX, zu programmieren.
+		</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200306.zip">💾 200306.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Post-Processing allgemein</h2>
+		<p>Wie erwähnt, werden Post-Processing Effekte im Nachhinein zum Rendering hinzugefügt, oder dieses wird modifiziert. Um aber jeden Pixel des Bildschirms zu modifizieren, müssen Sie auf dessen Farb- und Alpha-Wert zugreifen. Das bedeutet, dass Sie eine Textur benötigen, in die Sie die 3D-Szene zeichnen. Dies können Sie prinzipiell auf zwei Arten erreichen: entweder Sie rendern die Szene in den Backbuffer (wie bei jedem herkömmlichen Rendering-Vorgang), oder Sie rendern direkt in eine Textur. Letzteres, auch die effektivste Variante, erreichen Sie mit den so genannten P-Buffers (PC Underground 3/03, ab. S.168). Im Beispiel-Programm zu dieser Ausgabe ist die P-Buffer Klasse enthalten, die Sie wie folgt einsetzen.</p>
+		<p>Ein P-Buffer (Pixel-Buffer) ist ein Speicher&shy;bereich, den Sie wie den normalen Frame-Buffer als Rendertarget, d.h. um dort etwas zu rendern, verwenden können. Ein P-Buffer kann einen eigenen Stencil und Depth Buffer besitzen und verschiedene Farbformate unterstützen. Sein großer Vorteil: Sie können ihn für ein anderes Rendertarget (wie für Frame- oder P-Buffer) als Textur verwenden. Dies bedeutet: Sie können Ihre 3D-Szene in eine dynamische Textur (den P-Buffer) zeichnen und anschließend mit dieser Textur Post-Processing Effekte anwenden. Dabei kann die Auflösung des P-Buffers der des Frame-Buffers entsprechen, muss aber nicht.</p>
+		<p>Die Verwendung der P-Buffer Klasse <i>CPBuffer</i> ist denkbar einfach: dem Konstruktor übergeben Sie die Auflösung des P-Buffers in X- und Y-Richtung sowie den Device Context des OpenGL-Fensters, womit ein P-Buffer mit 32 Bit Farbtiefe und einem 16 Bit Depth Buffer angelegt wird. Um den P-Buffer als Rendertarget zu aktivieren, rufen Sie die Methode <i>makeCurrent()</i> auf. Diese verwendet intern die Funktion <i>wglMakeCurrent(...)</i>, mit der Sie auch den Frame-Buffer wieder als Rendertarget aktivieren. Die Parameter sind dabei der Device Context und OpenGL Rendering Context des Fensters.</p>
+		<p>So verwenden Sie nun einen P-Buffer als Textur: Zunächst wählen Sie eine OpenGL Textur mit Hilfe einer ID aus. Diese ID legt der Konstruktor bereits für Sie an. Im Anschluss binden Sie den P-Buffer an diese Textur ID:</p>
+		<pre><code>
+glBindTexture(GL_TEXTURE_2D, pBuffer-&gt;getTexID());
+pBuffer-&gt;bind();
+		</code></pre>
+		<p>Jetzt können Sie die Textur wie üblich in OpenGL verwenden. Bevor Sie allerdings wieder den Inhalt des P-Buffers modifizieren wollen, müssen Sie den P-Buffer wieder von der Textur ID lösen. Dies übernimmt die Methode <i>release()</i>.</p>
+	</section>
+
+	<section>
+		<h2>Dithering</h2>
+		<figure class="floatright">
+			<img src="assets/200306_2.png" width="345" height="362" alt="Dithering: Frei nach Dürer stellen Sie die 3D Szene schwarz-weiß dar.">
+			<figcaption><span>Dithering:</span> Frei nach Dürer stellen Sie die 3D Szene schwarz-weiß dar.</figcaption>
+		</figure>
+		<p>Der erste hier vorgestellte Post-Processing Effekt ist mehr Spielerei und Beispiel: Dithering. Dieses Verfahren stellt ein Bild mit reduzierter Farbanzahl dar (im Beispiel schwarz und weiß), wobei es Muster verwendet. Dies soll den Eindruck von Farben oder Graustufen erwecken. Im Folgenden erfahren Sie, wie Sie Ihre 3D-Szenen in Echtzeit per Schwarz-Weiß-Dithering darstellen.</p>
+		<p>Bei vielen Dithering-Verfahren ist die Auflösung des resultieren Bildes höher als die des Ausgangsbildes. Solche Verfahren lassen sich mit dem Einsatz geeigneter Texturen leicht mit der Grafikkarte umsetzen. Andere Verfahren, wie z.B. das Floyd-Steinberg Verfahren, bearbeiten das Bild Pixel für Pixel und brauchen einen Übertrag, also ein gemerktes Zwischen&shy;resultat. Das Verfahren lässt sich somit nicht auf der Grafikkarte implementieren.</p>
+		<p>Das Beispiel verwendet ein einfaches Verfahren, das aus einem 32-Bit Farbbild mit Hilfe der nVidia Register <i>Combiner</i> (gewissermaßen das OpenGL Pendant zu den Direct3D acht Pixel Shaders) ein Schwarz-Weiß-Bild erzeugt. Die Register Combiner bestehen aus mehreren (abhängig vom GeForce Modell) <i>General Combiners</i>, die mit komponenten&shy;weiser Multiplikation, Skalar&shy;produkten oder Summen operieren können und einem <i>Final Combiner</i>, der aus den Zwischen&shy;ergebnissen den endgültigen Farbwert bestimmt. Auf die Ein- und Ausgabewerte eines Combiners können Sie so genannte <i>Mappings</i> anwenden. Mappings strecken, stauchen oder invertieren den Wertebereich und ändern Vorzeichen (PC Magazin Spezial 27).</p>
+		<p>So bearbeiten Sie jeden Pixel: Zunächst berechnen Sie aus dem Farbwert eine Helligkeit. Dabei können Sie die unterschied&shy;liche perzeptive Wahrnehmung von rot, grün und blau durch unsere Augen berück&shy;sichtigen, indem Sie die Werte mit <i>0.3, 0.59</i> und <i>0.11</i> (in der Summe 100 Prozent) gewichten und aufsummieren. Dazu bilden Sie aus dem Farbwert der Textur und einem konstanten Vektor (<i>0.3, 0.59,</i> <i>0.11, 0.0</i>) ein Skalarprodukt. Das Resultat speichern Sie in allen Komponenten des Zielregisters. An dieser Stelle setzen Sie eine zweite Graustufen-Textur ein. In ihr speichern Sie in jedem Texel einen Zufallswert zwischen <i>0</i> und <i>1</i>. Den Zufallswert, dessen Intervall Sie von <i>[0;1]</i> im Register Combiner auf <i>[-0.5; 0.5]</i> abbilden, addieren Sie zum Wert des Skalar&shy;produktes und verwenden das Resultat als Alpha-Wert, der letztendlich zum Zeichnen verwendet wird.</p>
+		<p>Zusammen&shy;gefasst: Der erste General Combiner berechnet den Grauwert mit Hilfe des Skalar&shy;produktes und damit den Alpha-Wert und setzt die RGB-Werte auf <i>1</i>. Der Final Combiner lässt den bereits berechneten RGBA Vektor durch.</p>
+		<p>Was haben Sie damit erreicht? Vom berechneten Grauwert addieren Sie eine Zufallszahl zwischen <i>-0.5</i> und <i>0.5</i> und erweitern das Werteintervall des Alpha-Werts auf <i>[-0.5, 1.5]</i>. Um diesen Post-Processing Effekt zu verwenden, löschen Sie den Frame-Buffer mit schwarzem Hintergrund und schalten vor dem Rendering den Alpha-Test ein, so dass nur Pixel gezeichnet werden, deren Alpha-Wert größer als <i>0.5</i> ist. Dann schalten Sie die Register Combiner mit dem oben beschriebenen Setup ein und zeichnen die gerenderte Szene (enthalten in der P-Buffer Textur) mit zwei Dreiecken über den ganzen sichtbaren Bereich. Damit sehen Sie den Dithering Effekt.</p>
+	</section>
+
+	<section>
+		<h2>Kantenfilter</h2>
+		<figure class="floatright">
+			<img src="assets/200306_3.png" width="298" height="297" alt="Kantendetektion: Dies zeigt einen einfachen Filter-Kernel.">
+			<figcaption><span>Kantendetektion:</span> Dies zeigt einen einfachen Filter-Kernel.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200306_4.jpg" width="451" height="239" alt="Nachbarschafts-Sampling: So arbeitet das Verfahren mit D3D8-Grafikkarten.">
+			<figcaption><span>Nachbarschafts-Sampling:</span> So arbeitet das Verfahren mit D3D8-Grafikkarten.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200306_5.png" width="372" height="366" alt="Kantenfilter: Die Ränder heben Sie mit Register Combiners hervor.">
+			<figcaption><span>Kantenfilter:</span> Die Ränder heben Sie mit Register Combiners hervor.</figcaption>
+		</figure>
+		<p>Der zweite Effekt ist ein aus Bildbearbeitungs&shy;programmen bekannter Bild-Filter, der Kanten in 2D-Bildern hervorhebt. Im Gegensatz zum ersten Beispiel verwenden Sie diesen Effekt in der Praxis wie beim Non-Photorealistic Rendering oder Toon Shading.</p>
+		<p>Kantenfilter untersuchen die Nachbar-Pixel jedes Pixels im Bild, bzw. die Differenz ihrer Helligkeits&shy;werte. Überschreitet die Differenz betragsmäßig einen vorher festgelegten Schwellwert, so nimmt man an, dass es sich beim betrachteten Pixel um den Teil einer Kante handelt. Zunächst stellen Sie sich einen einfachen Kantenfilter vor, der nur vier Nachbar Pixel betrachtet, und den Sie mit den Register Combiners berechnen. Es wird dazu die Differenz der Helligkeiten des oben und unten, bzw. links und rechts benachbarten Pixels benötigt. Das Bild stellt einen Bildfilter dar, wie er in der Praxis üblich ist: in den Kästchen sind die Faktoren (Gewichte) der Pixel – in der Mitte der gerade Betrachtete – eingetragen, mit denen die Grauwerte multipliziert werden. Die Summe dieser Produkte wird (formal) am Ende durch die Summe aller Gewichte geteilt, um einen normalisierten Helligkeits&shy;wert zu erhalten. Diese Filtervor&shy;schrift wird auch als Filter-Kernel bezeichnet.</p>
+		<p>Die vier Helligkeits&shy;werte entsprechen vier <i>Texture Lookups</i>, die Sie in einem Rendering Pass ab einer GeForce-3-Karte erledigen können. Dazu verwenden Sie die P-Buffer-Textur, die die gerenderte Szene enthält, auf vier Texture Stages. Die Textur&shy;koordinaten der vier Stages sind dabei entsprechen um folgende Pixel Offsets verschoben: <i>(-1/0), (1/0), (0/-1)</i> und <i>(0/1)</i>. Beachten Sie, dass Sie die Verschiebung gemessen in Pixel durch die Auflösung des P-Buffers teilen müssen, um die tatsächliche Translation in Textur&shy;koordinaten zu erhalten.</p>
+		<p>Die Offsets können Sie auch mit Hilfe eines Vertex Programs berechnen, oder mit den Befehlen <i>glMultiTexCoord2fARB(...)</i> übergeben – es sind lediglich 4 * 4 Textur&shy;koordinaten. Das Bild zeigt das Prinzip dieses Nachbarschafts-Samplings.</p>
+		<p>Die Berechnung des Kantenfilters sehen Sie hier in Pseudo-Notation, wobei <i>tex0..3</i> die Farbwerte der Nachbarpixel sind. <i>t1</i> und <i>t2</i> sind temporäre RGBA-Vektoren:</p>
+		<pre><code>
+t1 = 2 * (tex0 - tex1);
+t2 = 2 * (tex2 - tex3);
+result = 4 * [(t1 dot t1) + (t2 dot t2)];
+		</code></pre>
+		<p>Offensichtlich ist darin kein echter Schwellenwert-Vergleich enthalten. Vielmehr skalieren Sie stark die nicht Bool’schen Resultate der Differenzen, um einen ansprechenden Eindruck zu erhalten.</p>
+		<p>Das Beispiel&shy;programm vervoll&shy;ständigt die Register-Combiner-Einstellungen jeweils mit der Syntax, wie sie die nVidia-Bibliothek <i>nvParse</i> verwendet. Um diese Bibliothek aber nicht linken zu müssen und um von ihr unabhängig zu bleiben, nimmt das Beispiel einen etwas holprigen Weg: es stellt die Combiner über die Befehle der <i>NV_register_combiner OpenGL Extension</i> ein.</p>
+		<figure class="floatright">
+			<img src="assets/200306_9.jpg" width="373" height="368" alt="Der Sobel-Filter: Diese Technik bewältigt eine D3D9-Grafikkarte leicht.">
+			<figcaption><span>Der Sobel-Filter:</span> Diese Technik bewältigt eine D3D9-Grafikkarte leicht.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200306_6.png" width="297" height="297" alt="Der Sobel-Filter: Zwei Filter-Kernel unterscheiden sich durch eine 90-Grad-Rotation.">
+			<figcaption><span>Der Sobel-Filter:</span> Zwei Filter-Kernel unterscheiden sich durch eine 90-Grad-Rotation.</figcaption>
+		</figure>
+		<p>Mit Direct3D-9-fähigen Grafikkarten (ATI Radeon 9700 und GeForce FX) können Sie eine Textur in einem Fragment-Programm mehrfach samplen (PC Underground 4/03, ab S. 212). Die Textur&shy;koordinaten Offsets berechnen Sie am besten in einem Vertex-Programm. So können Sie den so genannten <i>Sobel</i> Filter berechnen, den auch die Musterer&shy;kennung verwendet, um Kanten in 2D-Bildern zu erkennen. Dieser besteht aus einem horizontalen und einem vertikalen Filter-Kernel, deren Ergebnisse durch Maximumbildung verknüpft werden. Der Sobel-Filter ist dem obigen einfachen Filter deutlich überlegen. Neue Grafikkarten berechnen in einem Post-Processing Schritt den Sobel-Filter vollständig.</p>
+		<p>Der letzte Effekt dieser Ausgabe zeigt eine <i>Glow</i>- oder Leuchttechnik. Diese vermittelt den Eindruck, dass einzelne Teile der Szene hell schimmern und leuchten. Das Prinzip ist einfach: Zunächst zeichnen Sie die 3D-Szene normal in den Backbuffer des Rendertargets. Die Teile der 3D-Szene, die den Leuchteffekt besitzen sollen, zeichnen Sie in eine P-Buffer Textur. Der Trick bei diesem Effekt ist nun, auf die P-Buffer Textur einen starken Unschärfe&shy;filter anzuwenden und das dadurch entstehende Bild auf den Backbuffer Inhalt zu addieren. Somit hellen die Teile der 3D-Szene mit Leucht-effekt ihre Umgebung farblich auf.</p>
+	</section>
+
+	<section>
+		<h2>Der Glow-Effekt</h2>
+		<p>Einen solchen Unschärfe&shy;filter für die CPU zu programmieren, ist zwar leicht, jedoch unerwünscht. Erstrebenswert ist eine effiziente Lösung mit Hilfe der Grafikhardware. Den P-Buffer-Inhalt zu kopieren und die zusätzlich entstehenden Textur-Locks zu rendern, würde die Geschwindig&shy;keit massiv einschränken. Um eine starke Unschärfe zu erzeugen, benötigen Sie, um einen neuen Farbwertes für einen Pixel zu berechnen auch die Farbwerte von einer <i>n<sup>2</sup> (n=8</i>) Pixels großen Nachbarschaft. Die Gewichte der Nachbarpixel können Sie z.B. mit einer Gauss’schen Glocken&shy;funktion bestimmen, um eine Abnahme der Gewichte mit dem Abstand zum betrachteten Pixel zu erreichen.</p>
+		<figure class="large">
+			<img src="assets/200306_7.jpg" width="626" height="480" alt="Strahlende Welt: Im Glow-Effekt leuchtet die 3D-Szene.">
+			<figcaption><span>Strahlende Welt:</span> Im Glow-Effekt leuchtet die 3D-Szene.</figcaption>
+		</figure>
+		<p>Zunächst könnte man annehmen, Sie würden dazu <i>8*8=64</i> Texturzugriffe benötigen. Glücklicher&shy;weise ist dem nicht so, denn viele solche Filter-Operationen lassen sich aufspalten: in zweimaliges Filtern, mit einer Filtergröße von <i>n</i>, also in diesem Beispiel nur acht Nachbarpixeln.</p>
+		<figure class="floatright">
+			<img src="assets/200306_8.jpg" width="443" height="249" alt="Einfach schnell: Zweimaliges Filtern reduziert den Aufwand.">
+			<figcaption><span>Einfach schnell:</span> Zweimaliges Filtern reduziert den Aufwand.</figcaption>
+		</figure>
+		<p>Anschaulich bedeutet dies: als Erstes wenden Sie einen horizontalen Filter an. Anschließend einen vertikalen Unschärfe&shy;filter auf das bereits gefilterte Bild. Dazu benötigen Sie außer dem P-Buffer, der die leuchtenden Teile der 3D-Szene enthält einen weiteren P-Buffer, in den Sie das Ergebnis nach dem ersten Filtervorgang schreiben und den Sie als Textur, also Quelle, des zweiten Filterns verwenden.</p>
+		<p>Um die <i>n=8</i> Nachbarpixel zu gewichten und aufzusummieren, benötigen Sie mit einer Direct3D-8-Grafikkarte zwei Renderpasses pro Filtervorgang, weil Sie nur auf vier Texturen bzw. Texel pro Pass zugreifen können. Der Zugriff erfolgt dabei nach demselben Prinzip wie im Bild <i>Nachbarschafts Sampling</i> : Sie verwenden dieselbe Textur vierfach mit unterschied&shy;lichen Textur&shy;koordinaten. Die zwei Werte (entstanden aus jeweils 4 Farbwerten) können Sie durch additives Blending mit der Funktion <i>glBlendFunc(GL_ONE, GL_ONE)</i> aufsummieren.</p>
+		<figure class="large">
+			<img src="assets/200306_10.jpg" width="" height="" alt="Blurring: Das Verfahren benötigt mit D3D8-Hardware zwei Renderpasses pro Filtervorgang, weil nur vier Texturen pro Pass zugreifen können.">
+			<figcaption><span>Blurring:</span> Das Verfahren benötigt mit D3D8-Hardware zwei Renderpasses pro Filtervorgang, weil nur vier Texturen pro Pass zugreifen können.</figcaption>
+		</figure>
+		<p>Mit einer Direct3D-9-Grafikkarte können Sie einen dieser Filtervorgänge in einem Renderpass durchführen, da Sie eine Textur achtmal an beliebigen Texels auslesen und die Farbwerte gewichten und aufsummieren können.</p>
+		<p>Als Notlösung bei älteren Grafikkarten rendern Sie jeden Filtervorgang achtmalig. Die Gewichtung der einzelnen Nachbarpixel durch die Verschiebung der Textur erreichen Sie über den OpenGL-Farbwert, wenn Sie das Textur Environment auf <i>GL_MODULATE</i> stellen. Um die Werte zu summieren, setzen Sie wieder additives Blending ein.</p>
+		<p>Der Quelltext für die horizontale Filterung <i>(screenRect(du,dv)</i> zeichnet ein Quadrat mit der P-Buffer Textur über den gesamten sichtbaren Bereich. Die Parameter bezeichnen dabei die Verschiebung der Textur&shy;koordinaten in Texeln:</p>
+		<pre><code>
+glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+glEnable(GL_BLEND);
+glBlendFunc(GL_ONE, GL_ONE);
+
+glBindTexture(GL_TEXTURE_2D, pBuffer-&gt;getTexID());
+glTexEnvi(GL_TEXTURE_ENV,
+	GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+float w[] = { 0.5f, 0.4003685f, 0.205556f, 0.0676675f };
+for(int i = 0; i &lt; 4; i++)
+{
+	glColor4f(w[i], w[i], w[i], w[i]);
+	screenRect(i, 0);
+	if(i != 0) screenRect(-i, 0);
+}
+		</code></pre>
+		<p>Einen horizontalen bzw. vertikalen Filter&shy;durchgang erreichen Sie mit der DirectX9-Generation von Grafikkarten in einem Rendering Pass. Das dazugehörige Fragment Program sieht folgendermaßen aus:</p>
+		<pre><code>
+OUTPUT color = result.color;
+TEMP color0, color1, color2, color3,
+	color4, color5, color6;
+ALIAS temp = color0;
+PARAM weights = { 0.0676675, 0.205556, 0.4003685, 0.5 };
+
+TEX color0, fragment.texcoord[0], texture[0], 2D;
+....
+TEX color6, fragment.texcoord[6], texture[0], 2D;
+
+MUL temp, color0, weights.w;
+MAD temp, color1, weights.z, temp;
+...
+MAD result.color, color6, weights.x, temp;
+END
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200306_11.jpg" width="450" height="228" alt="Blurring: Und so arbeitet das Verfahren mit  D3D9-Grafikkarten.">
+			<figcaption><span>Blurring:</span> Und so arbeitet das Verfahren mit  D3D9-Grafikkarten.</figcaption>
+		</figure>
+		<p>Allgemein gilt so, dass Sie mit weniger Renderpasses eine höhere Genauigkeit erhalten, die nicht nur theoretisch, sondern auch sichtbar ist. Der Grund: Die Register-Combiner und die Fragment-Programme arbeiten intern mit höherer Präzision, letztere sogar mit Floating Point Genauigkeit.</p>
+		<p>Beim Aufsummieren durch additives Blending hingegen wird mit 8 Bit pro Farbkomponente gerechnet, was einen deutlichen Datenverlust bedeuten kann.</p>
+		<p>Um einen guten Glow Effekt zu erhalten, müssen Sie keine hohe Auflösung des P-Buffers wählen. Im Gegenteil: eine niedrigere Auflösung verstärkt die Leuchtbereiche und berechnet den Effekt schneller. Bei zu geringer Auflösung stören Aliasing Effekte, die sogar dazu führen können, dass kleinere leuchtende Objekte übersprungen werden. Deshalb experimen&shy;tieren Sie am besten, um eine geeignete Auflösung zu finden.</p>
+		<p>Eine bessere Kontrolle über die Leuchteffekte erreichen Sie, indem Sie nicht einen Glow Effekt für den ganzen Bildschirm, sondern selektiv für einzelne Bereiche oder 3D-Objekte berechnen. Dieser zusätzliche Aufwand lohnt sich bei komplexeren Leuchteffekten.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Verweise</b></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.ati.com" rel="external nofollow noreferrer">www.ati.com</a></p>
+		<p class="footnote"><a href="https://www.nvidia.com" rel="external nofollow noreferrer">www.nvidia.com</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200305.html">5/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200307.html">7/2003</a>
+	</nav>
+</body>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Schattenspiel (PC Underground, PC Magazin 8/2004)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;8/2004. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200406.html">6/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200409.html">9/2004</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Deferred Shading – Beleuchtung als Post Processing</h2>
+		<h1>Schatten<span class="highlight">spiel</span></h1>
+		<p class="summary">Mit <i>Deferred-shading-</i>Techniken zeichnen Sie Ihre 3D-Szenen zunächst völlig ohne Beleuchtungs&shy;berechnung. Diese übernimmt einmalig ein <span class="highlight">finaler Nachbear&shy;beitungsschritt</span> für jeden sichtbaren Pixel.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200408_1.jpg" width="504" height="470" alt="Deferred Shading: Sie berechnen die Beleuchtung nur einmal pro Pixel.">
+			<figcaption><span>Deferred Shading:</span> Sie berechnen die Beleuchtung nur einmal pro Pixel.</figcaption>
+		</figure>
+		<p>Das <i>Deferred Shading</i> konstruiert die Geometrie einer 3D-Szene zunächst ohne Beleuchtungs&shy;berechnung. Dabei zeichnen Sie nicht in den normalen sichtbaren Framebuffer, sondern in so genannte Fat-Buffers.</p>
+		<p>Der Name kommt daher, dass diese Buffer, verteilt auf mehrere gleichzeitig beschreibbare Rendertargets, verhältnis&shy;mäßig viel Daten pro Pixel enthalten, wie z.B. die 3D-Position und die Normale der – in diesem Pixel – sichtbaren Oberfläche. Nach dem Zeichnen der Szene wird die Beleuchtungs&shy;berechnung für jeden Pixel durchgeführt: die dafür notwendige Information befindet sich in den Fat-Buffers. Für diese Technik benötigen Sie natürlich modernere, programmier&shy;bare Grafikkarten der DirectX9-Generation, um zum Einen die Rendertargets (dynamische Texturen) zu beschreiben und zum Anderen die Beleuchtungs&shy;berechnung in einem Pixel-Shader zu programmieren.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200408.zip">💾 200408.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Vergleich</h2>
+		<p>Unter den vielen Varianten Lighting/Shading für das Echtzeit-Rendering, greifen wir an dieser Stelle drei Varianten heraus, die mit dynamischen Lichtquellen und lokaler Beleuchtungs&shy;berechnung arbeiten. Das Single-Pass-Verfahren berechnet das Lighting direkt beim Rendern der Geometrie. Dieser Ansatz ist gut geeignet, um Szenen mit wenigen Lichtquellen darzustellen. Bei einer großen Anzahl von Lichtquellen wird die Organisation der Shader und der Lichtquellen, die für ein Objekt relevant sind, schwierig und der Vertex/Pixel Shader leicht zu komplex. Beim Multi Pass Lighting wird jeweils nur eine Lichtquelle auf ein Objekt angewendet und dieses gegebenenfalls mehrfach gezeichnet und in den Framebuffer geblendet. Das Problem hierbei ist der entstehende Aufwand bei der Verwaltung und dem Rendering von Lichtquellen und Objekten.</p>
+		<p>Beim Deferred Shading müssen Sie sich um die Zahl der endgültig angewendeten Lichtquellen beim Zeichnen der Objekte keine Gedanken machen. Für die Performance ist es auch nahezu egal, ob Sie viele klein- oder wenige großflächige Lichtquellen in Ihrer Szene verwenden.</p>
+	</section>
+
+	<section>
+		<h2>Multiple Render Targets</h2>
+		<p>In den Rendertargets, also dem Ergebnis des Geometrie-Renderings, benötigen Sie neben der 3D-Position jedes Pixels und seiner Normale noch Material&shy;parameter. Diese können je nach verwendetem Beleuchtungs&shy;modell variieren. Typischerweise umfassen die Parameter die diffuse Oberflächen&shy;farbe, spekulare Reflektion und eventuell auch Parameter für Lichtemission und Subsurface-Scattering.</p>
+		<p>Prinzipiell sollten Sie die Datenmenge aber so gering wie möglich halten, wie das folgende Beispiel zeigt. Nehmen Sie an, Sie speichern die Position in einem <i>A32R32G32B32</i> Rendertarget (32 Bit IEEE Float für alle vier Komponenten), die Normale, diffuse Farbe und zusätzliche Material&shy;parameter jeweils als <i>A8R8G8B8</i>-Rendertarget. Somit würden Sie pro Pixel bereits 224 Bits speichern, was sich bei einer Auflösung von 1024x768 auf 21 Megabyte summieren würde, ohne das Sie Anti-Aliasing verwenden könnten. Ein dabei verschwiegenes Problem ist, dass die momentane Grafikhardware es gar nicht erlaubt, unterschied&shy;liche Bit-Tiefen bei multiplen Rendertargets zu verwenden.</p>
+		<p>In unserem Beispiel&shy;programm verwenden Sie die folgende Konfiguration, wobei wir uns auf 32-Bit-Rendertargets beschränken wollen. Um trotzdem eine genügend hohe Genauigkeit zu erzielen, teilen Sie die 3D-Position auf zwei Rendertargets mit je zwei 16-Bit-Float-Werten auf (D3DFMT_G16R16F). Die Normale speichern Sie entweder in einem <i>A8R8G8B8</i> Target, d.h. mit drei 8-Bit-Komponenten und einem noch unbelegten Byte für weitere Daten oder, wenn Sie noch mehr Genauigkeit wünschen, in einem <i>A2R10G10B10</i> Rendertarget, also mit 10 Bit pro Komponente. Die Material&shy;parameter beschränken sich in unserem Beispiel auf eine diffuse Farbe, die Sie in ein <i>A8R8G8B8</i> Target schreiben.</p>
+	</section>
+
+	<section>
+		<h2>Implementation</h2>
+		<p>Unser Beispiel&shy;programm verwendet Direct3D9 und basiert auf dem Framework, das Sie vielleicht schon aus früheren Ausgaben kennen. Den vollständigen Quelltext finden Sie wie immer auf der Heft CD. Die Beschreibung hier konzentriert sich deshalb auf die relevanten Teile für die Deferred Shading Konzepte.</p>
+		<p>Die Rendertargets legen Sie mit der <i>D3DXCreateTexture</i>-Methode an. Wichtig ist, dass Sie bei dem Verwendungszweck der Textur (Usage-Flag) <i>D3DUSAGE_RENDERTARGET</i> angeben und das entsprechende Pixelformat wählen. Mit der <i>GetSurfaceLevel</i> Methode des <i>IDIRECT3DTEXTURE9</i>-Interfaces (also Ihres Textur-Objektes) holen Sie sich einen Zeiger auf die erste Surface Ihrer Rendertarget-Textur.</p>
+		<p>In dem initialen Renderpass beschreiben Sie also die Rendertargets, deren Verwendung Sie Direct3D zunächst mitteilen müssen. Vorher holen Sie die Referenz auf den Backbuffer ein, auf den das später sichtbare Bild gerendert wird:</p>
+		<pre><code>
+LPDIRECT3DSURFACE9 lpBackBuffer;
+		</code></pre>
+		<p>Anschließend können Sie schon beginnen, die Geometrie zu rendern. Um die multiplen Rendertargets beschreiben zu können, benötigen Sie einen Vertex und Pixel Shader, den das Beispiel&shy;programm mit der Microsoft High Level Shader Language und einem Effect File definiert:</p>
+		<pre><code>
+pEffect-&gt;SetTechnique("InitialPass");
+renderScene();
+		</code></pre>
+		<p>Der Vertex Shader übernimmt dabei die herkömmliche Transformation der Vertices für die Rasterisierung (matMVP Matrix) und die Transformation der Koordinaten in den World Space (matMV), um später die Beleuchtung zu berechnen. Diese werden – genauso, wie die Normale und die Textur-Koordinaten (für normales Textur-Mapping) – in den Textur-Koordinaten-Registern an die Rasterisierungs&shy;einheit übergeben:</p>
+		<pre><code>
+FRAGMENT vsInitialPass(VERTEX vertex)
+...
+return f;
+}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200408_2.jpg" width="504" height="470" alt="World Space: Der genaue Ort der Oberfläche liegt im Raum.">
+			<figcaption><span>World Space:</span> Der genaue Ort der Oberfläche liegt im Raum.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200408_3.jpg" width="504" height="470" alt="Die Normale: Sie ist wichtig für die Beleuchtungs&shy;berechnung.">
+			<figcaption><span>Die Normale:</span> Sie ist wichtig für die Beleuchtungs&shy;berechnung.</figcaption>
+		</figure>
+		<p>Der Pixel Shader nimmt diese Informationen, vom Rasterisierer für jeden Pixel interpoliert, entgegen, erledigt das normale Textur-Mapping und kodiert und verteilt die Information auf die Rendertargets.</p>
+		<pre><code>
+struct FRAGRESULT
+{
+	float4 color[4] : COLOR;
+};
+
+FRAGRESULT psInitialPass(FRAGMENT fragment)
+{
+	FRAGRESULT f;
+		</code></pre>
+		<p>Mit diesen Shadern rendern Sie Ihre komplette Geometrie. Für den zweiten und letzten Renderpass setzen Sie als Rendertarget wieder den ursprünglichen Backbuffer:</p>
+		<pre><code>
+pD3DDevice-&gt;SetRenderTarget(1, NULL);
+pD3DDevice-&gt;SetRenderTarget(2, NULL);
+pD3DDevice-&gt;SetRenderTarget(3, NULL);
+pD3DDevice>SetRenderTarget(0, lpBackBuffer);
+		</code></pre>
+		<p>Als Beispiel beleuchten Sie jetzt die Szene mit einer Lichtquelle. Dazu rendern Sie ein bildschirm&shy;füllendes Rechteck, auf das die Rendertargets als Textur gespannt sind. Dazu verwenden Sie folgenden Code, wobei die Abbildungs&shy;matrizen die Identitäts&shy;abbildung enthalten:</p>
+		<pre><code>
+typedef struct
+{
+	float x, y, z, u, v;
+} TEXTUREDVERTEX;
+
+TEXTUREDVERTEX screenQuad[] = {
+	{ -1, -1, 0, 0, 1 },
+	{ -1,  1, 0, 0, 0 },
+	{  1, -1, 0, 1, 1 },
+	{  1,  1, 0, 1, 0 },
+};
+
+pD3DDevice-&gt;SetFVF(D3DFVF_XYZ|D3DFVF_TEX1);
+pD3DDevice-&gt;SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
+pD3DDevice-&gt;DrawPrimitiveUP(D3DPT_TRIANGLESTRIP,
+	2, screenQuad, sizeof(TEXTUREDVERTEX));
+		</code></pre>
+		<p>	Die Beleuchtungs&shy;berechnung übernimmt der folgende Pixel Shader, der ebenfalls im <i>Effect</i>-File definiert ist.</p>
+		<pre><code>
+struct FRAGMENT_DEFERRED
+		</code></pre>
+		<p>Zunächst lesen Sie die vier ehemaligen Rendertargets aus:</p>
+		<pre><code>
+float4 posXY, posZ, normal, color;
+		</code></pre>
+		<p>Und rekonstruieren die Normale bzw. World Space Position:</p>
+		<pre><code>
+normal = normalize(normal * 2.0 - 1.0);
+float4 worldSpacePos =
+	float4(posXY.x, posXY.y, posZ.x, 1.0);
+		</code></pre>
+		<p>Anschließend führen Sie die Beleuchtungs&shy;berechnung aus und modulieren die diffuse Oberflächen&shy;farbe und addieren die spekulare Beleuchtung. So erhalten Sie den endgültigen Farbwert, den Sie in den Framebuffer schreiben:</p>
+		<pre><code>
+float4 eye, light, reflection, lit;
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Mehr Licht</h2>
+		<p>Wenn Sie die Szene mit weiteren Lichtquellen beleuchten wollen, müssen Sie den letzten Renderpass einfach nur wiederholen und dabei additives Blending im Framebuffer einstellen. Bei lokalen Lichtquellen, die nur einen Teil der Szene ausleuchten sollen, wie z.B. durch eine entfernungs&shy;abhängige Abschwächung, müssen Sie nicht jedes Mal den ganzen Bildschirm füllen. Stattdessen sparen Sie Rendering-Zeit, indem Sie nur den Teil des Bildschirms erneut rendern, der im Einflussgebiet der Lichtquelle liegt. Dazu erzeugen Sie für jede dieser Lichtquellen – als Vorberechnungs&shy;schritt – ein einfaches konvexes Dreiecksnetz, das den ausge&shy;leuchteten Raum enthält. Dieses Dreiecksnetz rendern Sie mit dem entsprechenden Pixel Shader für die Beleuchtung. Der von diesem Netz bedeckte Bereich am Bildschirm ist der, den die Lichtquelle potentiell beeinflusst und für den Sie die Beleuchtungs&shy;berechnung durchführen müssen. Wichtig ist dabei, dass jeder Pixel nur einmalig behandelt wird. Bei konvexen Dreiecksnetzen können Sie das durch Backface Culling erwirken. Achten Sie dabei darauf, dass Sie nur die Vorderseiten rendern, wenn sich die Kamera außerhalb des Netzes befindet, ansonsten rendern Sie die Rückseiten.</p>
+		<p>Ein weiteres Problem ergibt sich, wenn das Netz die Near und/oder <i>Far Clipplane</i> schneidet. Diese Fälle müssen Sie speziell, z.B. durch <i>Clamping</i> des Volumens im Vertex Shader, behandeln. Um das Rendering zu beschleunigen, können Sie für das Zeichnen dieser Light Volumes Z-Buffering verwenden. Die notwendige Information haben Sie durch das Rendern im initialen Pass schon im Tiefenpuffer gespeichert. Je nachdem, ob Sie Vorder- oder Rückseiten zeichnen, verwenden Sie als Z-Buffer Test <i>D3DCMP_LESS</i> bzw. <i>D3DCMP_GREATER</i>.</p>
+	</section>
+
+	<section>
+		<h2>Frame Buffer Optimierungen</h2>
+		<p>Der hohe Speicherbedarf der Rendertargets kann dazu führen, dass die Grafikhardware durch viel Speicher&shy;transfer ausgebremst wird. Um dies zu vermeiden, können Sie die Menge der gespeicherten Information reduzieren, wenn Sie dafür etwas mehr Rechenaufwand in Kauf nehmen. Die Frage, welche der im folgenden vorgestellten Optionen am schnellsten ist, hängt vom jeweiligen Einsatz, Beleuchtungs&shy;modell und Grafikkarte ab und lässt sich im Vornherein nicht beantworten.</p>
+		<p>Den größten Teil der Daten nimmt das Speichern der World Space Position ein. Dabei ist durch die 2D-Position eines Pixels auf dem Bildschirm und die Kamera&shy;parameter ein Sichtstrahl durch jeden Pixel im Raum definiert. Statt der World Space Position speichern Sie die Entfernung zum ersten Oberflächen&shy;punkt, den der Strahl schneidet. Dadurch können Sie die Position im Beleuchtungs-Renderpass berechnen. Diese Entfernung ist dabei nichts anderes als der Tiefenpuffer. Leider können Sie nicht performant auf den Tiefenpuffer der Grafikkarte zugreifen, aber Sie können die Information selbst berechnen und in einem Rendertarget speichern. Wenn Sie dafür einen 32-Bit-IEEE-Float verwenden, haben Sie die Information schon deutlich reduziert: In unserem Beispiel&shy;programm würden Sie ein Rendertarget bzw. 32 Bit pro Pixel sparen.</p>
+		<p>Die Normale können Sie auch etwas sparsamer kodieren. Bei einer normalisierten Normale ist <i>x<sup>2</sup> + y<sup>2</sup> + z<sup>2</sup> = 1</i>. Wenn Sie nur zwei Komponenten speichern wie <i>x</i> und <i>y</i> können Sie die dritte im Pixel Shader berechnen: <i>z = sqrt(1 - x<sup>2</sup> - y<sup>2</sup>)</i>. Eine dritte Option ist, dass Sie die Material&shy;parameter nicht direkt in den Fat-Buffers speichern, sondern nur einen Index bzw. Verweis. Dieser Index wird im Beleuchtungs-Renderpass dazu verwendet, um die tatsächlichen Material&shy;parameter aus einer Textur auszulesen.</p>
+	</section>
+
+	<section>
+		<h2>High Dynamic Range (HDR)</h2>
+		<figure class="large">
+			<img src="assets/200408_5.jpg" width="504" height="470" alt="High Dynamic Range: Sie zeigt eine diffuse Beleuchtung und sehr helle spekulare Reflektion.">
+			<figcaption><span>High Dynamic Range:</span> Sie zeigt eine diffuse Beleuchtung und sehr helle spekulare Reflektion.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200408_4.png" width="504" height="470" alt="Glow: Die spekulare Beleuchtung wird dank HDR übersteuert.">
+			<figcaption><span>Glow:</span> Die spekulare Beleuchtung wird dank HDR übersteuert.</figcaption>
+		</figure>
+		<p>Wenn Sie die Renderpasses für die Beleuchtung nicht direkt in den Framebuffer ausführen, sondern in weitere Rendertargets mit Floating-Point-Genauigkeit, können Sie den Wertebereich der erfassbaren Licht&shy;intensität erhöhen. Allerdings müssen Sie sich um das additive Blending selbst bemühen. Das Rendering mit erhöhtem Wertebereich wird mit High Dynamic Range Rendering bezeichnet. Diese Information gilt es natürlich auf den normalen Helligkeits&shy;bereich des Monitors bzw. Framebuffers abzubilden. Allerdings lassen sich Helligkeits&shy;szenarien programmieren. Zudem können Sie Post-Processing-Effekte wie Glow anwenden.</p>
+	</section>
+
+	<section>
+		<h2>Vor- und Nachteile</h2>
+		<p>Die Vorteile von Deferred Shading ist die einfache Handhabung von sehr komplexen Szenen mit vielen Lichtquellen, komplexen Objekten und Post-Processing Effekten. Außerdem zeichnen Sie jedes Objekt nur einmalig und schattieren auch jeden Pixel nur einmal. Der Nachteil liegt im nicht vernünftig machbaren Alpha Blending, der hohen Speicher&shy;bandbreite und darin, dass Sie Hardware Multisampling nicht verwenden können. Und nicht zu vergessen: Sie benötigen Hardware, die Pixel-Shader unterstützt, denn alle Beleuchtungs&shy;berechnungen sind darauf angewiesen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2004 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.ati.com/developer/" rel="external nofollow noreferrer">www.ati.com/developer/</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200406.html">6/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200409.html">9/2004</a>
+	</nav>
+</body>

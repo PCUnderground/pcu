@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Schnell und schön (PC Underground, PC Magazin 9/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;9/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200108.html">8/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200110.html">10/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Optimierung des A*-Algorithmus</h2>
+		<h1><span class="highlight">Schnell</span> und <span class="highlight">schön</span></h1>
+		<p class="summary">Der <i>A*</i>-Algorithmus gibt die Wegrichtung vor, doch Sie suchen <span class="highlight">Abkürzungen für Ihre Spielaktoren</span>. Während der Algorithmus noch das Labyrinth berechnet, geht der schnellste auf die Zielgerade.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Mit dem <i>A*</i>-Algorithmus programmieren Sie für Ihre Spielhelden einen sicheren Weg selbst durch sumpfiges Gelände. In PC Underground 8/01 (ab S. 216) kam die Basis-Implementation zum Einsatz. In dieser Ausgabe programmieren Sie eine optimierte Variante mit weiteren Algorithmen. Der Blick auf die Ästhetik der <i>A*</i>-Pfade dient keiner philoso&shy;phischen Betrachtung über Wahrheit, sondern beschreibt pragmatisch: Der <i>schönste</i> Weg ist auch der schnellste.</p>
+		<p>Mit dem <i>A*</i>-Algorithmus können Sie zwar einen beliebigen Pfad für eine Spielfigur berechnen. Doch das reicht nicht: Der Pfad soll den Eindruck vermitteln, dass er von einem Lebewesen gewählt wurde. Er muss drei Kriterien erfüllen:<br>
+		• Er soll gerade werden, also seine Richtung so wenig wie möglich ändern.<br>
+		• Er soll mehr abgerundet als zackig verlaufen.<br>
+		• Er soll möglichst direkt verlaufen.<br></p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200109.zip">💾 200109.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Gerade Pfade</h2>
+		<figure class="floatright">
+			<img src="assets/200109_1.jpg" width="319" height="307" alt="EIN UNENTSCHLOSSEN wirkender A*-Pfad erinnert an den taumelnden Gang eines Betrunkenen.">
+			<figcaption><span>EIN UNENTSCHLOSSEN</span> wirkender <i>A*</i>-Pfad erinnert an den taumelnden Gang eines Betrunkenen.</figcaption>
+		</figure>
+		<p>Die Pfade, die ein <i>A*</i>-Algorithmus berechnet, weisen oft unnötige Richtungs&shy;änderungen auf (siehe Bild rechts oben).</p>
+		<p>Es gibt zwei Ansatzpunkte, um Pfade zu begradigen:<br>
+		• Die erste Methode verursacht eine Richtungs&shy;änderung zusätzliche Rechenzeit (auch Kosten genannt), so dass der <i>A*</i>-Algorithmus gerade Pfade bevorzugt.<br>
+		• Die andere Variante versucht, den resultierenden Pfad des <i>A*</i>-Algorithmus zu begradigen.</p>
+		<figure class="floatright">
+			<img src="assets/200109_2.jpg" width="319" height="307" alt="MIT DER ERSTEN OPTIMIERUNG geht es geradewegs ins Ziel.">
+			<figcaption><span>MIT DER ERSTEN OPTIMIERUNG</span> geht es geradewegs ins Ziel.</figcaption>
+		</figure>
+		<p>Es kommt vor, dass zwei Pfade die gleiche Rechenzeit benötigen, aber einer realistisch wirkt und der andere eine betrunkene Spielfigur vermuten lässt. Der <i>A*</i>-Algorithmus kann das nicht unterscheiden und liefert den Pfad als Ergebnis, den er als erstes findet. Um den <i>A*</i>-Algorithmus auf dem geraden Pfad zu halten, erhöhen Sie den Wert der Kostenfunktion bei einer Richtungs&shy;änderung und führen damit Strafkosten für Richtungs&shy;änderungen ein. Diese Modifikation berücksichtigt nur den Übergang von einem Feld zum nächsten. Als Startwert für Experimente mit Strafkosten wählen Sie zum Beispiel die halben Kosten einer normalen Bewegung.</p>
+		<p>In die <i>expandNode(...)</i>-Funktion unserer <i>A*</i>-Implementation fügen Sie dazu Folgendes ein:</p>
+		<pre><code>
+...
+// 8-Bewegungsrichtungen
+// S, SO, O, SO, N, NW, W, SW
+static const int xofs[8] =
+	{ 0, 1, 1, 1, 0, -1, -1, -1 };
+static const int yofs[8] =
+	{ -1, -1, 0, 1, 1, 1, 0, -1 };
+
+// Tabelle mit Strafkosten
+int costModify[] =
+{
+	0, COSTSTRAIGHT * 128, COSTSTRAIGHT * 256,
+	0x7fffff, 0x7fffff, 0x7fffff,
+	0x7fffff, 0x7fffff
+};
+
+// liefert Bewegunsrichtung
+int getDirIndex(int dx, int dy)
+{
+	for(int dir = 0; dir &lt; 8; dir++)
+		if(xofs[dir] == dx &amp;&amp;
+			yofs[dir] == dy)
+				return dir;
+}
+
+if (isValid(p))
+{
+	// Strafkosten
+	travCostModify = 0;
+
+	// Vorgänger vorhanden ?
+if (node-&gt;pred)
+{
+	// vorherige Richtung
+	dirX = p.x() - node-&gt;p.x();
+	dirY = p.y() - node-&gt;p.y();
+	dir = getDirIndex(dirX, dirY);
+	// neue Richtung
+	lastDirX = node-&gt;p.x();
+	node-&gt;pred-&gt;p.x();
+	lastDirY = node-&gt;p.y();
+	node-&gt;pred-&gt;p.x();
+	lastDir = getDirIndex(lastDirX, lastDirY);
+
+	// Abweichung der neuen und alten Richtung
+	int rot = lastDir - dir;
+	if(rot &gt; 4) rot = 8 - rot;
+	if(rot &lt; -4) rot = 8 + rot;
+	rot = abs(rot);
+	travCostModify = costModify[rot];
+}
+...
+		</code></pre>
+		<p>Wenn Sie Strafkosten verteilen, dauert die Berechnung für die Pfadsuche entsprechend länger. Der Algorithmus muss mehr Pfade betrachten, um sich für den besten entscheiden zu können.</p>
+	</section>
+
+	<section>
+		<h2>Flüssige Bewegungen</h2>
+		<figure class="floatright">
+			<img src="assets/200109_3.png" width="280" height="330" alt="MIT CATMULL ROM SPLINES wirken die Pfade abgerundet und natürlich.">
+			<figcaption><span>MIT CATMULL ROM SPLINES</span> wirken die Pfade abgerundet und natürlich.</figcaption>
+		</figure>
+		<p>Selbst wenn Sie die Pfade des <i>A*</i>-Algorithmus begradigt haben, so sind die noch verbleibenden Richtungs&shy;änderungen immer noch abrupt (in einem Winkel von mindestens 45 Grad). Die Lösung kommt aus der Computergrafik: Der berechnete Pfad ist eine Folge von Punkten. Diese Punkte können Sie als Stützpunkte einer parametrischen Kurve (etwa einer Bézier-Kurve) ansehen. Bézier-Kurven verlaufen nur durch den ersten und den letzten Stützpunkt. Da der <i>A*</i>-Algorithmus Hindernisse auf der Spielkarte umlaufen soll, muss sich die Kurve aber möglichst genau am gefundenen Pfad orientieren. Mit den <i>Catmull Rom Splines</i> berechnen Sie einen abgerundeten Pfad (vgl. Bild unten).</p>
+		<p>Übergeben Sie der <i>Catmull Rom</i>-Formel vier Stützpunkte. Mit einem Parameter <i>u</i>, der im Intervall von <i>0</i> und <i>1</i> verläuft, erhalten Sie eine glatte Kurve zwischen dem zweiten und dritten Punkt:</p>
+		<pre><code>
+out = p1 * (-0.5f * u * u * u +
+	u * u - 0.5f * u) +
+	p2 * (1.5f * u * u * u -
+	2.5f * u * u +1.0f) +
+	p3 * (-1.5f * u * u * u +
+	2.0f * u * u + 0.5f * u) +
+	p4 * (-0.5f * u * u * u -
+	0.5f * u * u);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200109_4.png" width="401" height="389" alt="DIE PFADÄNDERUNGEN des <i>A*</i>-Algorithmus verbergen Sie mit Catmull Rom Splines">
+			<figcaption><span>DIE PFADÄNDERUNGEN</span> des <i>A*</i>-Algorithmus verbergen Sie mit <i>Catmull Rom Splines</i>.</figcaption>
+		</figure>
+		<p>Wenn <i>u</i> gleich <i>0</i> ist, erhalten Sie als Ergebnis den Punkt <i>p2</i>, für den Wert <i>1</i> erhalten Sie <i>p4</i>. Für das erste und das letzte Kurvensegment Ihres <i>A*</i>-Pfads übergeben Sie den ersten bzw. den letzten Stützpunkt des Pfades doppelt. Folgender Code-Ausschnitt zeigt das Zeichnen des Spline-Pfads:</p>
+		<pre><code>
+void interpolatedPosition(float *x, float *y,
+	Position *a, Position *b,
+	Position *c, Position *d,
+	float u)
+{
+	u3 = u * u * u;
+	u2 = u * u;
+	f1 = -0.5f * u3 +u2 - 0.5f * u;
+	f2 = 1.5f * u3 -2.5f * u2 + 1.0f;
+	f3 = -1.5f * u3 + 2.0f * u2 + 0.5f * u;
+	f4 = 0.5f * u3 - 0.5f * u2;
+	*x = a-&gt;x() * f1 + b-&gt;x() * f2 +
+		c-&gt;x() * f3 + d-&gt;x() * f4;
+	*y = a-&gt;y() * f1 + b-&gt;y() * f2 +
+		c-&gt;y() * f3 + d-&gt;y() * f4;
+}
+
+void drawPathCatmullRom(Position
+	*path, int length)
+{
+	glBegin(GL_LINE_STRIP);
+	for (i = 0; i &lt; length; i++)
+	{
+		for(float u = 0.0f; u < 1.0f; u += 0.01f)
+		{
+			float x, y;
+			interpolatedPosition(
+			&amp;x, &amp;y,
+			&amp;path[max(0, i - 1)],
+			&amp;path[i],
+			&amp;path[min(i + 1, length - 1)],
+			&amp;path[min(i + 2, length - 1)], u);
+			glVertex2f(x + 0.5f, y + 0.5f);
+		}
+	}
+}
+		</code></pre>
+		<p>Wenn die Rechenzeit bei der Spline-Interpolation eine Rolle spielt, genügt es auch, für verschiedene, vorher festgelegte <i>u</i> Werte die Faktoren <i>f1, f2, f3</i> und <i>f4</i> vorzuberechnen und den Pfad nur um eine begrenzte Anzahl von Zwischen&shy;punkten zu ergänzen:</p>
+		<pre><code>
+// u = 0.0
+out = p2;
+// u = 1.0/3.0
+out = -0.0740740 * p1 +
+	0.7777777 * p2 +
+	0.3333333 * p3 -
+	0.0370370 * p4;
+
+// u = 2.0/3.0
+out = -0.0370370 * p1 +
+	0.3333333 * p2 +
+	0.7777777 * p3 -
+	0.0740740 * p4;
+
+// u = 1.0
+out = p3;
+		</code></pre>
+		<p>Den neuen Pfad mit den zusätzlichen Zwischen&shy;punkten können Sie einfach für Ihre Spielfigur verwenden, indem Sie sie stückweise linear bewegen lassen. Die Anzahl der neuen Punkte ist bei der obigen Rechnung dreimal so hoch wie die des Ausgangspfads. An geraden Teilen des Pfads können Sie kollineare Punkte (die Punkte, die auf der Verbindungs&shy;gerade des Vorgänger- und des Nachfolger&shy;punktes liegen) wieder entfernen.</p>
+	</section>
+
+	<section>
+		<h2>Hierarchischer A*-Algorithmus</h2>
+		<figure class="floatright">
+			<img src="assets/200109_5.png" width="489" height="489" alt="DER HIERARCHISCHE A*-Algorithmus in einem Gebäude führt zur einen Tür rein, zur nächsten hinaus.">
+			<figcaption><span>DER HIERARCHISCHE</span> <i>A*</i>-Algorithmus in einem Gebäude führt zur einen Tür rein, zur nächsten hinaus.</figcaption>
+		</figure>
+		<p>Stellen Sie sich ein Gebäude vor, in dem Sie mit dem <i>A*</i>-Algorithmus einen Pfad planen wollen. Außer der Karte, die ein Gebäude&shy;geschoss in viele Quadrate aufteilt, können Sie einen Verbindungs&shy;graphen aufbauen. Dazu speichern Sie, welcher Raum von welchem Raum jeweils durch eine Tür erreichbar ist. Der <i>A*</i>-Algorithmus kann jede Form von Graphen durchsuchen.</p>
+		<p>Die hierarchische Pfadsuche erfolgt in zwei Schritten:<br>
+		• Im ersten Schritt planen Sie den Pfad grob,<br>
+		• im zweiten Schritt berechnen Sie den Verlauf des Pfads im Detail.</p>
+		<p>Der erste Schritt besteht also darin, zu suchen, durch welche Räume des Gebäudes der Pfad führt. Im zweiten Schritt planen Sie dann auf dem Level der Spielfelder die Pfade innerhalb eines Raums zur Tür zum nächsten Raum.</p>
+		<p>Mit der hierarchischen Pfadsuche sparen Sie sehr viel Rechenzeit, weil Sie den Suchraum (die Größe des Graphen, die der <i>A*</i>-Algorithmus durchsucht) drastisch reduzieren. Leider verläuft der Pfad wegen der Verbindungs&shy;information der Räume immer durch die Mitte der Türen. Um den optimalen Pfad durch die Räume zu finden, müssen Sie mehr Rechenzeit investieren. In Verbindung mit der hierarchischen Pfadsuche können Sie sich das aber leisten: Suchen Sie auf der zweiten Ebene nicht den Pfad zur nächsten Tür, sondern zur übernächsten. Sie speichern aber nur den Teil des Pfads, der Sie zur nächsten Tür führt, und verwerfen den Rest.</p>
+		<figure class="large">
+			<img src="assets/200109_6.jpg" width="676" height="215" alt="SCHÖN VERKÜRZTE PFADE mit hierarchischer Wegsuche benötigen den doppelten Rechenaufwand.">
+			<figcaption><span>SCHÖN VERKÜRZTE PFADE</span> mit hierarchischer Wegsuche benötigen den doppelten Rechenaufwand.</figcaption>
+		</figure>
+		<p>Die einzelnen Schritte:<br>
+		• Suchen Sie den besten Pfad durch die Räume: <i>1, 2, 3, 4</i> • Suchen Sie den Pfad vom Start zum Punkt <i>P2</i>.<br>
+		• Verwerfen Sie den zweiten Teil des Pfades.<br>
+		• Suchen Sie den Pfad zum Punkt <i>P3</i>.<br>
+		• Verwerfen Sie den zweiten Teil des Pfades.<br>
+		• Suchen Sie den verbleibenden Pfad zum Ziel.</p>
+		<p>Die hierarchische Pfadsuche funktioniert genauso auf Spielwelten, die nicht aus Räumen bestehen, sondern aus einer Landkarte: Legen Sie einfach eine grobe Repräsentation Ihrer Karte an. Für eine Karte mit <i>256 x 256</i> Feldern berechnen Sie eine kleine Version mit <i>32 x 32</i> Feldern. Ein Feld auf der kleinen Karte steht für <i>8 x 8</i> Spielfelder. Für die hierarchische Pfadsuche ist es egal, ob Sie im ersten Schritt den Verbindungs&shy;graph für Felder oder für Räume verwenden.</p>
+		<figure class="large">
+			<img src="assets/200109_7.png" width="697" height="285" alt="DIE HIERARCHISCHE PFADSUCHE spart auf Landkarten unnötige Wege.">
+			<figcaption><span>DIE HIERARCHISCHE PFADSUCHE</span> spart auf Landkarten unnötige Wege.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Rechenzeit-Optimierungen</h2>
+		<p>Die benötigte Rechenzeit können Sie mit der hierarchischen Methode sowie mit der Kostenfunktion beeinflussen. Die Verkleinerung des Suchraums und die Kostenfunktion sind ein Ansatzpunkt der Optimierung. Weiterhin können Sie den Algorithmus sowie den Code verbessern. Dazu implementieren Sie eine Reihe von Funktionen und Klassen, die den <i>A*</i>-Algorithmus signifikant beschleunigen!</p>
+	</section>
+
+	<section>
+		<h2>Pre-Allocating Memory</h2>
+		<p>Der <i>A*</i>-Algorithmus untersucht Nodes (Knoten), die er zwischen&shy;speichert. Statt jedes Mal neu Speicher für einen Node zu allokieren (adressieren), reservieren Sie von vornherein Speicher für genügend Nodes. Bei Bedarf nehmen Sie den Speicher aus der <i>NodeBank</i>. Eine einfache C++-Klasse hierfür sieht so aus:</p>
+		<pre><code>
+class NodeBank
+{
+#define MAXBANKSIZE (256*256)
+private:
+	int n;
+	Node *nodebank;
+
+public:
+	NodeBank(): n(0)
+	{
+		nodebank = new Node[MAXBANKSIZE];
+	}
+
+	~NodeBank()
+	{
+		delete nodebank;
+	}
+
+	Node *getNewNode()
+	{
+		if (n &lt; MAXBANKSIZE)
+			return &amp;nodebank[n++];
+		else
+		{
+			kein Speicher mehr !
+			exit(1);
+		}
+	}
+};
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Die Master Node List</h2>
+		<p>Ändern Sie die Architektur der <i>A*</i>-Speicher&shy;strukturen. Bisher haben Sie eine <i>Open</i>- und eine <i>Close</i>-Liste gespeichert. Diese Methode ist sehr anschaulich, aber nicht optimal für die Rechenzeit. Fassen Sie diese beiden Listen zusammen. Um dennoch unterscheiden zu können, ob ein Node <i>open</i> oder <i>closed</i> ist, speichern Sie zwei Flags in der Node-Klasse. Hier sehen Sie die für <i>A*</i> relevanten Daten:</p>
+		<pre><code>
+class Node
+{
+private:
+	int g, f;
+	Node *pred;
+	Position p;
+	bool inOpen,inClosed;
+...
+};
+		</code></pre>
+		<p>Diese Nodes speichern Sie in der <i>Master-Node-List</i>. Sie benötigen Funktionen, um einen Node anhand einer Position <i>p</i> zu suchen. Für eine schnelle Suche von Elementen in einer Liste eignet sich das <i>Hashing</i>. Dabei definieren Sie eine Hash-Funktion, die zu einer Position einen Hash-Wert berechnet:</p>
+		<pre><code>
+#define HASHFUNC(p) {
+	((p.x() &amp; 255) &lt;&lt; 8) |
+	((p.y()) &amp; 255)
+}
+		</code></pre>
+		<p>Den Hash-Wert verwenden Sie als Index in einer Hash-Tabelle. An der Stelle zum Index speichern Sie den Node:</p>
+		<pre><code>
+typedef struct HASHNODEPTR
+{
+	Node *node;
+	HASHNODEPTR *next;
+} HASHNODE;
+
+HASHNODE *hash = new HASHNODE[MAXHASHSIZE];
+
+...
+
+// node in Hashtable speichern
+int hashcode = HASHFUNC(node-&gt;p);
+hash[hashcode]-&gt;node = node;
+hash[hashcode]-&gt;next = NULL;
+		</code></pre>
+		<p>In der Hashnode-Struktur sehen Sie, dass außer dem Node noch ein Zeiger auf den nächsten Hashnode gespeichert wird. Der Grund: Es kann bei bestimmten Hash-Funktionen vorkommen, dass zwei unterschied&shy;liche Positionen denselben Hash-Wert besitzen. In diesem Fall speichern Sie alle Nodes mit demselben Hash-Wert in einer verketteten Liste, die bei <i>hash[ hashcode ]</i> beginnt. Wenn Sie einen Node suchen, verwenden Sie folgende Funktion:</p>
+		<pre><code>
+Node *getNodeStored(Position p)
+{
+	int hashcode = HASHFUNC(p);
+	HASHNODE *node = &amp;hash[hashcode];
+while(node != NULL &amp;&amp;
+	node-&gt;node != NULL &amp;&amp;
+	node-&gt;node-&gt;p != p)
+		node = node-&gt;next;
+
+if (node != NULL)
+	return
+		node-&gt;node;
+	else
+		return NULL;
+}
+		</code></pre>
+		<p>Das Hashing finden Sie in der Klasse <i>MasterNodeList</i> im Sourcecode zu dieser Ausgabe. Während der <i>A*</i>-Suche benötigen Sie Node-Strukturen für eine Position. Ist ein Node schon bekannt, brauchen Sie einen Zeiger auf ihn in der <i>MasterNodeList</i>. Wenn Sie diesen Node das erste Mal erreichen, müssen Sie einen neuen erzeugen. Dazu verwenden Sie eine Funktion der <i>MasterNodeList</i>:</p>
+		<pre><code>
+Node *getNode(Position p)
+{
+	// Node schon in der Liste ?
+
+	Node *node = this-&gt;getNodeStored(p);
+	if(node)
+		return(node);
+	else
+	{
+		// nein => neue Node
+		Node *newNode = nodeBank-&gt;getNewNode();
+		newNode-&gt;p = p;
+		newNode-&gt;inOpen = false;
+		newNode-&gt;inClosed = false;
+		// und speichern
+		this-&gt;storeNode(newNode);
+		return(newNode);
+	}
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Priority Queues</h2>
+		<p>Sie speichern alle Nodes zusammen in der <i>Master Node List</i> und die <i>Open</i>-Liste aus Performance Gründen nochmals separat in einer <i>Priority Queue</i>. Der <i>A*</i>-Algorithmus wählt für seine Wegsuche und die Expansion der Nodes immer den Node, der voraus&shy;sichtlich zum optimalen Pfad gehört. Das ist der Node in der <i>Open</i>-Liste mit den niedrigsten Gesamtkosten.</p>
+		<p>Die <i>Open</i>-Liste kann sehr groß werden, und eine Suche nach dem besten Node sehr aufwendig sein. Deshalb speichern Sie die Liste sortiert in einer <i>Priority Queue</i>. Dadurch, dass Sie die Sortierung beim Einfügen und Entfernen von Nodes aufrecht erhalten, reduzieren Sie den Suchaufwand deutlich. Die STL (Standard Template Library) bietet genügend Funktionalität, um die benötigten Funktionen zu implementieren. Es gibt keine verwendbare vordefinierte <i>Priority Queue</i> in STL, aber mit den Funktionen eines <i>Binary Heap</i> (binärer Speicherplatz) können Sie die anfallenden Aufgaben  erledigen.</p>
+		<p>Hier sehen Sie einen kleinen Auszug aus dem Sourcecode, der zeigt, wie Sie Elemente einfügen, entfernen und sortieren:</p>
+		<pre><code>
+class PriorityQueue
+{
+private:
+	std::vector&lt;Node*&gt; heap;
+public:
+	Node *pop() // O(log n)
+	{
+		// 1.Node niedrigsten Kosten
+		Node *node = this-&gt;heap.front();
+		// 1.node zum ende (N) bewegen
+		// sortieren 1 bis N-1 neu
+		std::pop_heap(this-&gt;heap.begin(),
+			this-&gt;heap.end(),
+			NodeCompare());
+		// letzte Node wegnehmen
+		//Heap ist wieder sortiert
+		this-&gt;heap.pop_back();
+		return(node);
+}
+
+void push(Node* node)
+// O(log n)
+{
+	// Node am Ende speichern
+	// => Heap ist unsortiert !
+	this-&gt;heap.push_back(node);
+	// Element einsortieren !
+	std::push_heap(this-&gt;heap.begin(),
+		this-&gt;heap.end(),
+		NodeCompare());
+}
+...
+};
+		</code></pre>
+		<p>Die <i>std::push_heap(...)</i>-Funktion sortiert den Heap neu. Dazu benötigt sie eine Vergleichs&shy;funktion. Diese vergleicht die Gesamtkosten zweier Nodes. Geben Sie für STL in einer Klasse Folgendes an:</p>
+		<pre><code>
+class NodeCompare
+{
+public:
+	bool operator()(Node *a, Node *b) const
+	{
+		return(a-&gt;f &gt; b-&gt;f);
+	}
+};
+		</code></pre>
+		<p>Fassen Sie die optimierten Routinen in der <i>A*</i>-Klasse – die Sie im PC-Underground-Beitrag Ausgabe 8/01 S. 216 implementiert haben – zusammen. Damit erhalten Sie eine optimierte Variante, um schnell den passenden Pfad zu suchen. Die zwei modifizierten Funktionen finden Sie im Listing <i>expandnode</i>.</p>
+		<p>Damit haben Sie alles eingebaut, was Sie für eine <i>A*</i>-Pfadsuche in einem Computerspiel benötigen. Wichtig ist noch, die Pfade rechtzeitig zu berechnen. In einem Computerspiel muss der Spieler sofort eine Reaktion einer Spielfigur feststellen, wenn er einen Befehl erteilt. Manchmal wird die benötigte Zeit für die Wegsuche mit einem Soundeffekt als Befehls&shy;bestätigung kaschiert. Gleichzeitig müssen Sie in einem Computerspiel darauf achten, dass Sie nicht zu viel zusammen&shy;hängende Rechenzeit bei der Wegsuche verbrauchen, da sonst das Spiel kurze Zeit still steht. Sie organisieren dazu die Berechnung und teilen sie auf. In den folgenden Literatur&shy;angaben finden Sie interessante empfehlens&shy;werte Links, die nicht mit weiter&shy;führenden Informationen sparen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote">Literatur:</p>
+		<p class="footnote">Russel, Stuart und Norvig, Peter, Artificial Intelligence: A Modern Approach, Prentice Hall, 1995</p>
+		<p class="footnote">Nilsson, Nils J., Artificial Intelligence: A New Synthesis. Morgan Kaufmann, 1998</p>
+		<p class="footnote">Nelson, Mark, Priority Queues and the STL, Dr. Dobbs Journal Januar 1996, oder <a href="https://www.dogma.net/markn/articles/pq_stl/priority.htm" rel="external nofollow noreferrer">www.dogma.net/markn/articles/pq_stl/priority.htm</a></p>
+		<p class="footnote">Heyes-Jones, Justin, A* Algorithm Tutorial, oder <a href="https://www.gamedev.net/reference/programming/ai/article690.asp" rel="external nofollow noreferrer">www.gamedev.net/reference/programming/ai/article690.asp</a></p>
+		<p class="footnote">Patel, Amit J., Amit’s Thoughts on Pathfinding, oder <a href="https://theory.standford.edu/~amitp/GameProgramming" rel="external nofollow noreferrer">http://theory.standford.edu/~amitp/GameProgramming</a></p>
+		<p class="footnote">Sout, Bryan W., Smart Moves: Intelligent Path-Finding, oder <a href="https://www.gamasutra.com/features/19990212/sm_01.htm" rel="external nofollow noreferrer">www.gamasutra.com/features/19990212/sm_01.htm</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200108.html">8/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200110.html">10/2001</a>
+	</nav>
+</body>
+<!--
+ExpandNode
+void expandNode(Node *node) { for (d=0; d<8; d++) { p = node-&gt;p .
+neighbour(d); if (isValid(p)) { // nicht die Node durchsuchen von der wir kommen ! if(node-&gt;pred == NULL || node-&gt;pred-&gt;p ! = p) { Node newNode; newNode .
+p = p; newNode .
+pred = node; newNode .
+g = node-&gt;g + traversalCost(node-&gt;p, p, d); newNode .
+f = newNode .
+g + pathCostEstimate(p, goal); pNode = masterNodeList-&gt;getNode(newNode .
+p); // prÅfen, ob sich die neue Node lohnt if(! (pNode-&gt;inOpen &amp;&amp; newNode .
+f > pNode-&gt;f) &amp;&amp; ! (pNode-&gt;inClosed &amp;&amp; newNode .
+f > pNode-&gt;f)) { // ja ! entweder neu oder update ! pNode = newNode; pNode-&gt;inClosed = false; if(pNode-&gt;inOpen) // Update pqueue-&gt;updateNode(pNode); else
+{ // in die OpenList pqueue-&gt;push(pNode); pNode-&gt;inOpen = true; } } } } } } int searchPath() { while(! pqueue-&gt;isEmpty()) { // beste Node holen Node *node = pqueue-&gt;pop(); if(node-&gt;p == goal) { // Ziel gefunden ?
+goalNode = node; return node-&gt;nPred + 1; } expandNode(node); // node in die Closed Liste node-&gt;inClosed = true; } // kein Pfad gefunden return -1; } <b>
+ExpandNode führt vor, wie Sie mit optimierten Routinen im
+A*-Algorithmus schneller ans Ziel kommen.
+-->

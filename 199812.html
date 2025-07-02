@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Schöne Töne (PC Underground, PC Magazin 12/1998)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;12/1998. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+	<nav class="pagenav">
+		<a rel="prev" href="199811.html">11/1998</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199901.html">1/1999</a>
+	</nav>
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/NT</h2>
+		<h1>Schöne <span class="highlight">Töne</span></h1>
+		<p class="summary">Nach den visuellen Effekten der letzten Ausgaben warten die <span class="highlight">Programme und Routinen</span> diesmal mit akustischen Reizen auf.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Ein PC mit Soundkarte kann Klänge über ein ange&shy;schlossenes Mikrofon aufnehmen oder elektrische Impulse von einer Hi-Fi-Komponente durch die Line-In-Schnittstelle empfangen. Dazu mißt er in regelmäßigen Zeitabständen die analoge Amplitude der Welle und rechnet die gemessene Spannung in einen digitalen Wert um. Beim Abspielen wandelt die Soundkarte die so erhaltenen Werte wieder in Spannungen zurück, die dann einen Lautsprecher betreiben.</p>
+		<p>Entscheidend für die Klangqualität ist zum einen die Anzahl der gemessenen Werte pro Sekunde (Sampling-Frequenz). Zum anderen spielt die Anzahl der Bits eine Rolle, die zur Repräsentation der abgetasteten Spannungswerte benutzt werden. Ein CD-Player arbeitet zum Beispiel mit einer Sampling-Frequenz von 44,1 kHz und 16 Bit pro Abtastwert. Multiplizieren Sie diese 44 100 Abtastwerte pro Sekunde mit dem Platzbedarf von 2 Byte (= 16 Bit) pro Abtastwert, so errechnen Sie einen Speicherbedarf von 88 200 Byte pro Sekunde für jeden der beiden Stereokanäle.</p>
+		<p>Um die aufgenommenen Musiksignale korrekt reproduzieren zu können, muß die Sampling-Frequenz mindestens doppelt so hoch sein wie die Frequenz des höchsten Tons. Aus dieser allgemein&shy;gültigen Regel (bekannt als Shannon-Theorem) resultiert auch der typische Frequenzgang eines CD-Players bis etwa 22 kHz.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199812.zip">💾 199812.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Qual der Wahl</h2>
+		<p>Um eine Demo mit Hinter&shy;grundmusik zu versehen, haben Sie die Wahl zwischen zwei verschiedenen Ansätzen.<br>
+		• Sie können das ganze Musikstück aufnehmen, als <i>wav</i>-Datei speichern und parallel zur Demo abspielen. Der Vorteil hierbei ist, daß Sie nur einmal die Ausgabe starten müssen und sich um nichts weiteres zu kümmern brauchen. Außerdem benötigt die CPU zum Abspielen der Sample-Daten praktisch keine Rechenzeit. Negativ schlägt der relativ hohe Speicher&shy;verbrauch zu Buche. Wie Sie dem etwas entgegenwirken, erfahren Sie später.<br>
+		• Bei der zweiten Variante werden einzelne Instrumente aufgenommen und die Musiknoten zu den Instrumenten&shy;daten gespeichert. Sie haben dann dafür zu sorgen, daß die Instrumente zu den gegebenen Zeitpunkten in der richtigen Tonhöhe abgespielt werden. Dieses Verfahren nutzen die noch vom Commodore Amiga stammenden <i>Modules</i> (MOD-Format) und die <i>Extended Modules</i> (XM-Format), welche eine erweiterte Funktionalität besitzen.</p>
+		<p>Hauptsächlich fallen zwei verschiedene Berechnungen mit den Sample-Daten an. Zuerst möchten Sie sicherlich die Lautstärke eines Instruments beeinflussen. Dafür multiplizieren Sie jeden Sample-Wert mit einem Faktor und verändern somit die Amplitude, also die Lautstärke des Samples.</p>
+		<p>Die zweite wichtige Operation ist das Mischen der einzelnen Kanäle bzw. der Instrumente. Ohne Wavetable-Soundkarte muß die Software diese rechen&shy;intensive Aufgabe übernehmen. Moderne PCs sind schnell genug. Sie berechnen die Klänge in Echtzeit und fügen zusätzlich Effekte wie Chorus oder Reverb (Echo) hinzu. Das Mischen der Sample-Daten entspricht einer Addition.</p>
+	</section>
+
+	<section>
+		<h2>Module komponieren</h2>
+		<p>FastTracker II ist ein Musikprogramm, mit dem Sie selbst MODund XM-Musikstücke schreiben. Um Ihnen den Einstieg ins Komponieren mit FastTracker II (auf unserer Heft-CD) zu erleichtern, gibt Ihnen PC Magazin wertvolle Tips zur Hand.</p>
+		<h4>Profi-Einstieg</h4>
+		<p>Wie auch alle anderen Tracker auf dem Markt ist FastTracker II kein Programm, um schnell oder einfach Musik zu machen. Es erfordert eine gewisse Einarbeitung und Gewöhnung, um effektiv mit diesem mächtigen, aber unkonven&shy;tionellen Tool umzugehen.</p>
+		<p>Generell ist ein sogenanntes Modul anders aufgebaut als MIDI-Dateien. Der Ansatz der Module ist – da sie ursprünglich vom Amiga stammen – sehr Hardware-nah und effizient gehalten. Generell gibt es eine Anzahl von Kanälen (normalerweise zwischen 4 und 32). Jeder Kanal entspricht einer Mono-Audiodatei, ähnlich einer <i>wav</i>-Datei. Im Gegensatz zu Harddisk-Recording-Software bieten Tracker jedoch die Möglichkeit, diese Klänge beliebig in Tonhöhe und Lautstärke zu modifizieren. So entstehen aus diesen einzelnen Samples komplexe polyphone (vielstimmige) Musikstücke.</p>
+		<p>Die Musikdaten sind deshalb in sogenannten Patterns zusammengefaßt. In einem Pattern gibt es für jeden Kanal eine Spalte, in der untereinander die Events stehen. Jedes Event besteht aus vier Komponenten:<br>
+		• einer Note, die die Tonhöhe des abzuspielenden Instruments angibt;<br>
+		• einer Instrumente&shy;nnummer, die das Instrument bzw. das Sample spezifiziert;<br>
+		• einer Lautstärke&shy;spalte, die die Lautstärke des Tons bestimmt<br>
+		• und einer Effektspalte, in der Sie mittels einer dreistelligen Hexadezi&shy;malzahl bestimmte Modulationen auf den Ton anwenden.</p>
+		<figure class="floatright">
+			<img src="assets/199812_1.png" width="640" height="400" alt="HERZSTÜCK DES FASTTRACKER II:< Im Pattern-Editor weisen Sie jedem Instrument Tonhöhe, Lautstärke und Effekte zu.">
+			<figcaption><span>HERZSTÜCK DES FASTTRACKER II:</span> Im Pattern-Editor weisen Sie jedem Instrument Tonhöhe, Lautstärke und Effekte zu.</figcaption>
+		</figure>
+		<p>Eine Zeile in einem Pattern entspricht einem bestimmten Zeitintervall. Im Gegensatz zu einer Event-Liste in üblichen Sequenzer&shy;programmen ist dieser Zeitablauf jedoch starr, das heißt, die Liste wird mit einer mehr oder weniger konstanten Geschwindig&shy;keit von oben nach unten abgearbeitet.</p>
+		<p>In der sogenannten Order-Liste reihen Sie die Patterns aneinander und fügen so einen Song zusammen. Alle Patterns in der Orderliste werden nacheinander abgespielt. Wenn Sie sich in die – leider nicht optimale – Benutzer&shy;führung von FastTracker II eingearbeitet haben, sind Sie mit ein wenig Übung bald in der Lage, professionelle Musikstücke zu komponieren.</p>
+		<p>Im Editor von FastTracker II stellen Sie schnell fest, daß das ganze Programm mit Hexadezi&shy;malzahlen arbeitet. Der Grund dafür ist die kompaktere Darstellung der verwendeten Parameter für die Bildschirm&shy;ausgabe. Das ist etwas gewöhnungs&shy;bedürftig, aber die hexadezimale Numerierung der Pattern-Zeilen erscheint bei der heutigen 4/4-Takt-dominierten Musik wesentlich intuitiver. Sie können damit Abstände von beispielsweise 4, 8 oder 16 Zeilen schneller erkennen.</p>
+		<p>Bevor Sie sich ans Werk machen, sollten Sie sich die Online-Hilfe und die mitgelieferte Dokumentation ansehen. Dort finden Sie einige Tastatur&shy;befehle, die die Arbeit mit dem Editor wesentlich erleichtern. Da die bereits erwähnten Effektspalten in den Patterns mit Zahlen arbeiten, sollten Sie auch diese in der Hilfe nachschlagen.</p>
+		<h4>Das Sound-Cockpit</h4>
+		<p>Nach dem Programmstart sehen Sie den sogenannten Arbeits&shy;bildschirm. Dieser ist in mehrere Bereiche unterteilt. In der unteren Hälfte befindet sich normalerweise die Arbeitsfläche, also der Pattern-Editor, während Sie im oberen Bildschirmteil nützliche Anzeigen oder Hilfsbild&shy;schirme sehen. Im Normalfall finden Sie links oben die Order-Liste, diverse Einstellungen, eine Speicher&shy;anzeige und einen Bereich mit Oszilloskop-Darstellungen. Diese zeigen während des Abspielens den Zustand der einzelnen Kanäle an. Im rechten oberen Teil befinden sich zwei Reihen mit Schaltflächen zum Aufrufen der verschiedenen Funktionen und Editoren, rechts daneben die Liste der Instrumente und ihrer Samples.</p>
+		<p>Da FastTracker II aus der DOS-Zeit stammt, steht zuerst die Konfiguration Ihrer Soundkarte an. Im <i>Config</i>-Menü wählen Sie in den Abschnitten <i>Output</i><i>Device</i> und <i>Sampling Device</i> Ihre Soundkarte aus. Im Fall einer Sound-Blaster-kompatiblen Karte sollten Sie zusätzlich die IRQund DMA-Einstellungen überprüfen. Außerdem empfiehlt es sich für eine möglichst gute Klangqualität, die Optionen <i>Interpolation</i>, <i>16bit mixing</i> und <i>Stereo</i> zu aktivieren. Um die maximale Sampling-Frequenz für die Ausgabe zu wählen, klicken Sie rechts oben neben der Frequenz&shy;tabelle auf <i>Max</i>.</p>
+		<figure class="floatright">
+			<img src="assets/199812_3.png" width="640" height="400" alt="CYBER-KLAVIER: FastTracker II verwandelt die PC-Tastatur in ein virtuelles Keyboard.">
+			<figcaption><span>CYBER-KLAVIER:</span> FastTracker II verwandelt die PC-Tastatur in ein virtuelles Keyboard.</figcaption>
+		</figure>
+		<p>Um ein Modul zu laden, klicken Sie oben in der Mitte auf <i>Disk op.</i> und wählen den entsprechenden Namen im Dateiauswahl&shy;fenster links oben. Mit der Schaltfläche <i>Save</i> speichern Sie ein Modul unter dem aktuellen Namen – dieser ist am unteren Fensterrand eingeblendet. Um diesen Namen zu ändern, klicken Sie ihn – wie bei allen Textfeldern in FastTracker II – mit der rechten Maustaste an. Möchten Sie einen Sample als Instrument laden, klicken Sie in der Instrumenten&shy;liste auf die Position, an der es eingetragen werden soll, und auf den Dateinamen in Dateiselektor.</p>
+		<p>Im unteren Teil des Bildschirms sehen Sie entweder den Pattern-, den Sample- oder den Instrumenten&shy;editor. Der Pattern-Editor ist das Herzstück des Tracker. Hier geben Sie die Notendaten in die Patterns ein. Dazu benutzen Sie die Tastatur als virtuelles Keyboard: Die QWERTZ-Reihe stellt die weißen, die Zahlenreihe die schwarzen Tasten dar. QUERTZ ist ein nach der Anordnung der Tasten auf der Tastatur entstandenes Kunstwort zur Unterscheidung der englischen (QWERTY) und der deutschen (QWERTZ) Tastatur. Der Cursor befindet sich immer in der hervor&shy;gehobenen Mittelzeile des Pattern-Editors und ist mit einer Umrandung markiert.</p>
+		<p>Sie bewegen den Cursor mit den Pfeiltasten oder der <i>[Tab]</i>-Taste, um zwischen den Kanälen zu wechseln. Vorsicht: Auch wenn der Pattern-Editor nicht aktiv ist und Sie zum Beispiel den Sample-Editor sehen, können Sie den Inhalt des Pattern modifizieren. Mit der Leertaste wechseln Sie zwischen dem Anhörmodus (die Samples werden einfach nur gespielt, wenn Sie die Tasten drücken) und dem Editiermodus (die Noten werden in das Pattern eingetragen). Den Editiermodus erkennen Sie an der etwas helleren Farbe des Bildschirm&shy;rahmens.</p>
+		<figure class="floatright">
+			<img src="assets/199812_2.png" width="640" height="400" alt="SAMPLE-EDITOR: die virtuelle Stimmgabel zum Feintuning der Instrumente">
+			<figcaption><span>SAMPLE-EDITOR:</span> die virtuelle Stimmgabel zum Feintuning der Instrumente</figcaption>
+		</figure>
+		<p>Befindet sich der Cursor über der Notenspalte, können Sie Noten eingeben oder mit der Feststelltaste ein <i>Key-off</i>-Event setzen. Im letzteren Fall stoppt die Sample-Ausgabe des betreffenden Kanals an dieser Position. Bei den anderen Spalten geben Sie die Lautstärke und die Effekte ein, deren Zahlencodes Sie der Online-Hilfe entnehmen.</p>
+		<p>Im Sample-Editor schließlich können Sie die Sample-Daten der Instrumente betrachten und wie mit einem Wave-Bearbeitungs&shy;programm modifizieren.</p>
+	</section>
+
+	<section>
+		<h2>Sound-Bibliothek benutzen</h2>
+		<p>Um Ihre Kompositionen in Ihre Demo zu integrieren, bedienen Sie sich am besten einer fertigen Bibliothek wie der MIDAS Audio Library (auf unserer Heft-CD). Die Gründe, warum wir Ihnen hier eine fertige Bibliothek vorstellen, sind vielfältiger Natur: Zum einen würde die Entwicklung eines eigenen MOD-Players mit all seinen Feinheiten mehrere Ausgaben von PC Underground füllen – ganz zu schweigen von einem XM-Player.</p>
+		<figure class="floatleft">
+			<img src="assets/199812_5.png" width="320" height="257" alt="UNSER MOD-PLAYER ist für die aktuelle Statusanzeige im Fenster verantwortlich.">
+			<figcaption><span>UNSER MOD-PLAYER</span> ist für die aktuelle Statusanzeige im Fenster verantwortlich.</figcaption>
+		</figure>
+		<p>Zum anderen ist es nicht immer sinnvoll, gleich das Rad neu zu erfinden. Deswegen kommt das MIDAS-Soundsystem auch in der Demoszene sehr oft zum Einsatz. Es ist zweifelsfrei eines der besten und bietet eine einfach Schnittstelle, um MOD- und XM-Dateien unter DOS, Windows oder Linux abzuspielen.</p>
+		<p>Aktuelle Updates und weitere Informationen bekommen Sie unter <a href="https://www.s2.org/midas" rel="external nofollow noreferrer">www.s2.org/midas</a><br>
+		Außer dem MIDAS-Paket, in dem eine Vielzahl von Beispiel&shy;programmen und Dokument&shy;ationen enthalten sind, benötigen Sie nur noch eine kleine Änderung am Demo-Basissystem: Sie müssen sichergehen, daß MIDAS immer korrekt beendet wird. Deshalb fügen Sie dem Basissystem außer <i>demoinit()</i> und <i>demomain()</i> noch <i>demoquit()</i> hinzu. Diese Funktion wird beim Beenden der Demo automatisch aufgerufen.</p>
+		<p>Als Beispiel&shy;programm hierzu finden Sie in dieser Ausgabe einen kleinen Module-Player. Dieses Programm verwendet die von MIDAS bereit&shy;gestellten Funktionen, um Informationen über die Musik&shy;wiedergabe zu erhalten:</p>
+		<pre><code>
+MIDASmoduleInfo info;
+MIDASplayStatus status;
+MIDASgetModuleInfo(module, &amp;info);
+MIDASgetPlayStatus(playHandle, &amp;status);
+		</code></pre>
+		<p>Die beiden Strukturen <i>&amp;info</i> und <i>&amp;status</i> werden von den aufgerufenen Funktionen mit Daten gefüllt und sind folgendermaßen definiert:</p>
+		<pre><code>
+typedef struct {
+	// Titel des Module
+	char songName[32];
+	// Länge der Order-List
+	unsigned songLength;
+	// Anzahl der ver-
+	// schiedenen Patterns
+	unsigned numPatterns;
+	// Anzahl der Instrumente
+	unsigned numInstruments;
+	// Anzahl der Kanäle
+	unsigned numChannels;
+} MIDASmoduleInfo;
+
+struct {
+	// Position in der Order-List
+	unsigned position;
+	// Pattern an dieser Stelle
+	unsigned pattern;
+	// aktuelle Zeile im Pattern
+	unsigned row;
+	// Synchronisationsinfo
+	int syncInfo;
+	unsigned songLoopCount;
+} MIDASplayStatus;
+		</code></pre>
+		<p>Der Module-Player stellt den Titel des Module in der Titelzeile dar, während er die momentane Position, das Pattern und die Zeile kontinuierlich im Fenster aktualisiert. Die Routinen, mit denen Sie die MIDAS-Bibliothek nutzen und Fehler&shy;meldungen abfangen, finden Sie in der Datei <i>UseMIDAS.cpp</i>.</p>
+	</section>
+
+	<aside>
+		<h2>FUNKTIONEN DER MIDAS-SOUND-BIBLIOTHEK</h2>
+		<div>
+			<p>Wenn Sie die Datei midasdll.lib in Ihre Demo linken und die zugehörige Header-Datei einbinden, stehen Ihnen folgende Befehle und Datentypen zur Verfügung, mit denen Sie bereits das Abspielen starten können:</p>
+			<pre><code>
+MIDASmodule module;
+MIDASmodulePlayHandle playHandle;
+
+//Startet MIDAS und ini-
+//tialisiert die Soundausgabe
+MIDASstartup();
+MIDASinit();
+
+//Legt fest, daß MIDAS auto-
+//matisch im Hintergrund läuft
+MIDASstartBackgroundPlay(0);
+
+//Lädt die xm-Datei
+module = MIDASloadModule("musik.xm");
+
+//Beginnt das Abspielen
+playHandle = MIDASplayModule(module,TRUE);
+
+//Hier kann Ihr Programm wie
+//bisher ablaufen
+
+//Abspielen stoppen und
+//Speicher freigeben
+MIDASstopModule(playHandle);
+MIDASfreeModule(module);
+
+//Beendet MIDAS
+MIDASclose();
+			</code></pre>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Musik im <i>wav</i>-Format</h2>
+		<p>Das Komponieren mit FastTracker II benötigt ohne Zweifel einiges an Erfahrung und erscheint auf den ersten Blick sehr aufwendig. Einfacher geht es mit Musik&shy;programmen wie jenen aus der eJay-Reihe. Anstatt wie bei Tracker die Noten für einzelne Instrumente anzugeben, fügen Sie hier vorgefertigte Klangbausteine zu einem Musikstück zusammen. Dabei stehen Ihnen mehrere Kanäle zur Verfügung, in denen Sie mit automatischer Positionierungs&shy;hilfe per Drag&amp;Drop die Klänge aus einer Auswahl von mehreren hundert Samples aneinander&shy;reihen können.</p>
+		<p>Abhängig vom gewählten eJay-Programm, das es für die Musik&shy;richtungen Rave, Dance und Hip-Hop gibt, können Sie weitere Effekte und eigene Klangbausteine hinzufügen. Mit solch einem Programm erzielen Sie in kürzester Zeit beeindruckende Ergebnisse, die Sie als <i>wav</i>-Datei speichern.</p>
+		<figure class="floatright">
+			<img src="assets/199812_4.jpg" width="472" height="353" alt="MACHT SPASS: Mit Rave-eJay schaffen Sie die Grundlagen für Ihre spätere D.J.-Karriere.">
+			<figcaption><span>MACHT SPASS:</span> Mit Rave-eJay schaffen Sie die Grundlagen für Ihre spätere D.J.-Karriere.</figcaption>
+		</figure>
+		<p>Wie Sie bereits wissen, benötigen <i>wav</i>-Dateien im Vergleich zu <i>mid</i>-, <i>mod</i> oder <i>xm</i>-Dateien relativ viel Speicherplatz. Abhilfe könnte das MP3-Musikformat schaffen, das hervorragende Kompressions&shy;raten erzielt. Allerdings ist es nicht so einfach, dieses Format wieder abzuspielen, und es gibt auch keine frei erhältlichen Bibliotheken.</p>
+		<p>Deshalb reduzieren Sie die Datenmenge mit anderen Mitteln. Der erste Schritt ist die Wahl einer niedrigeren Sample-Frequenz, da Sie für eine Demo nicht die volle CD-Qualität benötigen. Außerdem brauchen Sie für gute Ergebnisse nicht unbedingt 16 Bit je Sample-Wert. Oftmals sind 8 Bit aber zu wenig.</p>
+		<p>Um diesem Dilemma zu entgehen, nutzen Sie eine Eigenschaft des menschlichen Hörapparates aus: Das Ohr nimmt bei leisen Klangpassagen kleinere Unterschiede der Lautstärke wahr als bei lauten. Also verwenden Sie bei niedrigen Amplituden präzisere Sample-Werte, während Sie sich bei hohen Amplituden ungenaue Werte leisten können.</p>
+		<p>Wenn eine Soundkarte die Amplitude <i>a</i> in den Sample-Wert <i>s</i> überführt, wandelt sie <i>2*a</i> in <i>2*s</i> um. Es besteht also ein linearer Zusammenhang zwischen der Amplitude und dem Sample-Wert, das heißt die Genauigkeit eines Sample-Wert-Schrittes entspricht immer derselben Änderung der Amplitude. Um sich nun die Schwächen des Menschen beim Hören zunutze zu machen, verwenden Sie statt einer linearen Skala eine nichtlineare. So können Sie zum Beispiel 16-Bit-Werte in nichtlineare 8-Bit-Werte umwandeln und erhalten ein deutlich besseres Ergebnis als normalerweise bei 8 Bit. Ausgehend von einem unsigned 16-Bit-Sample-Wert errechnen Sie den neuen nichtlinearen Wert aus</p>
+		<pre><code>
+nichtlinearer_wert =
+	255.0 * (pow(2.0, samplewert / 65536.0) - 1.0);
+		</code></pre>
+		<p>Mit dieser einfachen Formel reduzieren Sie den Umfang der <i>wav</i>-Daten deutlich, ohne einen großen Verlust an Klangqualität hinzunehmen. Bevor Sie die Daten wieder abspielen, müssen Sie diese natürlich zurück&shy;konvertieren. Dies geschieht mit einer einfachen Formel:</p>
+		<pre><code>
+samplewert =
+	65535.0 * log10(1.0 + wert/ 256.0) / log10(2) - 32767.0;
+		</code></pre>
+		<p>Die Variable <i>samplewert</i> ist hier 16 Bit signed.</p>
+		<p>Sind Sie mit dem bisherigen Ergebnis noch nicht zufrieden, wenden Sie einen sogenannten Low-Pass-Filter auf die zurück&shy;konvertierten Sample-Daten an. Dieser Filter schwächt die Lautstärke von Klängen, deren Frequenzen über einer gewissen Grenzfrequenz liegen, deutlich ab.</p>
+		<p>Ein Klang ist – in der Realität – immer eine Mischung aus vielen verschiedenen Frequenzen. Das Rauschen allerdings, das Sie bei den Samples hören, besteht hauptsächlich aus hohen Frequenzen, die sie mit diesem Filter eliminieren.</p>
+		<p>Den denkbar einfachsten Low-Pass-Filter erhalten Sie, indem Sie den Mittelwert jeweils zweier Sample-Werte bilden:</p>
+		<pre><code>
+for(i = 1;i &lt; anzahl_werte; i++)
+	wert[i] = (wert[i] + wert[i - 1]) / 2;
+		</code></pre>
+		<p>Als letzter Punkt ist noch die Wiedergabe über Ihre Soundkarte zu klären. Für <i>wav</i>-Dateien steht Ihnen unter Windows die <i>PlaySound</i>-Funktion zur Verfügung, die Sie allerdings aus mehreren Gründen in Demos nicht verwenden sollten. Beispielsweise haben Sie damit nicht die Möglichkeit, an einer bestimmten Stelle die Soundausgabe anzuhalten und sie danach wieder fortzusetzen.</p>
+		<p>Außerdem können Sie nicht feststellen, an welcher Position innerhalb der Sample-Daten Sie sich befinden. Genau dies brauchen Sie aber, um die seit Abspielbeginn verstrichene Zeit zu berechnen und damit die Synchroni&shy;sation mit Ihrer Demo zu gewährleisten.</p>
+		<p>Sie verwenden also besser das Waveform Audio Interface von Windows. Es stellt die nötigen Funktionen zur Verfügung, um beliebige <i>wav</i>-Daten abzuspielen.</p>
+		<p>Sie können auch bestimmte Teile eines Sample mit dem WaveOut-Device loopen, also mehrmals abspielen. So reduzieren Sie die Datenmenge erneut, da Sie identische Passagen eines Musikstücks – in der Praxis ein häufiger Fall – nur einmal speichern.</p>
+		<p>Um die Wiedergabe vorzubereiten, übergeben Sie der Funktion <i>waveOut-</i><i>Open</i> eine <i>Waveformatex</i>-Struktur. Dort tragen Sie die von Ihnen gewünschten Parameter für die Soundausgabe ein. Das geeignete Multimedia-Gerät sucht sich <i>waveOutOpen</i> dann selbständig:</p>
+		<pre><code>
+WAVEFORMATEX format;
+HWAVEOUT wavehandle;
+WAVEHDR wheader;
+
+// ungepackte Sample-Daten
+format.wFormatTag = WAVE_FORMAT_PCM;
+// Monoausgabe
+format.nChannels = 1;
+// Sampling-Frequenz
+format.nSamplesPerSec = 22050;
+// Bytes pro Sekunde
+format.nAvgBytesPerSec = 22050 * 2;
+format.nBlockAlign = 2;
+
+// 16 Bits pro Sample
+format.wBitsPerSample = 16;
+format.cbSize = 0;
+
+waveOutOpen(&amp;wavehandle,
+	WAVE_MAPPER, &amp;format, 0, 0, 0);
+		</code></pre>
+		<p>Nun haben Sie mit <i>wavehandle</i> das richtige Ausgabegerät. Anschließend bereiten Sie den Datenblock vor, der an die Soundkarte geschickt werden soll:</p>
+		<pre><code>
+// Zeiger auf die Sample-Daten
+wheader.lpData = (char*)wave16bit;
+
+// Größe des Datenblocks/Byte
+wheader.dwBufferLength = size;
+wheader.dwBytesRecorded = 0;
+wheader.dwUser = 0;
+wheader.dwFlags = 0;
+wheader.dwLoops = 0;
+
+waveOutPrepareHeader(wavehandle, &amp;wheader, sizeof(wheader));
+		</code></pre>
+		<p>Damit ist die Soundausgabe initialisiert. Den Startschuß zum Abspielen geben Sie mit folgender Zeile:</p>
+		<pre><code>
+waveOutWrite(wavehandle, &amp;wheader,sizeof(wheader));
+		</code></pre>
+		<p>Um Ihre Demo zu jedem Zeitpunkt mit der gewünschten Musik zu synchroni&shy;sieren, holen Sie mit der Zeile</p>
+		<pre><code>
+MMTIME mmtime;
+waveOutGetPosition(wavehandle, &amp;mmtime,sizeof(mmtime));
+		</code></pre>
+		<p>die aktuelle Abspiel&shy;position ein, aus der Sie dann die verstrichene Zeit seit Sample-Beginn berechnen. Sie können die Zeit auch mit Hilfe der Funktion <i>GetDemoTime()</i> aus der Basis&shy;bibliothek bestimmen, allerdings sollten Sie diese Funktion nur bei kürzeren <i>wav</i>-Stücken verwenden. Auf der Heft-CD finden Sie eine vollständige Demo, die ein komprimiertes Sample lädt und dazu synchronisiert einige Effekte der letzten Ausgaben demonstriert.</p>
+		<p>Auch für dieses Programm benötigen Sie die <i>demoquit()</i>-Funktion zum Beenden der <i>wav</i>-Ausgabe:</p>
+		<pre><code>
+waveOutReset(wavehandle);
+waveOutUnprepareHeader(
+wavehandle,&amp;wheader, sizeof(wheader));
+waveOutClose(wavehandle);
+		</code></pre>
+		<p>Nun haben Sie alle Werkzeuge in der Hand, um Ihre eigene Demo mit allem Drum und Dran zu schreiben. Seien Sie kreativ: Wir sind gespannt auf Ihre Resultate!</p>
+	</section>
+	<footer>
+		<p>Rüdiger Pein / Jörg Reitter</p>
+		<p>© 1998 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+	<nav class="pagenav">
+		<a rel="prev" href="199811.html">11/1998</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199901.html">1/1999</a>
+	</nav>
+</body>
+</html>

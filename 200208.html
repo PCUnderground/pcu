@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Zum schnellen, schönen Schein (PC Underground, PC Magazin 8/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;8/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200207.html">7/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200209.html">9/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Pixel-Shader in OpenGL</h2>
+		<h1>Zum schnellen, schönen <span class="highlight">Schein</span></h1>
+		<p class="summary">Mit Pixel-Shadern und OpenGL programmieren Sie die neuen GeForce-3 und -4-Grafikkarten und <span class="highlight">zaubern Effekte</span>, wie sie sich bisher nicht in Hardware rendern ließen. Lernen Sie die Techniken der neuen 3D-Spiele kennen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Ab DirectX 8 unterstützt Direct3D Pixel-Shader. Damit können Sie in einer Art Assembler&shy;sprache festlegen, wie die Grafikkarte Texturen ausliest. Davon hängt ab, wie die Farben von den ausgelesenen Texeln und der Beleuchtungs&shy;berechnung zusammengefügt werden, um einen gerasterten Pixel zu färben.</p>
+		<p>Diese Features werden von neuen Grafikkarten wie nVidia-GeForce-3/4 und ATI-Radeon-8500 unterstützt. Allerdings sind Anzahl und Art der verwendeten Befehle beschränkt. Die Funktionsweise erkennen Sie besser, wenn Sie die OpenGL-Extensions von nVidia betrachten, die Ihnen dieser Beitrag vorstellt. Dabei teilt sich die Funktionalität der Pixel-Shader in zwei Aufgaben&shy;gebiete:<br>
+		• Sie steuern mit Textur-Shadern, wie und an welcher Koordinate die Texturen ausgelesen werden.<br>
+		• Die zweite Stufe sind die Register-Combiner, die für das Texture Blending verantwortlich sind. Damit können Sie festlegen, wie aus den ausgelesenen Texeln die endgültige Pixelfarbe wird.</p>
+		<p>Um diese Features einfach zu handhaben, stellen wir Ihnen eine Bibliothek von nVidia vor, mit der Sie die Einstellungen der Textur-Shader und Register-Combiner in einer Art Pseudo-Programmier&shy;sprache vornehmen können: die <i>nvparse</i> Bibliothek.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200208.zip">💾 200208.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Textur-Shader</h2>
+		<p>Wir gehen von der Hardware einer Ge-Force-3-Karte bzw. einer ähnlich leistungs&shy;fähigen Karte aus. Lediglich die Anzahl der verfügbaren Textur-Units (maximale Anzahl von gleichzeitig adressierbaren Texturen), Register-Combinerb und Textur-Shader-Modi kann im Vergleich zu anderen modernen Grafikkarten variieren. Das Bild unten verdeutlicht, wo die Textur-Shader in der Grafikpipeline zu finden sind.</p>
+		<figure class="large">
+			<img src="assets/200208_1.jpg" width="1289" height="417" alt="DIE KOMPONENTEN der Grafik-Pipeline in einer modernen 3D-Karte">
+			<figcaption><span>DIE KOMPONENTEN</span> der Grafik-Pipeline in einer modernen 3D-Karte</figcaption>
+		</figure>
+		<p>Um die Textur-Shader zu verwenden, müssen Sie die OpenGL Extensions abfragen und die Zeiger auf die benötigten Funktionen holen. Diese Initialisierungs&shy;arbeit finden Sie im Sourcecode zur aktuellen Ausgabe. Die Textur-Shader können nur für alle Textur-Units zusammen aktiviert werden – mit dem Befehl:</p>
+		<pre><code>
+glEnable(GL_TEXTURE_SHADER_NV);
+		</code></pre>
+		<p>Die Betriebsmodi der einzelnen Textur-Units lassen sich in vier Gruppen unterteilen:<br>
+		• Herkömmliche Lookups (Auslesen), wie 1D/2D/Cubemap-Texturen,<br>
+		• Spezialfälle wie <i>Pass Through</i> (Textur&shy;koordinaten in RGB-Werte umwandeln) oder <i>Cull Fragment</i>, womit Sie einzelne Pixel beim Zeichnen auslassen können,<br>
+		• Textur auslesen in Abhängigkeit von den Lookups anderer Texturen,<br>
+		• Abhängigkeit mit zusätzlichem Skalarprodukt.</p>
+		<p>In dieser Ausgabe verwenden Sie vorrangig <i>herkömmliche Lookups</i> sowie <i>Textur auslesen</i>.</p>
+		<p>Um die Textur-Shader zu verwenden, müssen Sie für je vier Textur-Units die verwendete Instruktion angeben oder deaktivieren. Um eine Instruktion anzugeben, verwenden Sie <i>glTexEnv[i,f](...)</i>-Befehle oder <i>nvparse</i>. Letzteres Verfahren übergibt Instruktionen in einem String als Pseudocode.</p>
+		<p>Als einfaches Beispiel aktivieren Sie 2D Texture Mapping über Textur-Shader. Über <i>glTexEnvi(...)</i> wählen Sie das Textur-Shader-Environment und setzen als Shader-Operation Texture Mapping:</p>
+		<pre><code>
+glActiveTextureARB(GL_TEXTURE0_ARB);
+glTexEnvi(GL_TEXTURE_SHADER_NV,
+	GL_SHADER_OPERATION_NV,
+	GL_TEXTURE_2D);
+		</code></pre>
+		<p>Alle anderen Textur-Units (hier Unit 1) deaktivieren Sie mit</p>
+		<pre><code>
+glActiveTextureARB(GL_TEXTURE1_ARB);
+glTexEnvi(GL_TEXTURE_SHADER_NV,
+	GL_SHADER_OPERATION_NV, GL_NONE);
+		</code></pre>
+		<p>Mit den Textur-Shadern bestimmen Sie nur die Art der Adressierung der Texturen. Die Texturen müssen Sie nach wie vor selbst mit dem <i>glBindTexture(...)</i>-Befehl setzen.</p>
+		<p>Damit können Sie das Beispiel ausbauen. Wir wollen auf die erste Textur-Unit eine Verschiebungs&shy;textur (DSDT-Textur) legen. Die Werte aus dieser Textur können Sie verwenden, um die Textur-Koordinaten der nachfolgenden Unit zu modifizieren. Dabei handelt es sich um den Environment-Bumpmapping-Effekt, wenn die Textur der zweiten Unit die gespiegelte Umgebung des 3D-Objekts enthält. Der Textur-Shader-Befehl hierzu lautet <i>GL_OFFSET_TEXTURE_2D_NV</i>.</p>
+		<p>Wenn Sie einer Textur-Unit eine Operation zuweisen, die einen Input- Wert aus einer vorherigen Unit benötigt (wie es hier der Fall ist), geben Sie diese an:</p>
+		<pre><code>
+// Unit 1 bekommt als Eingabe Daten von Unit 0
+glActiveTextureARB(GL_TEXTURE1_ARB);
+
+// BumpEnv Mapping
+glTexEnvi(GL_TEXTURE_SHADER_NV,
+	GL_SHADER_OPERATION_NV,
+	GL_OFFSET_TEXTURE_2D_NV);
+
+// Input Werte
+glTexEnvi(GL_TEXTURE_SHADER_NV,
+	GL_PREVIOUS_TEXTURE_INPUT_NV,
+	GL_TEXTURE0_ARB);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200208_4.jpg" width="163" height="144" alt="DIE DSDT-TEXTUR aus dem Beispielprogramm als Grün-Blau-Textur">
+			<figcaption><span>DIE DSDT-TEXTUR</span> aus dem Beispielprogramm als Grün-Blau-Textur</figcaption>
+		</figure>
+		<p>Eine DSDT-Textur enthält für jeden Texel zwei 8-Bit-Werte, die angeben, wie stark die Verschiebung, also die Modifikation der Textur-Koordinaten ist. Die beiden Komponenten liegen im Wertebereich <i>[0..255]</i>, der auf den Bereich <i>[</i> <i>1...1]</i> gemapped wird. Zusammen ergeben die Werte einen 2D-Vektor. Die Modifikation erfolgt nach folgender Formel, wobei (<i>S/T</i>) die angegebene Textur&shy;koordinate der Unit <i>1</i> und <i>S’/T’</i> die neue ist. Die Werte <i>k(0..3)</i> sind eine 2x2-Matrix, um den Verschiebungs&shy;vektor aus der DSDT-Textur drehen und skalieren zu können.</p>
+		<pre><code>
+S’ = S + k(0) * ds + k(2) * dt
+T’ = T + k(1) * ds + k(3) * dt
+		</code></pre>
+		<p>Die 2x2-Matrix geben Sie wie folgt an:</p>
+		<pre><code>
+float mat2d[] = { 0.8f, 0.0f, 0.0f, 0.8f };
+glTexEnvfv(GL_TEXTURE_SHADER_NV,
+	GL_OFFSET_TEXTURE_MATRIX_NV, mat2d);
+		</code></pre>
+	</section>
+
+	<aside>
+		<h2>DIE EINFACHEN TEXTUR-SHADER-OPERATIONEN</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Operation</th><th>nvparse Befehl</th><th>Zweck</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>GL_TEXTURE_1D</td><td>texture_1d();</td><td>1D-Textur auslesen</td></tr>
+					<tr><td>GL_TEXTURE_2D</td><td>texture_2d();</td><td>2D-Textur auslesen</td></tr>
+					<tr><td>GL_TEXTURE_3D</td><td>texture_3d();</td><td>3D-Textur auslesen</td></tr>
+					<tr><td>GL_TEXTURE_CUBE_MAP_ARB</td><td>texture_cube_map();</td><td>Cube-Map-Textur auslesen</td></tr>
+					<tr><td>GL_CULL_FRAGMENT_NV</td><td>cull_fragment(...);</td><td>Vergleich, Pixel nicht zeichnen</td></tr>
+					<tr><td>GL_PASS_THROUGH_NV</td><td>pass_through();</td><td>STRQ nach RGBA kopieren</td></tr>
+					<tr><td>GL_OFFSET_TEXTURE_2D_NV</td><td>offset_2d(tex?,...)</td><td>EnvBump-Mapping</td></tr>
+					<tr><td>GL_DEPENDENT_AR_TEXTURE_2D_NV</td><td>dependent_ar(tex?)</td><td>AR-Farbvergleich als ST verwenden</td></tr>
+					<tr><td>GL_DEPENDENT_GB_TEXTURE_2D_NV</td><td>dependent_gb(tex?)</td><td>GB-Farbvergleich als ST verwenden</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<p>Einen Überblick über einen Teil der Textur-Shader-Operationen bietet Ihnen die Tabelle oben. Mehr über den dargestellten Teilbereich erfahren Sie auf den Webseiten der Grafikkarten&shy;hersteller.</p>
+		<p>Sie kennen jetzt das Handwerkszeug, um einen Textur-Shader zu aktivieren. Mit der <i>nvparse</i>-Bibliothek können Sie mit einem String die Textur-Shader-Operationen elegant beschreiben. Der Parser verarbeitet diesen String, und die Bibliothek übernimmt für Sie die <i>glTexEnv[i,f](...)</i>-Aufrufe. Es gibt zwei Schnittstellen zu <i>nvparse</i>:<br>
+		• Der Aufruf zum Parsen (Analysieren) lautet</p>
+		<pre><code>
+void nvparse(char *program_string);
+		</code></pre>
+		<p>• Die Abfrage, ob Fehler im Programm enthalten sind, heißt</p>
+		<pre><code>
+const char **nvparse_get_errors();
+		</code></pre>
+		<p>Ein Textur-Shader-Programm hat einen festen Aufbau. Es beginnt mit einer Kennung, der eine bis vier Instruktionen folgen können – eine für jede Texture Unit. Die Bezeichnungen der einzelnen Instruktionen listet die Tabelle links auf. Die zulässigen Register in einem Programm sind <i>tex0, tex1, tex2, tex3</i>, womit Sie auf die Resultate der ausgelesenen Texturen zugreifen. Jedes Register steht für ein RGBA-Quadrupel. die Werte des Registers lassen sich expandieren, wenn Sie jede Komponente durch den Eintrag <i>2*Komponente-1</i> ersetzen:</p>
+		<pre><code>
+expand(tex0)
+		</code></pre>
+		<p>Das obige Beispiel können Sie mit <i>nvparse</i> wie folgt angeben:</p>
+		<pre><code>
+nvparse(
+	"!!TS1.0
+	texture_2d();
+	offset_2d(tex0,0.8,0.0,0.0,0.8);
+	nop();
+	nop();");
+
+glEnable(GL_TEXTURE_SHADER_NV);
+		</code></pre>
+		<p>Da <i>nvparse</i> mehr Rechenzeit benötigt, sollten Sie es in dieser Form nicht in Ihrer Render-Pipeline stehen lassen. Generieren Sie eine Display-Liste, in der Sie die Aufrufe speichern:</p>
+		<pre><code>
+GLint setupBumpEnvMap;
+setupBumpEnvMap = glGenList(1);
+glNewList(setupBumpEnvMap, GL_COMPILE);
+glEnable(GL_TEXTURE_SHADER_NV);
+nvparse(...);
+glEndList();
+		</code></pre>
+		<p>Das in der Liste gespeicherte Setup aktivieren Sie mit:</p>
+		<pre><code>
+glCallList(setupBumpEnvMap);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Register-Combiner</h2>
+		<figure class="large">
+			<img src="assets/200208_2.jpg" width="813" height="570" alt="DIE REGISTER-COMBINER einer Geforce-3-Karte">
+			<figcaption><span>DIE REGISTER-COMBINER</span> einer Geforce-3-Karte</figcaption>
+		</figure>
+		<p>Ein Register-Combiner zeigte das vorausgehende Bild beim Textur-Blending. Hier werden die Farbwerte, die aus den Texturen ausgelesen wurden und aus der Beleuchtungs- und Fog-Berechnung kommen, mit einem oder mehreren General-Combinern zur fertigen Pixelfarbe gemischt.</p>
+		<p>Die Register, auf die ein General-Combiner zugreifen kann, finden Sie in der Tabelle unten.</p>
+	</section>
+
+	<aside>
+		<h2>DIE REGISTER EINES GENERAL-COMBINER</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Bedeutung</th><th>Name</th><th>Zugriff (read/write)</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>Diffuse Farbe</td><td>col0</td><td>r/w</td></tr>
+					<tr><td>Specular Farbe</td><td>col1</td><td>r/w</td></tr>
+					<tr><td>Farbe aus Textur 0</td><td>tex0</td><td>r/w</td></tr>
+					<tr><td>Farbe aus Textur 1</td><td>tex1</td><td>r/w</td></tr>
+					<tr><td>Farbe aus Textur 2</td><td>tex2</td><td>r/w</td></tr>
+					<tr><td>Farbe aus Textur 3</td><td>tex3</td><td>r/w</td></tr>
+					<tr><td>Spare0 (Arbeitsregister)</td><td>spare0</td><td>r/w</td></tr>
+					<tr><td>Spare1 (Arbeitsregister)</td><td>spare1</td><td>r/w</td></tr>
+					<tr><td>Farb-Konstante</td><td>const0</td><td>read only</td></tr>
+					<tr><td>Farb-Konstante</td><td>const1</td><td>read only</td></tr>
+					<tr><td>Fog-Farbe und Faktor</td><td>fog</td><td>read only RGB</td></tr>
+					<tr><td>Register enthält immer 0</td><td>zero</td><td>read only</td></tr>
+					<tr><td>Discard (Internes Register)</td><td>discard</td><td>write only</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<p>Um den Überblick zu behalten, beschränken wir uns auf die <i>nvparse</i>-Variante. Bei den Registern können Sie jeweils getrennt auf RGB- (<i>col0.rgb</i>) und Alpha-Werte (<i>col0.a</i>) zugreifen oder nur mit dem Blauwert (<i>col0.b</i>) arbeiten. Auf alle Input-Werte können Sie ein Mapping anwenden. Damit verändern Sie die Eingabewerte komponenten&shy;weise. Die Mappings finden Sie in der Tabelle unten.</p>
+	</section>
+
+	<aside>
+		<h2>DIE INPUT MAPPINGS DER GENERAL-COMBINER BEI INPUT WERT X</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Name</th><th>Beispiel</th><th>Funktion</th><th>Wertebereich</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>Signed Identity</td><td>tex0</td><td>f(x) = x</td><td>[-1,1] -&gt; [-1,1]</td></tr>
+					<tr><td>Unsigned Identity</td><td>unsigned(tex0)</td><td>f(x) = max(0, x)</td><td>[0,1] -&gt; [0,1]</td></tr>
+					<tr><td>Expand Normal</td><td>expand(tex0)</td><td>f(x) = 2 * max(0, x) - 1</td><td>[0,1] -&gt; [-1,1]</td></tr>
+					<tr><td>Half Bias Normal</td><td>half_bias(tex0)</td><td>f(x) = max(0, x) - 0.5</td><td>[0,1] -&gt; [-.5,.5]</td></tr>
+					<tr><td>Signed Negate</td><td>-tex0</td><td>f(x) = -x</td><td>[-1,1] -&gt; [1,-1]</td></tr>
+					<tr><td>Unsigned Invert</td><td>unsigned_invert(tex0)</td><td>f(x) = 1 - min(max(0, x), 1)</td><td>[0,1] -&gt; [1,0]</td></tr>
+					<tr><td>Expand Negate</td><td>-expand(tex0)</td><td>f(x) = -2 * max(0, x) + 1</td><td>[0,1] -&gt; [1,-1]</td></tr>
+					<tr><td>Half Bias Negate</td><td>-half_bias(tex0)</td><td>f(x) = -max(0, x) + 0.5</td><td>[0,1] -&gt; [.5,-.5]</td></tr>
+					<tr><td>Signed Identity</td><td>tex0</td><td>f(x) = x</td><td>[-1,1] -&gt; [-1,1]</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<p>Sie verwenden die Input Mappings, indem Sie statt des Registers den Namen des Mappings und in Klammern den Registernamen schreiben, z.B. <i>expand(col0)</i>. Jeder General-Combiner hat vier Input- und drei Output-Register. Sie können jeweils die Register, das Mapping und die berechnete Funktion wählen. Als Beispiel sehen Sie ein einfaches Programm, dessen Operationen Sie anschließend betrachten:</p>
+		<pre><code>
+nvparse(
+	"!!RC1.0
+	const0 = (0.1, 0.2, 0.3, 0.4);
+	{
+		//Beginn des General Combiner
+		rgb
+		{ // Beginn des RGB Teils
+			spare0 = col0 * tex0;
+			scale_by_two();
+		}
+
+		alpha
+		{ // Alpha Teil
+			spare1 = col1 * const0;
+		}
+	}
+
+	// Final Combiner
+	final_product = spare0 * tex0;
+	clamp_color_sum();
+	out.rgb = color_sum() + tex0;
+");
+
+glEnable(GL_REGISTER_COMBINERS_NV);
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200208_3.jpg" width="667" height="308" alt="DAS DIAGRAMM eines General Combiner – nur mit dem RGB-Teil">
+			<figcaption><span>DAS DIAGRAMM</span> eines General Combiner – nur mit dem RGB-Teil</figcaption>
+		</figure>
+		<p>Sie können den General-Combiner fünf verschiedene Berechnungen durchführen lassen, die ersten drei betreffen nur den RGB-Teil. Es folgen fünf Programme in <i>nvparse</i>-Notation, wobei das Beispiel die <i>col0, col1</i>- und <i>tex0, tex1</i>-Register als Input wählt. Die Resultate geben Sie über die Spare-Register an den nächsten General- oder den Final-Combiner.<br>
+		• Zweifaches Skalarprodukt (<i>Dot/Dot/</i> <i>Discard</i>):</p>
+		<pre><code>
+spare0 = expand(col0) . expand(tex0);
+spare1 = expand(col1) . expand(tex1);
+		</code></pre>
+		<p>• Skalarprodukt, komponenten&shy;weise Multiplikation (<i>Dot/Mult/Discard</i>):</p>
+		<pre><code>
+spare0 = expand(col0) . expand(tex0);
+spare1 = col1 * tex1;
+		</code></pre>
+		<p>• Komponenten&shy;weise Multiplikation, Skalarprodukt (<i>Mult/Dot/Discard</i>):</p>
+		<pre><code>
+spare0 = col0 * tex0;
+spare1 = expand(col1) . expand(tex1);
+		</code></pre>
+		<p>• Komponenten&shy;weise Multiplikation mit Vergleich, wobei <i>discard</i> ein internes Temporär-Register darstellt:</p>
+		<pre><code>
+mux(AB,CD) = (Spare0.a &lt;0.5) ? AB : CD;
+discard = col0 * tex0;
+discard = col1 * tex1;
+spare1 = mux();
+		</code></pre>
+		<p>• Komponenten&shy;weise Multiplikation mit Addition:</p>
+		<pre><code>
+(spare1 = discard + spare0)
+discard = col0 * tex0;
+spare0 = col1 * tex1;
+spare1 = sum();
+		</code></pre>
+		<p>Die Resultate der Berechnung können Sie anschließend skalieren und verschieben (<i>Scale/Bias</i>), wozu Sie entsprechende Befehle eingeben. Die <i>Scale/Bias</i>-Optionen entnehmen Sie der Tabelle auf der nächsten Seite.</p>
+		<p>Das Ergebnis eines General-Combiners können Sie im nächsten verwenden. Wenn Sie alle Berechnungen durchgeführt haben, setzen Sie die Resultate im Final-Combiner zusammen.</p>
+	</section>
+
+	<aside>
+		<h2>DIE SCALE/BIAS-OPTIONEN DER GENERAL-COMBINER</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Name</th><th>Befehl</th><th>Funktion</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>No Scale</td><td>–</td><td>f(x) = x;</td></tr>
+					<tr><td>Scale by 1/2</td><td>scale_by_one_half();</td><td>f(x) = 0.5x</td></tr>
+					<tr><td>Scale by 2</td><td>scale_by_two();</td><td>f(x) = 2x</td></tr>
+					<tr><td>Scale by 4</td><td>scale_by_four();</td><td>f(x) = 4x</td></tr>
+					<tr><td>Bias by -1/2</td><td>bias_by_negative_one_half();</td><td>f(x) = x - 0.5</td></tr>
+					<tr><td>Bias by -1/2, Scale by 2</td><td>bias_by_negative_one_half_scale_by_two();</td><td>f(x) = 2(x-0.5)</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Der Final Combiner</h2>
+		<p>Der Final-Combiner kennt die gleichen Register wie ein General- Combiner, allerdings sind alle Werte hier nur lesbar. Als Input-Werte werden das <i>spare0</i>-Register, die Specular-Farbe, sechs weitere RGB-Inputs und ein Alpha-Wert akzeptiert. Als Input-Mappings stehen nur <i>unsigned(...)</i> und <i>unsigned_invert(...)</i> zur Verfügung. Der Ablauf der Berechnung im Final-Combiner gestattet es Ihnen, Teile auszulassen.</p>
+		<p>Zunächst können Sie das Final Product berechnen. Dabei multiplizieren Sie zwei beliebige Input-Register. Das Ergebnis steht für weitere Berechnungen zur Verfügung. Sie greifen darauf auf ein Register mit dem Namen <i>final_product</i> zu.</p>
+		<pre><code>
+final_product = col0 * unsigned_invert(tex0);
+		</code></pre>
+		<p>Weiterhin berechnen Sie die <i>Final Color Sum</i>. Diese addiert komponenten&shy;weise die Werte von <i>spare0.rgb+col1.rgb</i>. Da sich der Wertebereich über <i>[0;2]</i> erstreckt, können Sie das so genannte <i>Clamping</i> aktivieren: Werte größer als <i>1</i> werden auf <i>1</i> gesetzt. Dazu verwenden Sie den <i>clamp_color_sum()</i>-Befehl.</p>
+		<p>Alle Register, zusammen mit <i>final_</i> <i>product</i> und <i>color_sum</i>, stehen nun zur Verfügung, um das RGB-Tripel der endgültigen Farbe mit der Final-Combiner-Funktion zu berechnen. Diese Funktion kann zwischen zwei Farben linear interpolieren und die Werte addieren:</p>
+		<pre><code>
+A * B + (1 - A) * C + D
+		</code></pre>
+		<p>Für <i>A, B, C</i> und <i>D</i> nutzen Sie alle Register mit der Ausnahme, dass <i>A</i> nicht <i>color_sum</i> sein darf. In <i>nvparse</i> weisen Sie die resultierende Farbe dem <i>out</i>-Register zu. Die Zuweisung kann verschiedene Formen annehmen, die Spezialfälle der obigen Formel darstellen. Verschiedene Beispiele sehen Sie hier, die Mappings für <i>A, B, C</i> und <i>D</i> sind dahinter angegeben:</p>
+		<pre><code>
+// Zuweisung
+// A=zero, B=zero, C=zero,D=tex0
+out.rgb = tex0;
+// Produkt: A=zero, B=egal,
+// C=final_product, D=zero
+out.rgb = tex0 * final_product;
+// Summe: A=zero, B=egal,
+// C=tex0, D=final_product
+out.rgb = tex0 + final_product
+// Interpolation und Summe
+// A=tex1.a, B=tex0,
+//C=color_sum, D=const1
+out.rgb = lerp(tex1.a, tex0, color_sum) + const1
+		</code></pre>
+		<p>Für den Alpha-Input-Wert führt der Final-Combiner nur ein Mapping durch. Sie können diesen Wert also nicht weiter modifizieren. Die Konstanten <i>const0</i> und <i>const1</i> können Sie am Anfang des <i>nvparse</i>-Programms angeben, diese gelten dann für den Final- und die General-Combiner. Bei einer neuen GeForce3/4-Karte können Sie die Konstanten für jeden General-Combiner separat spezifizieren.</p>
+	</section>
+
+	<section>
+		<h2>Das Beispiel-Programm</h2>
+		<p>Das Programm zu dieser Ausgabe erzeugt eine animierte DSDT-Textur. Die Textur-Units werden mit <i>nvparse</i> und dem Register- Combiner konfiguriert.</p>
+		<p>In der Initialisierungs&shy;phase wird eine Heightmap, eine 8-Bit-Graustufen-Bitmap, geladen und daraus eine RGB-Textur generiert, die für jeden Pixel der Heightmap die Höhen&shy;differenzen in <i>x</i> und <i>y</i>–Richtung in der Grün- und Blaukomponente enthält:</p>
+		<pre><code>
+// Heightmap Daten
+GLubyte heightMap[256 * 256];
+
+// RGBA Texture
+GLubyte deltaMap[256 * 256 * 4];
+memset(delta, 0, 256 * 256 * 4);
+
+for(j = 0; j &lt; 256; j++)
+	for(i = 0; i &lt; 256; i++)
+	{
+		int ofs = i + (j &lt; 8);
+		h = heightMap[ofs];
+		dx = heightMap[(ofs + 1) &amp; 65535] - h;
+		dy = heightMap[(ofs + 256) &amp; 65535] - h;
+		dx += 64;
+		dy += 64;
+		delta[ofs * 4 + 1] = dx;
+		delta[ofs * 4 + 2] = dy;
+	}
+		</code></pre>
+		<p>Bevor Sie einen neuen Frame rendern, setzen Sie den Viewport von OpenGL auf eine Größe von 256 x 256 Pixel. Dort zeichnen Sie diese Textur viermal übereinander mit additivem Blending und zeitlich abhängiger Verschiebung der Textur-Koordinaten. Das Blending konfigurieren Sie mit den Register-Combinern. Die vier Textur-Units aktivieren Sie mit:</p>
+		<pre><code>
+nvpase("
+	!!TS1.0
+	texture_2d();
+	texture_2d();
+	texture_2d();
+	texture_2d();
+");
+		</code></pre>
+		<p>Durch das vierfache Zeichnen mit Blending ergeben sich ständig wechselnde Farbmuster. Die Farben sind grünblau, da in diesen Texture-Farbkanälen die Differenzen der Heightmap gespeichert sind. Diese Farbmuster sollen nur als animerte DSDT-Texturen verwendet werden. Dazu kopieren Sie die RG-BA-Daten zunächst in den Speicher und erzeugen daraus die DSDT-Textur:</p>
+		<pre><code>
+// Speicherbereich
+GLubyte deltaMap32[256 * 256 * 4];
+glReadPixels(0, 0, 256, 256,
+	GL_RGBA, GL_UNSIGNED_BYTE, deltaMap32);
+
+// DSDT Bumpmap
+GLubyte bumpMap[256 * 256 * 2];
+
+// DSDT Map erzeugen
+GLubyte *bumpy = bumpMap;
+GLubyte *bumpy32 = deltaMap32;
+for(i = 0; i &lt; 256 * 256; i++)
+{
+	*(bumpy++) = *(bumpy32++);
+	*(bumpy++) = *(bumpy32++);
+	bumpy32 += 2;
+}
+
+// und an OpenGL übergeben
+glBindTexture(GL_TEXTURE_2D, bumpMapTexture);
+glTexImage2D(GL_TEXTURE_2D, 0,
+	GL_DSDT_NV, 256,256, 0,
+	GL_DSDT_NV, GL_UNSIGNED_BYTE, bumpMap);
+		</code></pre>
+		<p>Wählen Sie anschließend die DSDT-Map für Textur-Unit <i>0</i> und eine beliebige 2D-Textur für Unit <i>1</i>, erhalten Sie einen Bump-Mapping-Effekt. Aktivieren Sie die Textur-Shader, wie zu Beginn des Artikels vorgestellt, ist der Effekt aus unserem Beispiel&shy;programm fertig.</p>
+		<p>Die Anwendungen der Textur-Shader und Register-Combiner sind sehr vielfältig. Vor allem die komplexen Features wie Dot-Product-Bumpmapping erfordern zusätzliche Vertex-Programme. Der Grund: Bestimmte Effekte brauchen Normalen-Vektoren. Diese werden als Farbwerte übergeben, was Vertex-Programme vorbereiten.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Links und Literatur:</b></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.nvidia.com" rel="external nofollow noreferrer">www.nvidia.com</a></p>
+		<p class="footnote"><a href="https://www.ati.com" rel="external nofollow noreferrer">www.ati.com</a></p>
+		<p class="footnote"><a href="https://www.3dconcept.ch/cgi-bin/showarchiv.cgi?show=2130" rel="external nofollow noreferrer">www.3dconcept.ch/cgi-bin/showarchiv.cgi?show=2130</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200207.html">7/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200209.html">9/2002</a>
+	</nav>
+</body>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Digitaler Schraubstock (PC Underground, PC Magazin 4/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;4/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200003.html">3/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200005.html">5/2000</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Effiziente Datenkompression in C</h2>
+		<h1>Digitaler <span class="highlight">Schraubstock</span></h1>
+		<p class="summary">Viele Informationen in wenig Daten unterbringen, so lautet die Devise beim <span class="highlight">Übertragen und Speichern</span>. Wir machen Sie mit speziellen Komprimier&shy;verfahren und Pack-Algorithmen vertraut.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Um Multimedia-Daten in ein handliches Format zu bringen, müssen sie effektiv komprimiert sein. Auch Text- und Grafikdateien können Sie um ein Vielfaches schrumpfen. In dieser und den folgenden Ausgaben lernen Sie Pack-Algorithmen und die theoretischen Grundlagen dazu kennen (vgl. die Textbox „Am Anfang war das Bit“ auf S. 254).</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>RLE-Kompression</h2>
+		<p>Die Lauflängen&shy;codierung (Run Length Encoding, RLE) ist ein intuitives Verfahren. Tritt ein Zeichen <i>Z</i> mehrmals in Folge in der Eingabe auf, schreiben Sie in der Ausgabe nur ein einzelnes Zeichen. Damit Sie wissen, wie oft dieses Zeichen an dieser Stelle vorkommt, stellen Sie die Anzahl <i>n</i> voran. Der Wert <i>n</i> heißt auch die Run Length des Zeichens <i>Z</i> an dieser Stelle. Als Beispiel behandeln Sie in einem Buchtext die Kapitel&shy;überschrift
+		<span class="code">2. Datenkompression</span>
+		mit der RLE-Methode.</p>
+		<figure class="floatright">
+			<img src="assets/200004_2.png" width="431" height="196" alt="BEIM ABTASTEN großer Flächen gleicher Farbe interessiert bei der RLE-Kompression nur deren Beginn und Länge.">
+			<figcaption><span>BEIM ABTASTEN</span> großer Flächen gleicher Farbe interessiert bei der RLE-Kompression nur deren Beginn und Länge.</figcaption>
+		</figure>
+		<p>Es gibt drei Möglichkeiten:<br>
+		• Wenn Sie die doppelte Buchstaben&shy;folge <i>ss</i> durch <i>2s</i> ersetzen, können Sie das zur Kompression eingesetzte Zahlzeichen <i>2</i> nicht von der Kapitel&shy;numerierung unterscheiden und den Originaltext nicht eindeutig wieder&shy;herstellen. Verwenden Sie daher ein nicht benötigtes Zeichen wie @ als Escape-Code. Sein Auftreten im komprimierten Text signalisiert, dass eine Längenangabe folgt:
+		<span class="code">2. Datenkompre@2sion</span>
+		In unserem Beispiel wird der Originaltext ein Byte länger. Es lassen sich aber Beispiele konstruieren, bei denen eine Schrumpfung auftritt.<br>
+		• Anstatt des Escape-Codes können Sie vor jedem Zeichen dessen Run Length vermerken:</p>
+		<pre><code>
+121.1
+1D1a1t1e1n1k1o1m1p1r1e2s1i1o1n
+		</code></pre>
+		<p>Dieser Ansatz lohnt sich jedoch nur bei längeren Zeichenketten, die größere Blöcke gleicher Zeichen enthalten.<br>
+		• Die eleganteste Methode: Legen Sie eine minimale Anzahl von Wiederholungen fest, ab der Sie ein Zeichen ersetzen. Im folgenden Beispiel beträgt der Minimalwert drei Zeichen: Nur wenn das gleiche Zeichen dreimal oder öfter in Folge auftritt, vermerken Sie nach dem dritten Zeichen, wie oft es noch wiederholt werden soll. So arbeitet auch der Algorithmus im Listing <i>rle.cpp</i>:</p>
+		<figure class="floatright">
+			<img src="assets/200004_3.png" width="289" height="216" alt="DIE PIXEL schräger Linienzüge kann das RLE-Verfahren bei zeilen- oder spaltenweiser Abtastung nicht zusammenfassen.">
+			<figcaption><span>DIE PIXEL</span> schräger Linienzüge kann das RLE-Verfahren bei zeilen- oder spaltenweiser Abtastung nicht zusammenfassen.</figcaption>
+		</figure>
+		<pre><code>
+abba -&gt; abba
+abbbbbba -&gt; abbb3a
+abbba -&gt; abbb0a
+		</code></pre>
+		<p>Das PCX-Dateiformat verdichtet Schwarzweiß-Grafiken und Bilder mit einer Palette mit dem RLE-Verfahren. Benachbarte Pixel gleicher Farbe wie im Bild links unten werden so platzsparend zusammengefaßt.</p>
+		<p>Der Grad der Kompression hängt vor allem bei Strich&shy;zeichnungen wie in der Abbildung unten stark von der Reihenfolge der Abtastung ab. Neben einem horizontalen Durchlauf der Pixel (zeilenweise Abtastung) können Sie die Pixel auch vertikal (spaltenweise) oder im Zickzack-Muster abarbeiten (siehe Abbildung auf S. 254. Sie können die Zeilen bzw. Spalten in beliebig vertauschter Reihenfolge behandeln.</p>
+	</section>
+
+	<aside>
+		<h2>BEGRIFFE ZUR DATENKOMPRESSION</h2>
+		<div>
+			<p>Die meisten Kompressions&shy;verfahren arbeiten im <b>streaming mode</b>: Sie lesen ein oder mehrere Byte, behandeln diese und fahren dann fort, bis die ganzen Daten verarbeitet sind. Manche Verfahren wie die <i>Burrows Wheeler Transformation</i> arbeiten im <b>block mode</b>. Diese behandeln größere Datenblöcke separat.</p>
+			<p>Auch arbeitet die Mehrzahl der Algorithmen <b>physikalisch</b>. Sie betrachten die Bits einfach als irgendwelche Daten, ohne deren Bedeutung zu kennen - sie interessiert es also nicht, ob es sich um Wörter, Pixel oder Audiodaten handelt. Diese Verfahren wandeln einfach einen Bit-Stream in einen kürzeren um. Die einzige Möglichkeit, einen Sinn aus dem Kodierten herauszufinden (und es zu dekodieren), ist die Kenntniss über das Kompressions&shy;verfahren. Ein weiteres wichtiges Kriterium ist die Unterscheidung in <b>verlustfreie</b> und <b>verlust&shy;behaftete</b> Kompressions&shy;verfahren. Verlustfreie Kompressions&shy;verfahren führen die komprimierten Daten beim Entpacken wieder exakt in den Urzustand über. Verlust&shy;behaftete Verfahren finden in der Audio-, Bild- und Video&shy;kompression Anwendung. Dabei wird ein gewisser Informations&shy;verlust in Kauf genommen – entweder, weil die Information ohnehin überflüssig ist oder ihr Wegfall nur einen sehr geringen Qualitäts&shy;verlust für den Menschen mit sich bringt. Die besten Beispiele hierzu sind die im Internet weit verbreiteten JPEG-Bilder, MPEG-Videos und MPEG-3-Audiodateien.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>LZW-Kompression</h2>
+		<p>Das komplexe LZW-Verfahren (benannt nach den Initialien seiner Erfinder) führt zu deutlich besseren Ergebnissen als die Lauflängen&shy;kodierung. Dem Verfahren liegt der von Lempel und Ziv erfundene LZ78-Algorithmus zugrunde, an dem Welch einige Modifikationen und Optimierungen vorgenommen hat.</p>
+		<p>Unter anderem der Dateipacker <i>gzip</i> aus der Unix-Welt sowie verschiedene Bildformate wie Graphics Interchange Format (GIF) und Tagged Image File Format (TIFF) verwenden das LZW-Verfahren. Inzwischen hat die Firma Unisys das Patentrecht an diesem Algorithmus: Eine kommerzielle Nutzung ist nur mit ihrer Erlaubnis gestattet.</p>
+		<figure class="floatright">
+			<img src="assets/200004_5.png" width="518" height="209" alt="JE NACH ART der Grafik erreichen Sie mit horizontaler, vertikaler oder Zickzack-Abtastung die optimale Kompression.">
+			<figcaption><span>JE NACH ART</span> der Grafik erreichen Sie mit horizontaler, vertikaler oder Zickzack-Abtastung die optimale Kompression.</figcaption>
+		</figure>
+		<p>Die Kompression beruht auf einem Dictionary (Wörterbuch). Dieses baut der Algorithmus während des Komprimier&shy;vorgangs selbständig auf. Um später wieder an die Originaldaten heranzukommen, brauchen Sie dieses Dictionary nicht mit zu speichern.</p>
+		<p>Das Wörterbuch besteht aus einer Liste von Strings unterschied&shy;licher Länge. Es umfaßt zu Beginn des Kompressions&shy;vorgangs in den ersten 256 Einträgen (0 bis 255) alle ASCII-Zeichen, also nur ein Zeichen lange Strings.</p>
+		<p>Der Encoder liest ein Zeichen nach dem anderen ein und reiht sie in einem String aneinander. Dann durchsucht er das Wörterbuch nach dieser Zeichenkette. Findet er sie nicht, bricht er diesen Prozess ab. Wenn der bisherige String <i>I</i> noch im Wörterbuch verzeichnet ist, lässt das nächste Zeichen <i>z</i> die Zeichenkette auf <i>Iz</i> wachsen.</p>
+		<p>Besitzt diese keinen Eintrag im Dictionary, führt der Encoder folgende Schritte durch:<br>
+		• Er schreibt den Index des Strings <i>I</i> im Wörterbuch in die Ausgabe.<br>
+		• Er fügt den String <i>Iz</i> dem Wörterbuch hinzu.<br>
+		• Er überschreibt den bisherigen String <i>I</i> mit dem Zeichen <i>z</i>.</p>
+		<p>Anhand des Eingabetextes
+		<span class="code">sir_sid_eastman_easily_teases_sea_sick_seals</span>
+		können Sie sich die Vorgehensweise veranschau&shy;lichen: Zunächst initialisieren Sie das Wörterbuich wie oben beschrieben mit den ASCII-Zeichen und belegen den String <i>I</i> mit einer leeren Zeichenkette. Dann liest der Encoder das Zeichen <i>s</i>, welches sich als Einzelzeichen im Wörterbuch befindet. Das nächste Zeichen lautet <i>i</i>, der String <i>si</i> besitzt allerdings keinen Eintrag im Dictionary. Daher schreibt der Encoder den Index von <i>s</i> (115) an die Ausgabe, fügt den String <i>si</i> an der Position 256 dem Wörterbuch hinzu und belegt den String <i>I</i> mit dem Zeichen <i>i</i>.</p>
+		<p>So setzt sich der Prozeß bis zum Ende fort, die Ausgabe enthält dann folgende Nummern (in Klammern stehen die zugehörigen Strings, die nicht in der Ausgabe enthalten sind):</p>
+		<pre><code>
+115(s), 105(i), 114(r), 32(_),
+256(si), 100(d), 32(_), 101(e),
+97(a), 115(a), 116(t), 109(m),
+97(a), 110(n), 262(_e),
+256(si), 108(l), 121(y),
+32(_), 116(t), 263(ea),
+115(s), 101(e), 115(s),
+256(_s), 263(ea), 259(_s),
+105(i), 99(c), 107(k),
+280(_se), 97(a), 108(l),
+115(s), eof(end of file).
+		</code></pre>
+		<p>Das Wörterbuch sieht dann ausschnitts&shy;weise so aus:</p>
+		<pre><code>
+0-255 ASCII Codes
+256 si
+257 ir
+258 r_
+259 _s
+260 sid
+261 d_
+...
+
+285 _sea
+286 al
+287 ls
+		</code></pre>
+		<p>Nun stellt der Decoder die Originaldaten wieder her. Er startet wieder mit dem Wörterbuch, das nur die 256 ASCII-Zeichen enthält. Er liest nacheinander die Werte aus den komprimierten Daten und schreibt die zugehörigen Strings an die Ausgabe. Das Wörterbuch baut er dabei genauso auf wie der Encoder. Man sagt daher auch, dass Encoder und Decoder synchronisiert sind bzw. in „lockstep“ arbeiten.</p>
+		<p>Im Detail: Der Decoder liest den ersten Wert und benutzt ihn, um einen String <i>I</i> aus dem Wörterbuch zu lesen. Die Zeichen dieses Strings werden an die Ausgabe geschrieben. Als nächstes müßte der String <i>Iz</i> ins Wörterbuch eingetragen werden. Das Zeichen <i>z</i> des nächsten Strings ist nun eigentlich noch unbekannt. Aber Sie wissen ja, dass es sich dabei nur um das erste Zeichen des nächsten Strings handeln kann.</p>
+		<p>Ein Index, den Sie in den Output-Stream des Encoders schreiben, beansprucht bei einer Wörterbuch&shy;größe von maximal 4096 Strings 12 Bit. Ist das Wörterbuch voll, können Sie mit einer von drei Varianten fortfahren:<br>
+		• Sie können einfach den ältesten oder den am längsten nicht mehr benutzten String mit dem aktuellen String überschreiben.<br>
+		• Oder Sie vergrößern das Wörterbuch nachträglich. Für Encoder und Decoder müssen Sie immer die gleiche Strategie verfolgen.<br>
+		• Eine andere Methode ist, einfach keine neuen Strings mehr zuzulassen. Wenn Sie Strings nie entfernen, können Sie das Wörterbuch als verkettete Liste speichern und dadurch sehr viel Speicherplatz sparen. Das Wörterbuch würden Sie dann so definieren:</p>
+		<pre><code>
+struct dictionary
+{
+	int parent, character;
+} dict[4096];
+		</code></pre>
+		<p>Dabei ist <i>parent</i> der Index des alten Strings und <i>character</i> der Code (0-255) des letzten ASCII-Zeichens.</p>
+		<p>Die Wahl der Ersetzungs&shy;strategie ist sehr entscheidend für die erzielten Kompressions&shy;raten bei LZW-Algorithmen. Aber auch die Größe des Wörterbuchs spielt eine große Rolle. Die optimale Größe hierfür hängt von den Eingangsdaten ab.</p>
+	</section>
+
+	<aside>
+		<h2>AM ANFANG WAR DAS BIT</h2>
+		<div>
+			<p>Informatiker messen den Informations&shy;gehalt einer Nachricht in Bit. Das entspricht der Informations&shy;menge, die eine Antwort auf eine Ja-/Nein-Frage enthält. Die Antwort „ja“ könnte man durch den Wert 1, die Antwort „nein“ durch eine 0 darstellen.</p>
+			<p>Eine der wichtigsten Fragen der Informations&shy;theorie ist, wie viele Entscheidungen – oder binäre Frage&shy;stellungen – notwendig sind, um eine Information aus einer Vielzahl von Nachrichten auszuwählen. Eine elementare Entscheidung besteht dabei natürlich aus einem Bit.</p>
+			<p>Kann die Information&shy;squelle <i>n</i> Informationen liefern, sind mindestens &lceil;ld(n)&rceil; (also das Ergebnis der Logarithmus-Funktion auf die nächsthöhere ganze Zahl aufgerundet) elementare Entscheidungen notwendig. Der durch <i>ld</i> abgekürzte Logrithmus dualis ist dabei der Logarithmus zur Basis 2. Daraus folgt, dass Sie mit &lceil;ld(n)&rceil; Bits eine spezielle Information aus einer Menge von n verschiedenen Informationen identifizieren können.</p>
+			<p>Diese Größe ist der <b>Entscheidungs&shy;gehalt</b> Η0 dieser Informations&shy;menge:
+			<span class="code">Η0(n) = ld(n)</span>
+			Der Gehalt einer Information ist umso größer, je weniger man sie erwartet beziehungs&shy;weise je seltener sie eintrifft. Stellen Sie sich vor, eine Informations&shy;quelle liefert nur Nullen und Einsen. Falls fast immer eine 0, aber nur selten eine 1 vorkommt, ist das Auftreten der 1 für Sie weitaus interessanter als das Auftreten der 0.</p>
+			<p>Wenn nun P(N) die Wahrschein&shy;lichkeit ist, dass die Information N eintrifft, dann ist <span class="code">I(N) = -ld(P(N))</span>
+			als Ihr <b>Informations&shy;gehalt</b> definiert. Diese Festlegung ist vernünftig:</p>
+			<p>1. I(N) ist umso kleiner, je größer P(N) ist, also je öfter die Information N auftritt.</p>
+			<p>2. Wenn das Eintreffen zweier Informationen N1 und N2 statistisch gesehen unabhängig ist, dann addiert sich Ihr Informations&shy;gehalt:</p>
+			<pre><code>
+I( N1 und N2 ) =
+= -ld( P( N1 und N2 ) ) =
+= -ld( P(N1) * P(N2) ) =
+= -( ld(P(N1))+ld(P(n2)) ) =
+= I(N1)+I(N2)
+			</code></pre>
+			<p>Wir können also eine Nachricht mit [ld(n)] Bits kodieren, wenn insgesamt n Nachrichten möglich sind. Dürfen die Bitfolgen, mit denen die Informationen kodiert werden, verschieden lang sein, können Sie eine Reihe von Informationen im Mittel mit weniger Bits kodieren. Das kommt dadurch zustande, daß Sie häufige Nachrichten einfach mit weniger Bits kodieren als selten auftretende.</p>
+			<p>Ein sehr bekanntes Beispiel, das dieser Methode folgt, ist der Morsecode: Im Morse-Alphabet – die Informationen sind hier die Buchstaben – ist der Morsecode für das sehr häufig vorkommende „e“ ein Punkt. Der Code für das seltenere „y“ besteht hingegen aus vier Zeichen.</p>
+			<p>Ein weiterer wichtiger Begriff in der Informations&shy;theorie ist der mittlere Informations&shy;gehalt oder die <b>Entropie</b>. Treten n Nachrichten mit den einzelnen Wahrschein&shy;lichkeiten p(i), i = 1, ..., n auf, dann ist die Entropie einer Informations&shy;quelle Q</p>
+			<pre><code>
+HQ = Σ I(Ni)*p(i) =
+= Σ ld(1/p(i))*p(i) =
+= Σ ld(p(i))*p(i)
+			</code></pre>
+			<p>Bei dieser Formel ist vorausgesetzt, dass die Informations&shy;quelle auch eine Information liefert. Dazu muß die Summe aller Auftritts&shy;wahrscheinlich&shy;keiten 1 sein:
+			<span class="code">p(1)+p(2)+...+p(n) = 1</span>
+			Die Entropie ist maximal, wenn alle eintreffenden Informationen gleich wahrscheinlich sind, wenn also die größte Unsicherheit darüber besteht, welche Information der Quelle wir erhalten werden.</p>
+			<figure class="floatright">
+				<img src="assets/200004_4.png" width="432" height="175" alt="DIE REDUNDANZ ist der Anteil einer Nachricht, der keine weiteren Informationen enthält.">
+				<figcaption><span>DIE REDUNDANZ</span> ist der Anteil einer Nachricht, der keine weiteren Informationen enthält.</figcaption>
+			</figure>
+			<p>Als kleines Beispiel zu diesem eher etwas trockenen Theorieteil wollen wir Folgendes betrachten: Ihre Informations&shy;quelle liefert Ihnen die Buchstaben a, b, c und d mit den Wahrschein&shy;lichkeiten 1/2, 1/4, 1/8 und 1/8. Sehen Sie sich dazu die Tabelle „Beispiel für die Entropie“ an. Die Länge der Codes ist hier im Hinblick auf ihre Häufigkeiten optimal gewählt. Außerdem ist kein Code der Anfang eines anderen - dadurch bleiben Sie auch bei beliebiger Aneinander&shy;reihung unterscheidbar, zum Beispiel
+			<span class="code">0101001101111 = abbacd</span>
+			Wären die Wahrschein&shy;lichkeiten der Zeichen im obigen Beispiel gleich verteilt, betrüge der Informations&shy;gehalt 2 Bit. Eine Codierung, die die Informationen mit weniger als durch&shy;schnittlich 2 Bit pro Zeichen speichern könnte, existiert nicht.</p>
+			<p>Als letzten Begriff wollen wir die <b>Redundanz</b> definieren. Die Redundanz ist einfach gesprochen der verschwendete Speicherplatz, der durch die ineffiziente Codierung entsteht. Es gilt wie in Abbildung gezeigt:
+			<span class="code">Redundanz = Entscheidungsgehalt - Entropie</span></p>
+			<div class="whitebox">
+				<h2>BEISPIEL FÜR DIE ENTROPIE</h2>
+				<table>
+					<thead>
+						<tr><th>Zeichen</th><th>relative Häufigkeit p(i)</th><th>Code</th><th>Anzahl Binärzeichen</th><th>Entropie</th><th>p(i)*ld(p(i))</th></tr>
+					</thead>
+					<tbody>
+						<tr><td>a</td><td>1/2</td><td>0</td><td>1</td><td>ld(1/(1/2))=1</td><td>(1/2) * 1 = 1/2</td></tr>
+						<tr><td>b</td><td>1/4</td><td>10</td><td>2</td><td>ld(4)=2</td><td>(1/4) * 2 = 1/2</td></tr>
+						<tr><td>c</td><td>1/8</td><td>110</td><td>3</td><td>ld(8)=3</td><td>(1/8) * 3 = 3/8</td></tr>
+						<tr><td>d</td><td>1/8</td><td>111</td><td>3</td><td>ld(8)=3</td><td>(1/8) * 3 = 3/8</td></tr>
+						<tr><td colspan="5"></td><td>ΗQ = 1 3/4</td></tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Huffman-Codierung</h2>
+		<p>Die Huffman-Codierung arbeitet nicht mit einem Wörterbuch, sondern mit der Wahrschein&shy;lichkeit der Eingabe&shy;zeichen. Sie ordnet allen Eingabezeichen Bitcodes unterschied&shy;licher Länge zu. Diese Huffman-Codes sind um so kürzer, je häufiger das Zeichen auftritt.</p>
+		<figure class="floatright">
+			<img src="assets/200004_1.png" width="464" height="640" alt="EIN HUFFMAN-BAUM verrät Ihnen den optimalen Code für die in Ihrer Nachricht auftretende Buchstabenhäufigkeit.">
+			<figcaption><span>EIN HUFFMAN-BAUM</span> verrät Ihnen den optimalen Code für die in Ihrer Nachricht auftretende Buchstaben&shy;häufigkeit.</figcaption>
+		</figure>
+		<p>Zur Darstellung dient der Huffman-Baum: ein Binärbaum, dessen Blätter den Eingabezeichen entsprechen und mit ihren Wahrscheinlich&shy;keiten beschriftet sind. Die weiteren Knoten des Baums sind mit der Summe der Wahrscheinlich&shy;keiten der Knoten der nächsthöheren Ebene markiert. Die Kanten bezeichnen wir mit den binären Werten 0 oder 1.</p>
+		<p>Angenommen, Sie haben die Menge der Eingabezeichen <i>x(1),...,x(n)</i> mit den Wahrschein&shy;lichkeiten <i>p(1),...,p(n).</i> So bauen Sie den Baum auf:<br>
+		• Suchen Sie die zwei Zeichen <i>x(i)</i> und x(j) mit den kleinsten Wahrschein&shy;lichkeiten.<br>
+		• Bilden Sie einen neuen Knoten <i>K(ij)</i>, und ordnen Sie ihm die Wahrschein&shy;lichkeit
+		<span class="code">p(K(ij)) = p(i) + p(j)</span>
+		zu. Verbinden Sie <i>K(ij)</i> mit <i>x(i)</i> und <i>x(j)</i>, und beschriften Sie die Kanten mit den Werten 0 und 1.<br>
+		• Entfernen Sie <i>x(i)</i> und <i>x(j)</i> aus der Menge der Zeichen, und fügen Sie stattdessen <i>K(ij)</i> hinzu.<br>
+		• Ist noch mehr als ein Element in der Menge der Eingabezeichen enthalten, gehen Sie wieder zu Schritt 1.<br>
+		• Machen Sie den letzten hinzugefügten Knoten zur Wurzel des Baums.</p>
+		<p>Die Skizze oben verdeutlicht die Vorgehensweise für einen Text mit den Zeichen <i>A (p(A) = 0,2), B (p(B) = 0,1), E (p(E)</i> <i>= 0,2)</i> und <i>R (p(R) = 0,5).</i> Bauen Sie den Baum von den Blättern bis zur Wurzel auf. Die Bitfolgen für die Zeichen erhalten Sie, indem Sie die Baumäste von der Wurzel bis zu einem Blatt hinab verfolgen und sich dabei die Bits merken:</p>
+		<pre><code>
+A 000
+B 001
+E 01
+R 1
+		</code></pre>
+		<p>Dadurch, dass kein Code der Anfang eines anderen Codes ist, können Sie codierte Wörter wie</p>
+		<pre><code>
+EBER 01001011
+RABE 100000101
+		</code></pre>
+		<p>eindeutig decodieren. Dazu muss der Encoder die Bitcodes oder den Baum zuvor gespeichert haben.</p>
+		<p>Wenn Sie komprimierte Daten decodieren wollen, gehen Sie wie folgt vor: Sie starten bei der Wurzel des Baums als aktueller Knoten. Dann lesen Sie ein Bit. Hat es den Wert 0, gehen Sie zum Knoten an der linken Kante Ihres aktuellen Knotens. Beim Wert 1 gehen Sie an der rechten Kante entlang.</p>
+		<p>Diesen Vorgang wiederholen Sie so lange, bis Sie an einem Blatt des Baums angelangt sind. Dann geben Sie das entsprechende Zeichen aus und springen zurück zur Wurzel. In C-Code könnte das so aussehen:</p>
+		<pre><code>
+//towrite enthält Anzahl der Outputbytes
+while(towrite &gt; 0)
+{
+	//Bit lesen
+	int bit = getcode(1);
+	if(bit == 0) actnode = tree[actnode].left;
+	else actnode = tree[actnode].right;
+
+	if (actnode &lt; 256)
+	{
+		//Blatt gefunden!
+		putc(actnode, g);
+		towrite–;
+		actnode = nodes-1;
+	}
+}
+		</code></pre>
+		<p>Statt alle Zeichen&shy;wahrschein&shy;lichkeiten zu Beginn abzuzählen, können Sie sie ständig während der Codierung anpassen (Adaptives Huffman Coding). Vorteil: Der Encoder passt sich immer den aktuell auftretenden Wahrschein&shy;lichkeiten an und erzielt dadurch bessere Kompressions&shy;raten. Voraussetzung: Die Anpassung muss schnell erfolgen und die Wahrschein&shy;lichkeiten dürfen sich nicht zu schnell ändern.</p>
+		<p>In der Praxis finden Sie bei einem Packprogramm meist nicht nur einen Algorithmus, sondern fast immer eine Kombination aus einem Dictionary-Packer und einem statistischen Encoder wie beim Huffman-Algorithmus. Zum Beispiel können die Indizes, die beim LZW-Verfahren als Ausgabe entstehen, als Eingabezeichen für einen Huffman-Packer dienen. Dadurch erzielen Sie deutlich bessere Kompressions&shy;raten als bei der Anwendung nur eines Verfahrens.</p>
+		<p>Um ungewollten Datenverlusten vorzubeugen, entwickeln Sie zu jedem Packer immer sofort auch den zugehörigen Entpacker. Danach sollten Sie beide einem ausgiebigen Test unterziehen: Was nützt die kleinste Datei, wenn darin nicht mehr alle nötigen Informationen zum Entpacken enthalten sind?</p>
+		<p>Der LZW-Packer aus dieser Ausgabe gibt Ihnen viel Raum für eigene Experimente. In der nächsten Ausgabe stellen wir Ihnen ausgefeilte Algorithmen für Spezial&shy;anwendungen vor.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Empfehlenswerte Literatur:</b></p>
+		<p class="footnote">Salomon, David: Data Compression – The Complete Reference, Springer Verlag 1997, etwa 80 Mark, ISBN 0-387-98280-9</p>
+		<p class="footnote">Nelson Mark / Gailly, Jean-Loup: The Data Compression Book, M&amp;T Books 1996, etwa 75 Mark, ISBN 1-55851-434-1</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200003.html">3/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200005.html">5/2000</a>
+	</nav>
+</body>

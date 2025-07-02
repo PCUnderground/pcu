@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Jenseits aller Standards (PC Underground, PC Magazin 2/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;2/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+	<nav class="pagenav">
+		<a rel="prev" href="200001.html">1/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200003.html">3/2000</a>
+	</nav>
+	<article>
+
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/98/NT</h2>
+		<h1><span class="highlight">Jenseits</span> aller Standards</h1>
+		<p class="summary">Daß <span class="highlight">Fenster nicht immer eckig</span> sein müssen, zeigte bereits der Künstler Hundertwasser an seinen Gebäuden in Wien. Machen Sie es ihm nach.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Oliver Käferstein</h3>
+		<p>Fenster gehören zu den wichtigsten Elementen von Windows – schließlich ist das Betriebssystem nach ihnen benannt. Die Fenster sind nach bestimmten Regeln aufgebaut. Doch Standards sind auf die Dauer langweilig, erschaffen Sie daher Fenster in neuen Formen und Farben.</p>
+		<p>Zunächst lernen Sie beliebig geformte Fenster kennen, deren Form Sie durch eine Bitmap bestimmen. Außerdem zeigen wir Ihnen, wie Sie auf dem Desktop – ohne ein Fenster zu sehen – eine Grafik einblenden. Diese sogenannten Splash-Screens sind sehr beliebt, um beim Start eines Programms die Copyright-Meldungen anzuzeigen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<p>Bevor Sie eigene Fenster erschaffen, werfen Sie einen Blick in die entsprechenden Beispiel&shy;programme Ihres Compilers. Experi&shy;mentieren Sie an diesen Programmen herum.</p>
+		<p>Um ein Standard&shy;fenster zu erzeugen, registrieren Sie zunächst eine eigene Fensterklasse. Dazu legen Sie eine <i>WNDCLASS</i>-Struktur an. Diese enthält die Parameter für die Hinter&shy;grundfarbe, das zugehörige Icon und andere Eigenschaften des Fensters:</p>
+		<pre><code>
+WNDCLASS wc;
+wc.style = CS_BYTEALIGNCLIENT;
+wc.cbClsExtra = 0;
+wc.cbWndExtra = 0;
+wc.hInstance = instance;
+wc.hIcon = 0;
+wc.hCursor = 0;
+
+//Hintergrundfarbe
+wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+wc.lpszMenuName = 0;
+// Fensterklassenname
+wc.lpszClassName = „Testfenster“;
+
+//Messagehandler
+wc.lpfnWndProc = WindowProc;
+
+//Fensterklasse registrieren
+RegisterClass(&amp;wc);
+		</code></pre>
+		<p>Bevor Sie in der letzten Listingzeile ein Fenster dieser Klasse erzeugen, weisen Sie ihm einen Messagehandler zu. Dieser Messagehandler arbeitet Nachrichten ab, die Windows an ihn schickt. Nachrichten sind Mausklicks auf das Fenster oder ein Tastendruck, sofern das Fenster aktiv ist. Alle Nachrichten, die Sie interessieren, geben Sie an den Standard-Messagehandler von Windows weiter.</p>
+		<p>Ein selbst&shy;definierter Messagehandler könnte dabei wie folgt aussehen:</p>
+		<pre><code>
+long CALLBACK WindowProc(
+	HWND hWnd, UINT message,
+	WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+		case WM_CREATE:
+			break;
+		case WM_KEYDOWN:
+			keycode = wParam &amp; 255;
+			return 0;
+		case WM_DESTROY:
+			break;
+	}
+
+	//alle uninteressanten Nachrichten an Default
+	//Messagehandler weiterleiten
+	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+		</code></pre>
+		<p>An dieser Stelle haben Sie alle Definitionen abgeschlossen, die das Aussehen und Verhalten Ihres Fensters betreffen. Sie können nun ein Fenster dieser Klasse anlegen. Dazu benutzen Sie die Funktion <i>CreateWindowEx(...)</i>. In den übergebenen Parametern legen Sie unter anderem fest, ob Ihr Fenster <i>Minimize</i> und <i>Maximize</i>-Knöpfe besitzt und wie groß es sein soll. Als Rückgabewert liefert <i>CreateWindowEx(...)</i> ein Handle vom Typ <i>HWND</i>, das das Fenster eindeutig identifiziert. Wichtig ist dabei, daß Sie das Handle der Application Instance – also das Handle, welches Ihr Programm identifiziert – mit übergeben:</p>
+		<pre><code>
+HWND Window;
+//Fenster an Position 100/120 mit der Größe 320/240
+Window = CreateWindowEx(
+	WS_EX_TOPMOST, „Testfenster“,
+	„Fenstertitel“, WS_POPUP,
+	100, 120, 320, 240, 0, 0,
+	instance, 0);
+//Fehler:
+if (!Window) return 0;
+		</code></pre>
+		<p>Jetzt brauchen Sie Windows nur noch mitzuteilen, daß Sie das Fenster sehen wollen. Dazu steht Ihnen der Befehl <i>ShowWindow(Window, ...)</i> zur Verfügung.</p>
+		<p>Um das Fenster mit einem Inhalt zu füllen, verwenden Sie den sogenannten <i>Device Context</i>. Damit können Sie zum Beispiel in das Fenster zeichnen oder Bitmaps darin anzeigen. Der <i>Device</i> <i>Context</i> ist eine Datenstruktur mit allen Informationen, die Windows braucht, um auf ein <i>Device</i> zu schreiben. Ein <i>Device</i> muß nicht unbedingt ein Fenster oder ein Bildschirm sein, es kann sich dabei auch um einen Drucker handeln. Den <i>Device Context</i> erhalten Sie über</p>
+		<pre><code>
+HDC DeviceContext;
+DeviceContext = GetDC(Window);
+		</code></pre>
+		<p>Möchten Sie beispielsweise eine Bitmap aus dem Hauptspeicher in das Fenster zeichnen, legen Sie eine <i>BITMAPINFO</i>-Struktur an. In dieser beschreiben Sie den Aufbau der Bitmap im Speicher:</p>
+		<pre><code>
+int bisize = sizeof(BITMAPINFOHEADER);
+bitmapinfo = (BITMAPINFO*)malloc(bisize + 12);
+ZeroMemory(&amp;bitmapinfo-&gt; bmiHeader, bisize);
+//BitmapInfoHeader erzeugen
+bitmapinfo-&gt;bmiHeader.biSize = bisize;
+bitmapinfo-&gt;bmiHeader.biWidth = SCREEN_X;
+bitmapinfo-&gt;bmiHeader.biHeight = -SCREEN_Y;
+bitmapinfo-&gt;bmiHeader.biPlanes = 1;
+bitmapinfo-&gt;bmiHeader.biBitCount = 16;
+bitmapinfo-&gt;bmiHeader.biCompression = BI_BITFIELDS;
+//Farbfelder des Bitmaps setzen
+*((long*) bitmapinfo-&gt;bmiColors +0) = 0xFF0000;
+*((long*) bitmapinfo-&gt;bmiColors +1) = 0x00FF00;
+*((long*) bitmapinfo-&gt;bmiColors +2) = 0x0000FF;
+		</code></pre>
+		<p>Dank dieser Struktur weiß Windows, wie die Grafikdaten im Speicher vorliegen. Sie können Windows veranlassen, die Bitmap in das Fenster zu zeichnen:</p>
+		<pre><code>
+SetDIBitsToDevice(
+	DeviceContext, 0, 0, Breite,
+	Höhe, 0, 0, 0, Höhe,
+	BitmapPtr, bitmapinfo,
+	DIB_RGB_COLORS
+);
+		</code></pre>
+		<p>Sind Fenster und Bitmap unterschied&shy;lich groß, übernimmt Windows auf Wunsch auch die Skalierung des Bildes. In diesem Fall verwenden Sie folgende Syntax:</p>
+		<pre><code>
+//Größe des Fensters holen
+GetClientRect(Window, &amp;r);
+StretchDIBits(DeviceContext,
+	0, 0, r.right, r.bottom,
+	0, 0, Breite, Höhe,
+	BitmapPtr, bitmapinfo,
+	DIB_RGB_COLORS, SRCCOPY
+);
+		</code></pre>
+		<p>Windows stellt Ihnen für die Behandlung von Bitmaps und <i>Device Contexts</i> noch weitere mächtige Befehle zur Verfügung. Diese sind in der Online-Hilfe Ihres Compilers erklärt.</p>
+	</section>
+
+	<section>
+		<h2>Fenster in allen Formen</h2>
+		<figure class="floatright">
+			<img src="assets/200002_1.png" width="280" height="292" alt="UNTER WINDOWS DEFINIEREN Sie eigene Fenster aus mehreren Regionen.">
+			<figcaption><span>UNTER WINDOWS DEFINIEREN</span> Sie eigene Fenster aus mehreren Regionen.</figcaption>
+		</figure>
+		<p>Die Standard&shy;fenster in Windows sind rechteckig. Doch gerade Linien wirken steif und fördern nicht gerade die Kreativität. Diese Weisheit verdanken wir nicht zuletzt Stardesigner Colani und seinem legendären Biodesign. Nutzen Sie die Option von Windows, Fenster in einer beliebigen Form – sogar in nicht zusammen&shy;hängenden Teilen – anzuzeigen.</p>
+		<p>Definieren Sie sogenannte Regionen, mit denen Sie die sichtbaren Bereiche eines Fensters festlegen. Diese Regionen setzen Sie aus beliebigen Rechtecken zusammen. Da ein solches Rechteck auch nur ein Pixel groß sein kann, können Sie so jede beliebige Form erzeugen.</p>
+		<p>Die gewünschte Form legen Sie am besten durch eine Bitmap fest, die Sie in einem Zeichen&shy;programm Ihrer Wahl anfertigen. Für die spätere Anzeige des Fensters zerlegen Sie die undurch&shy;sichtigen Stellen der Bitmap in einige wenige Rechtecke – wenige deshalb, weil bei zu vielen Rechtecken die Performance leiden kann.</p>
+		<p>Die Funktionen zum Laden und Behandeln der Bitmaps finden Sie in der <i>pcPicture</i>-Klasse im Quelltext zu dieser Ausgabe. Sie können damit ein Bild laden und mit 32 Bit Farbtiefe im Speicher ablegen:</p>
+		<pre><code>
+pcWndRegion _pic;
+
+//BMP laden
+_pic.load(szPathName);
+
+//32-Bit-Kopie anlegen
+pcPicture bmReg(_pic.width(), _pic.height(), 32, TRUE );
+
+//und BMP dorthin kopieren
+_pic.blitTO(bmReg.hdc());
+
+// Transparenzfarbe
+COLORREF cTransCol = GetPixel(bmReg.hdc(), 0, 0);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200002_2.png" width="569" height="327" alt="DIESE BITMAP DIENT als Vorlage für den Splash-Screen.">
+			<figcaption><span>DIESE BITMAP</span> DIENT als Vorlage für den Splash-Screen.</figcaption>
+		</figure>
+		<p>Um die Bitmap in eine Region zu konvertieren, durchsuchen Sie es Zeile für Zeile. Jeweils zusammen&shy;hängende, nicht-transparente Pixel in einer Bitmap-Zeile ergeben ein Rechteck. Das ist kein optimaler, aber ein ausreichender Algorithmus, um die Bitmap in eine Region zu konvertieren. Als transparent gelten Pixel in einer vorgegebenen Farbe. Das Programm verwendet als Transparenz&shy;farbe jeweils die Farbe des linken oberen Pixels der Bitmap:</p>
+		<pre><code>
+for(y = 0; y &lt; height; y++)
+{
+	for (x = 0; x &lt; width; x++)
+	{
+		//suche zusammenhängendes
+		//Gebiet von nicht transparenten Pixeln
+		dword x0 = x;
+		dword *p = BitmapPtr + x + y * width;
+		while(x &lt; width)
+		{
+			// transparentes Pixel?
+			if(*p == trancol) break;
+			p++;
+			x++;
+		}
+		if(x &gt; x0)
+		{
+			//Rechteck gefunden
+			....
+		}
+	}
+}
+		</code></pre>
+		<p>Nachdem Sie die Rechtecke gefunden haben, speichern Sie diese in der Datenstruktur <i>RGNDATA</i>, die Sie dann Ihrem Fenster zuweisen. Diese Struktur ist von Windows wie folgt definiert:</p>
+		<pre><code>
+typedef struct
+{
+	RGNDATAHEADER rdh;
+	char Buffer[1];
+} RGNDATA;
+
+typedef struct _RGNDATAHEADER
+{
+	DWORD dwSize;
+	DWORD iType;
+	DWORD nCount;
+	DWORD nRgnSize;
+	RECT rcBound;
+} RGNDATAHEADER;
+
+RGNDATA *pData = new RGNData;
+		</code></pre>
+		<p>Zunächst füllen Sie den <i>RGNDATAHEADER</i> aus:</p>
+		<pre><code>
+pData-&gt;rdh.dwSize = sizeof(RGNDATAHEADER);
+pData-&gt;rdh.iType = RDH_RECTANGLES;
+
+//Bisherige Anzahl Rechtecke
+pData-&gt;rdh.nCount =  pData-&gt;rdh.nRgnSize = 0;
+//Größe der Regions auf Extremwerte setzen
+SetRect(&amp;pData-&gt;rdh.rcBound, MAXLONG, MAXLONG, 0, 0);
+		</code></pre>
+		<p>Wenn Sie nun ein Rechteck in Ihrer Bitmap ausgemacht haben, fügen Sie dieses der Region mit folgenden Codezeilen hinzu:</p>
+		<pre><code>
+RECT *pr = (RECT *)&amp;pData-&gt;Buffer;
+SetRect(&amp;pr[pData-&gt;rdh.nCount], x0, y, x, y + 1);
+
+//Größe der gesamten Region anpassen:
+if (x0 &lt; (dword)pData-&gt;rdh.rcBound.left)
+	pData-&gt;rdh.rcBound.left = x0;
+if (y &lt; (dword)pData-&gt;rdh.rcBound.top)
+	pData-&gt;rdh.rcBound.top = y;
+if (x &gt; (dword)pData-&gt;rdh.rcBound.right)
+	pData-&gt;rdh.rcBound.right = x;
+if (y + 1 &gt; (dword)pData-&gt;rdh.rcBound.bottom)
+	pData-&gt;rdh.rcBound.bottom = y + 1;
+pData-&gt;rdh.nCount++;
+		</code></pre>
+		<p>Nun können Sie aus den Regionendaten eine Gesamtregion erzeugen:</p>
+		<pre><code>
+HRGN hrgn = ExtCreateRegion(NULL, sizeof(RGNDATAHEADER) + (sizeof(RECT) * AnzRechtecke), pData);
+		</code></pre>
+		<p>An dieser Stelle haben Sie prinzipiell schon alles, was Sie benötigen. Sie können nun einfach ein „normales“ Windows-Fenster erzeugen und diesem dann die berechnete Region zuweisen. Dazu verwenden Sie einfach:</p>
+		<pre><code>
+SetWindowRgn(Window, hrgn, FALSE);
+ShowWindow(Window, SW_SHOWNORMAL);
+		</code></pre>
+		<p>Damit besitzen Sie das Handwerkszeug, Fenster in jeder erdenklichen Form zu gestalten. Sie können auch die Form eines Fensters während der Laufzeit ändern. Dadurch können Sie zum Beispiel kleine Figuren programmieren, die auf dem Desktop herumlaufen. Oder Sie schreiben Fenster, die sich automatisch ihrem Inhalt anpassen. Die Anwendungs&shy;bereiche für selbstgeformte Fenster sind sehr vielseitig.</p>
+	</section>
+
+	<aside>
+		<h2>URLS FÜR DIE C/C++- UND WINDOWS-PROGRAMMIERUNG</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Thema</th><th>Adresse</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>C++ Report</td><td><a href="https://www.creport.com" rel="external nofollow noreferrer">www.creport.com</a></td></tr>
+					<tr><td>MS VC++ Tutorials</td><td><a href="https://msdn.microsoft.com/visualc/technical/training.asp" rel="external nofollow noreferrer">msdn.microsoft.com/...</a></td></tr>
+					<tr><td>MS System Journal</td><td><a href="https://www.microsoft.com/msj" rel="external nofollow noreferrer">www.microsoft.com/msj</a></td></tr>
+					<tr><td>MFC Professional Links</td><td><a href="https://www.visionx.com/mfcpro/links.htm" rel="external nofollow noreferrer">www.visionx.com/...</a></td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Splash-Screens</h2>
+		<p>Kennen Sie Splash-Screens? Das sind kleine Bilder mit Programm&shy;informationen oder Copyright-Meldungen, die ein Programm beim Start einblendet. Würden Sie dazu ein Fenster ohne Titelleiste und Rahmen erzeugen, könnten Sie den Splashscreen – in unserem Fall eine einfache Bitmap – nicht mit optisch interessanten Effekten einoder ausblenden.</p>
+		<p>Wir zeigen Ihnen, wie Sie eine Bitmap auf das aktuell auf Ihrem Monitor sichtbare Bild einblenden. Leider stellt Windows keine Funktionen zur Verfügung, um (halb)transparente Fenster darzustellen. Also würde der weiter oben beschriebene Ansatz mit beliebig geformten Fenstern hier nicht funktionieren.</p>
+		<p>Verwenden Sie einen anderen Trick. Da Sie mit <i>Device Contexts</i> sowohl in Fenstern zeichnen als auch aus ihnen lesen können, legen Sie eine Kopie des Desktops an und nutzen diese als Hintergrund&shy;bild für das eigene Splash-Screen-Fenster. Sie brauchen nur den Teil des Desktops zu kopieren, den Ihr Fenster verdeckt. Dazu brauchen Sie den Handle des Desktop-Fensters:</p>
+		<pre><code>
+HWND DesktopWindow = GetDesktopWindow();
+HDC DesktopHDC = GetDC(DesktopWindow);
+		</code></pre>
+		<p>Nach diesen Zeilen greifen Sie auf den Desktop zu wie auf jedes andere Fenster.</p>
+		<p>Verwenden Sie die Bitmap-Klasse, die Sie bei den Quelltexten finden. Laden Sie die Splashscreen-Bitmap, und erzeugen Sie eine neue Bitmap der gleichen Größe mit 32 Bit Farbtiefe. In die neue Bitmap kopieren Sie den später vom Splash-Screen verdeckten Desktop-Bereich:</p>
+		<pre><code>
+picORG = new pcPicture;
+picORG-&gt;load(„screen.bmp“);
+
+picBACKGR = new pcPicture;
+if (!picBACKGR) return FALSE;
+
+//Screenshot-Buffer anlegen
+picBACKGR-&gt;create( picORG-&gt;_width, picORG-&gt;_height, 32, TRUE);
+
+//Screenshot des überdeckten Bereichs
+RECT src = {pt.x, pt.y, pt.x + picORG-&gt;_width, pt.y + picORG-&gt;_height};
+HDC hdc = GetDC(GetDesktopWindow());
+picBACKGR-&gt;blitFROM(hdc, &amp;src);
+ReleaseDC(GetDesktopWindow(), hdc);
+		</code></pre>
+		<p>Nun können Sie einfach die Splash-Screen-Bitmap mit dem Screenshot des Desktops kombinieren. Unser Beispiel&shy;programm benutzt dabei wieder die Farbe des linken oberen Pixels als Transparenz&shy;farbe:</p>
+		<pre><code>
+picCOMBINE = new pcPicture(picORG-&gt;width(), picORG-&gt;height(), 32, TRUE);
+if (!picCOMBINE) return FALSE;
+
+picTRG = new pcPicture(picORG-&gt;width(), picORG-&gt;height(), 32, TRUE);
+if (!picTRG) return FALSE;
+
+bInitialized = picBACKGR-&gt;blitTO(picCOMBINE);
+//Originalbild transparent über combine zeichnen
+if(bInitialized)
+	bInitialized = picORG-&gt;blitTRANSTO(picCOMBINE);
+
+//noch ein Kopie für später
+picBACKGR-&gt;blitTO(picTRG);
+		</code></pre>
+		<p>Wenn Sie auf weitere Effekte verzichten möchten, können Sie das kombinierte Bild jetzt schon in Ihr Fenster zeichnen:</p>
+		<pre><code>picTRG-&gt;blitTO(hdc);</code></pre>
+		<p>Blenden Sie das Bild schrittweise ein. Dazu lassen Sie das Hinter&shy;grundbild – also den Screenshot – und das kombinierte Bild ineinander übergehen. Interpolieren Sie zu diesem Zweck jeweils die RGB-Werte jedes einzelnen Pixels.</p>
+		<p>Spätestens an dieser Stelle zahlt es sich aus, daß Sie die Bitmaps in 32 Bit Farbtiefe im Speicher haben. Dadurch können Sie die Pixel leicht adressieren und ebenso einfach auf die RGB-Werte zugreifen. Eine mögliche Implementation des Überblendens könnte so aussehen:</p>
+		<pre><code>
+//Gewichtung der Bilder
+float percentage = 0.3;
+
+//Zeiger auf die Bitmapdaten
+pRGBS = (RGBQUAD*)(picBACKGR-&gt;_bytes);
+pRGBT = (RGBQUAD*)(picCOMBINE-&gt;_bytes);
+pRGBD = (RGBQUAD*)(picTRG-&gt;_bytes);
+
+pDWS = (dword*)(picBACKGR-&gt;_bytes);
+pDWT = (dword*)(picCOMBINE-&gt;_bytes);
+
+//Anzahl der Pixel
+dword iPixels = picORG-&gt;_width * picORG-&gt;_height;
+
+//alle Pixel blenden
+while(--iPixels)
+{
+	//nicht transparent?
+	if (*pDWS++ != *pDWT++)
+	{
+		pRGBD-&gt;rgbRed = pRGBS-&gt;rgbRed -
+			((pRGBS-&gt;rgbRed - pRGBT-&gt;rgbRed) * percentage);
+		pRGBD-&gt;rgbGreen = pRGBS-&gt;rgbGreen -
+			((pRGBS-&gt;rgbGreen - pRGBT-&gt;rgbGreen) * percentage);
+		pRGBD-&gt;rgbBlue = pRGBS-&gt;rgbBlue -
+			((pRGBS-&gt;rgbBlue - pRGBT-&gt;rgbBlue ) * percentage);
+	}
+
+	++ pRGBS;
+	++ pRGBT;
+	++ pRGBD;
+}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200002_3.jpg" width="749" height="677" alt="DER SPLASH-SCREEN wird in den Desktop eingeblendet.">
+			<figcaption><span>DER SPLASH-SCREEN</span> wird in den Desktop eingeblendet.</figcaption>
+		</figure>
+		<p>Sie brauchen nur die Pixel zu überblenden, die im Ausgangs- und Zielbild unterschied&shy;liche Farben aufweisen. Deshalb befindet sich in der Schleife eine entsprechende <i>if</i>-Abfrage. Nun zeichnen Sie das berechnete Bild:</p>
+		<pre><code>picTRG-&gt;blitTO(hdc);</code></pre>
+		<p>Durch den einfachen Zugriff auf die Grafikdaten können Sie jeden beliebigen Effekt darstellen. Wenn Sie die Effekte wie in unserem Beispiel&shy;programm animieren und zeitabhängig gestalten wollen, können Sie die Steuerung über die <i>WM_TIMER</i>-Nachricht Ihres Message&shy;handlers ablaufen lassen. Die Timer-Aufrufe gewährleisten, daß Animationen auf jedem Rechner unabhängig von dessen Geschwindig&shy;keit ablaufen.</p>
+		<p>Zunächst starten Sie einen Timer:</p>
+		<pre><code>SetTimer(WindowHWND, ID, TimeOut, NULL);</code></pre>
+		<p>Dabei müssen Sie den <i>HWND</i> Ihres Fensters übergeben. Sonst weiß Windows nicht, an welches Fenster die Nachrichten gehen sollen. Die übergebene ID vom Typ <i>UINT</i> dient zur Identifikation des Timers, da Sie mehrere Timer starten können. Der <i>TimeOut</i> gibt die Dauer der Zeitintervalle in Millisekunden an, nach denen die Nachricht an das Fenster geschickt wird.</p>
+		<p>Die Timer-Nachrichten empfangen Sie wie folgt:</p>
+		<pre><code>
+long CALLBACK WindowProc(
+	HWND hWnd, UINT message,
+	WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+		...
+		case WM_TIMER:
+			if (wParam == ID)
+			{
+				//irgendwas tun
+				...
+			}
+			break;
+		...
+	}
+	...
+}
+		</code></pre>
+		<p>Unsere Beispiel&shy;programme, mit denen Sie frei herum&shy;experimentieren können, finden Sie auf der Heft-CD. Tips und Tricks zu C, C++ und zur Windows-Programmierung finden Sie im Internet unter den in der Textbox unten angegebenen Adresse.</p>
+		<p>In der nächsten Ausgabe stellen wir Ihnen weitere Effekte vor, mit denen Sie Ihrer Oberfläche eine persönliche Note verpassen.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200001.html">1/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200003.html">3/2000</a>
+	</nav>
+</body>

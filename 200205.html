@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Mehrfach gespiegelt (PC Underground, PC Magazin 5/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;5/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200204.html">4/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200206.html">6/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Planare Spiegelungen mit Stencil Buffers</h2>
+		<h1>Mehrfach <span class="highlight">gespiegelt</span></h1>
+		<p class="summary">Mit einer 3D-Karte und OpenGL können Sie Ihre 3D-Szenen in planaren Spiegeln wiedergeben. Mit der Stencil-Buffer-Technik stellen Sie Ihr Werk <span class="highlight">perspektivisch korrekt</span> dar.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Um Spiegelungen zu programmieren, verwenden Sie OpenGL-Erweiterungen fürs Environment Mapping (sphärisch, parabolisch oder kubisch). Dabei wird die umgebende Szene, die sich in einem Objekt spiegeln soll, in einer Textur gespeichert. Diese Textur können Sie statisch oder dynamisch erzeugen – abhängig vom Einsatzgebiet und davon, was sich im Spiegelbild befinden soll. Bei einem gespiegelten Himmel setzen Sie eine statische Texture Map ein, animierte Objekte auf einer Oberfläche spiegeln Sie mit dynamischen Texture Maps.</p>
+		<p>In dieser Ausgabe lernen Sie eine Technik kennen, mit der Sie planare (ebene) Spiegel in einer 3D-Szene darstellen können. Die Darstellung der Spiegelungen wird perspektivisch korrekt sein und nicht den Umweg über eine Textur gehen. Das bedeutet, die Rendering-Auflösung der Spiegelungen hat die gleiche Qualität wie die direkt gerenderte 3D-Szene.</p>
+		<p>Für den Spiegelungs&shy;effekt müssen Sie die 3D-Szene zweimal rendern. Für jeden weiteren Spiegel in der 3D-Szene brauchen Sie einen zusätzlichen Renderpass.</p>
+		<figure class="floatright">
+			<img src="assets/200205_1.jpg" width="470" height="353" alt="GEDANKLICH SPIEGELN Sie die Kamera an der Ebene.">
+			<figcaption><span>GEDANKLICH SPIEGELN</span> Sie die Kamera an der Ebene.</figcaption>
+		</figure>
+		<p>Im ersten Renderpass zeichnen Sie die gespiegelte Szene, im zweiten die normale Ansicht der 3D-Szene. Um die Spiegelung nicht zu überschreiben, verwenden Sie das so genannte Stencil Buffering (vgl. Bild oben).</p>
+		<p>Das Bild zeigt eine 3D-Szene, den Betrachter und eine spiegelnde (zunächst unendlich große) Ebene. Das Spiegelbild, das der Betrachter auf dem Spiegel sehen würde, entspricht dem, das der Betrachter sehen würde, wenn er von der gespiegelten Betrachter-Position durch den Spiegel hindurch blickt.</p>
+		<p>Jetzt wird die 3D-Szene an der Ebene gespiegelt und von der normalen Betrachter&shy;position aus durch den Spiegel gesehen (siehe Bild 2). Beide Varianten sind vom Ergebnis her identisch. Wir entscheiden uns hier für die zweite Methode, da Sie diese mit OpenGL anschaulicher und einfacher programmieren können.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200205.zip">💾 200205.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Stencil Buffers</h2>
+		<p>Sie verwenden den Stencil Buffer, ähnlich wie den Z-Buffer, dazu, das Rendering auf Pixelbasis (also für einzelne Pixel) zu steuern. Das bedeutet, Sie gestatten oder verbieten es, einen Pixel zu setzen. Das erreichen Sie dadurch, dass Sie zusätzlich zum Frame- oder Color-Buffer, in dem das Bild gerendert wird, und dem Z-Buffer, der die Tiefen&shy;information speichert, einen Stencil Buffer zur Verfügung stellen. Dieser hat die gleiche Auflösung wie das endgültige Bild. Die Bittiefe des Stencil Buffer variiert je nach Hardware und Anwendung (ein Bit oder acht Bit). Sie brauchen keine speziellen OpenGL-Extensions für den Stencil Buffer, den fast jede 3D-Hardware zur Verfügung stellt.</p>
+		<p>Sie können mit Ihrem Programm den Stencil Buffer löschen und beschreiben. Zunächst müssen Sie OpenGL mitteilen, dass Sie einen verwenden möchten. Dazu beschreiben Sie das gewünschten Pixelformat, während Sie den Rendercontext erzeugen. Da sich die Initialisierung sonst nicht von der herkömmlichen unterscheidet, müssen Sie sich nicht um die entsprechenden Codefragmente (im Sourcecode zu dieser Ausgabe) kümmern.</p>
+		<p>Um den Stencil Buffer zu löschen wollen, arbeiten Sie mit dem Befehl</p>
+		<pre><code>
+glClear(GL_STENCIL_BUFFER_BIT);
+		</code></pre>
+		<p>Im folgenden Stencil-Test beschreiben Sie den Stencil Buffer mit Rendering-Optionen (etwa für Polygone):</p>
+		<pre><code>
+glEnable(GL_STENCIL_TEST);
+		</code></pre>
+		<p>OpenGL setzt jeden Pixel mit einer Vergleichs&shy;operation, die Sie mit dem <i>glStencilFunc(...)</i>-Befehl festlegen. Der erste Parameter gibt die Vergleichs&shy;funktion an. Diese legt fest, ob der Wert im Stencil Buffer kleiner (gleich), größer (gleich) oder gleich einem Referenzwert (der zweite Parameter) sein muss. Sie können auch festlegen, dass immer ein positives oder negatives Ergebnis geliefert wird, wenn Sie den Stencil Buffer nur mit Werten füllen wollen. Mit dem dritten Parameter lässt sich eine Bitmaske übergeben. Beide Werte, aus dem Stencil Buffer und dem Referenzwert, unterziehen Sie vor dem Vergleich einem bitweisen <i>AND</i>-Verfahren. Mit der OpenGL-Funktion <i>glStencilOp(...)</i> bestimmen Sie, was nach dem Stencil-Test – abhängig vom Ergebnis – passiert: ob ein Pixel gesetzt wird oder nicht und ob der Stencil-Buffer-Wert verändert wird oder nicht. Zunächst unterscheiden Sie drei Fälle, bei denen Sie auch das Ergebnis des Z-Buffer-Tests heranziehen:<br>
+		• Der Stencil-Buffer-Test liefert ein negatives Ergebnis.<br>
+		• Der Stencil-Buffer-Test liefert ein positives Ergebnis, aber der Z-Buffer-Test schlägt fehl.<br>
+		• Beide Tests liefern ein positives Resultat. Beim Z-Buffer-Test kann das auch auftreten, wenn dieser deaktiviert ist.</p>
+		<p>Sie reagieren auf die Ergebnisse mit unterschied&shy;lichen Operationen. Für jeden dieser drei Fälle geben Sie beim <i>glStencilOp(...)</i>-Befehl an, welche Operation durchgeführt werden soll:<br>
+		• Sie lassen den Stencil-Buffer-Wert unverändert.<br>
+		• Sie setzen den Wert auf Null.<br>
+		• Sie gleichen den Wert mit dem Referenz-Wert der <i>glStencilFunc(...)</i>-Funktion ab, setzen, erhöhen, erniedrigen oder invertieren bitweise.</p>
+		<p>Die flexible Steuerung der Stencil Buffers lässt viele Spezialeffekte wie Outlining, Constructive Solid Geometry und Spiegelungen zu. Die beiden Tabellen (unten und auf Seite 192) fassen die Stencil-Funktionen und -Operationen zusammen </p>
+	</section>
+
+	<aside>
+		<h2>GLSTENCILFUNC: STENCIL-BUFFER-VERGLEICHSFUNKTIONEN</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Funktion</th><th>Testresultat</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>GL_NEVER</td><td>immer negativ</td></tr>
+					<tr><td>GL_LESS</td><td>positiv, wenn (ref &amp; mask) &lt;(stencil &amp; mask).</td></tr>
+					<tr><td>GL_LEQUAL</td><td>positiv, wenn (ref &amp; mask) ? (stencil &amp; mask).</td></tr>
+					<tr><td>GL_GREATER</td><td>positiv, wenn (ref &amp; mask) &gt; (stencil &amp; mask).</td></tr>
+					<tr><td>GL_GEQUAL</td><td>positiv, wenn (ref &amp; mask) ? (stencil &amp; mask).</td></tr>
+					<tr><td>GL_EQUAL</td><td>positiv, wenn (ref &amp; mask) = (stencil &amp; mask).</td></tr>
+					<tr><td>GL_NOTEQUAL</td><td>positiv, wenn (ref &amp; mask) != (stencil &amp; mask).</td></tr>
+					<tr><td>GL_ALWAYS</td><td>immer positiv</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<aside>
+		<h2>GLSTENCILOP: STENCIL-BUFFER-OPERATIONEN</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Operation</th><th>Bedeutung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>GL_KEEP</td><td>Stencil-Buffer-Werte bleiben unverändert</td></tr>
+					<tr><td>GL_ZERO</td><td>Stencil-Buffer-Wert auf Null setzen</td></tr>
+					<tr><td>GL_REPLACE</td><td>Stencil-Buffer-Wert auf Referenzwert setzen</td></tr>
+					<tr><td>GL_INCR</td><td>Stencil-Buffer-Wert erhöhen, mit Sättigung</td></tr>
+					<tr><td>GL_DECR</td><td>Stencil-Buffer-Wert erniedrigen, nicht kleiner als Null</td></tr>
+					<tr><td>GL_INVERT</td><td>Stencil-Buffer-Wert bitweise invertieren</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Spiegelungen Schritt für Schritt</h2>
+		<figure class="floatright">
+			<img src="assets/200205_2.jpg" width="472" height="353" alt="ÄQUIVALENTE BETRACHTUNG: Die 3D-Szene spiegelt sich an der Ebene, durch die eine Kamera hindurch sieht.">
+			<figcaption><span>ÄQUIVALENTE BETRACHTUNG</span>: Die 3D-Szene spiegelt sich an der Ebene, durch die eine Kamera hindurch sieht.</figcaption>
+		</figure>
+		<p>Erarbeiten Sie sich die Verfahren zur Spiegelung und implementieren Sie sie in OpenGL. Im ersten Renderpass setzen Sie mit dem Befehl <i>glLoadIdentity()</i> die Modelview und die Projection Matrix auf die Identitäts&shy;abbildung. Mit den <i>glFrustum(...)</i>- und <i>gluLookAt(...)</i>-Befehlen oder mit <i>gluPerspective(...)</i> wählen Sie in der Projection-Matrix Betrachter&shy;position und -blickrichtung.</p>
+		<p>Sichern Sie die aktuellen OpenGL-Matrizen, da Sie sie später für den zweiten Renderpass brauchen. Am besten speichern Sie sie mit <i>glPushMatrix()</i> auf dem Matrixstack. Spiegeln Sie die 3D-Szene an der Ebene, in der sich der Spiegel befindet. Dazu multiplizieren Sie die Spiegelungs&shy;matrix mit <i>glMultMatrix()</i> und mit der Modelview-Matrix. Zeichnen Sie die gesamte 3D-Szene. Die Szene ist so zu sehen, wie sie als Spiegelbild erscheinen würde – nur nimmt der Spiegel für gewöhnlich nicht das gesamte Blickfeld ein! An dieser Stelle setzen Sie den Stencil Buffer ein. Betrachten Sie die Situation, bevor Sie die Spiegelungs&shy;matrix anwenden. Hier ist der Betrachter an seiner normalen Position und Blickrichtung. Jetzt können Sie den Spiegel aus der Sicht des Betrachters in den Stencil Buffer zeichnen, ohne den Z-Buffer oder Colorbuffer zu beeinflussen. Wir gehen davon aus, dass der Spiegel an seiner gewünschten Stelle platziert ist:</p>
+		<pre><code>
+// Z-Buffer nicht ändern oder vergleichen
+glDisable(GL_DEPTH_TEST);
+// Colorbuffer nicht beschreiben
+glColorMask(0, 0, 0, 0);
+
+// Stencil Test:immer positiv, 1
+glEnable(GL_STENCIL_TEST);
+glStencilFunc(GL_ALWAYS, 1, 1);
+// Referenzwert schreiben, immer
+glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+// Spiegel zeichnen
+drawMirror();
+
+// Color + Z Buffer anschalten
+glColorMask(1, 1, 1, 1);
+glEnable(GL_DEPTH_TEST);
+		</code></pre>
+		<p>Beim Rendern der gespiegelten Szene legen Sie fest, dass nur dort Pixel gesetzt werden, wo der Betrachter den Spiegel und das Spiegelbild der 3D-Szene sieht. Dazu verwenden Sie die folgenden Befehle, wobei Ihnen OpenGL die Arbeit abnimmt:</p>
+		<pre><code>
+// Test positiv, wenn Stencil Buffer Wert == 1
+glStencilFunc(GL_EQUAL, 1, 1);
+// Werte nicht verändern
+glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+//Rendern der gespiegelten Szene
+...
+		</code></pre>
+		<p>Sie müssen beim Rendering der gespiegelten Szene darauf achten, dass Sie auch die Position der Lichtquellen mitspiegeln müssen, um das Spiegelbild korrekt zu beleuchten.</p>
+		<p>Wenn in Ihrer 3D-Szene 3D-Objekte den Spiegel durchdringen, veranlassen Sie OpenGL, die Polygone dieser Objekte an der Ebene des Spiegels abzuschneiden (clipping). Dazu stellt Ihnen OpenGL die Clip Planes zur Verfügung, die Sie mit folgender Syntax einsetzen können:</p>
+		<pre><code>
+// Ebenengleichung
+double eq[4] = { 0.0, -1.0, 0.0, 0.0 };
+// und aktivieren:
+glEnable(GL_CLIP_PLANE0);
+glClipPlane(GL_CLIP_PLANE0, eq);
+		</code></pre>
+		<p>Mit der Ebenen&shy;gleichung bestimmen Sie einen Halbraum. Alle Vertices, deren Skalarprodukt (in Eye Coordinates) mit dem <i>eq</i>-Vektor einen Wert größer oder gleich Null ergibt, werden als innerhalb des gewünschten Halbraums, sonst außerhalb gewertet.</p>
+		<p>Jetzt können Sie die 3D-Szene vom Betrachter aus zeichnen. Beginnen Sie dabei mit dem Spiegel, da sonst das Spiegelbild womöglich überschrieben wird. Den Spiegel sollten Sie nicht opak (Gegenteil von transparent) zeichnen, da sonst das Spiegelbild überdeckt wird. Zeichnen Sie ihn entweder mit Alphablending teilweise transparent oder nur in den Z-Buffer, wenn der Spiegel perfekt aussehen soll. Wenn Sie einen Spiegel mit besser und schlechter spiegelnden Bereichen darstellen wollen, erreichen Sie das mit Alphablending und einer geeigneten Textur. Zusammen&shy;gefasst sieht der zweite Renderpass so aus:</p>
+		<pre><code>
+// kein Userdefined Clipping und Stencil Test mehr
+glDisable(GL_CLIP_PLANE0);
+glDisable(GL_STENCIL_TEST);
+
+// teilweise transparenter, nicht perfekter Spiegel
+glEnable(GL_BLEND);
+glColor4f(0.9f, 0.9f, 1.0f, 0.75f);
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+drawMirror();
+glDisable(GL_BLEND);
+
+// und den Rest der 3D-Szene
+drawScene();
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Die Spiegelungsabbildung</h2>
+		<figure class="floatright">
+			<img src="assets/200205_4.jpg" width="318" height="321" alt="DIE SPIEGELUNG an der x/z-Ebene stellt eine Skalierung dar.">
+			<figcaption><span>DIE SPIEGELUNG</span> an der x/z-Ebene stellt eine Skalierung dar.</figcaption>
+		</figure>
+		<p>Der Spiegel liegt zunächst in einer Koordinaten&shy;ebene, etwa in der x/z-Ebene. Dann können Sie eine Spiegelung einfach beschreiben, indem Sie die <i>y</i>-Koordinaten jedes Punktes negieren und die <i>x</i>- und <i>z</i>-Koordinate unverändert lassen. Mit dem OpenGL-Befehl</p>
+		<pre><code>
+glScalef(1.0, -1.0, 1.0);
+		</code></pre>
+		<p>skalieren Sie die Darstellung. Sie können diese Methode auch für beliebige Ebenen (also beliebig positionierte Spiegel) verwenden. Mit der Spiegelungs&shy;matrix können Sie einen Punkt an der Ebene spiegeln.</p>
+		<p>Die Matrix setzt sich aus einzelnen Trans&shy;formationen zusammen. Verschieben Sie die Ebene, die durch einen Punkt <i>p</i> und die Normalen <i>n</i> bestimmt wird, so, dass sie durch den Ursprung verläuft. Diese Transformation beschreiben Sie durch eine Translations&shy;matrix (Verschiebungs&shy;matrix) <i>T(-p)</i>:
+		<img class="math" src="assets/200205_5.png" width="191" height="74" alt="Translationsmatrix"></p>
+		<p>Drehen Sie die Ebene so, dass Sie mit der <i>x/z</i>-Ebene identisch ist, die Normale also mit der gedrehten Ebene übereinstimmt <i>(0, 1, 0)</i>. Die Matrix, die diese Transformation vornimmt, bezeichnen Sie mit <i>R(n, (0, 1, 0))</i>. Sie können sie mit Hilfe von Quaternionen herleiten. Wir präsentieren Ihnen stattdessen das optimierte Ergebnis für <i>R(s, t)</i>:</p>
+		<pre><code>
+v = s x t (Kreuzprodukt)
+e = cos(2 * phi) = s * t
+(2 * phi: Winkel s und t)
+h = (1 - e) / (v * v)
+		</code></pre>
+		<p><i>x, y, z</i> sind die Komponenten von <i>v</i>:
+		<img class="math" src="assets/200205_6.png" width="282" height="66" alt="R(s, t)"></p>
+		<p>Die Tranformation der Spiegelebene in die <i>x/z</i>-Ebene sieht so aus:</p>
+		<pre><code>
+F = R(n, (0, 1, 0)) T(-p)
+		</code></pre>
+		<p>Die Matrix&shy;multiplikation führt die einzelnen Trans&shy;formationen in der Reihenfolge von rechts nach links aus. An der trans&shy;formierten Ebene wird mit der Skalierung (Skalierungs&shy;matrix <i>S(1,-1,1)</i>) die Spiegelung durchgeführt. Anschließend machen Sie die Transformation der Ebene mit der inversen Matrix zu <i>F: F(inv)</i> rückgängig:
+		<img class="math" src="assets/200205_7.png" width="220" height="64" alt="Inverse Matrix">
+		</p>
+		<p>Die Spiegelungs&shy;matrix sieht so aus:</p>
+		<pre><code>
+M = F(inv) S(1, -1, 1) F
+		</code></pre>
+		<p>Einfacher geht es, wenn Sie die OpenGL-Trans&shy;formationen, die Sie mit dem Spiegel vornehmen, aus einfachen Trans&shy;formationen wie Rotation und Translation zusammensetzen. Beginnen Sie, indem Sie einen einfachen quadratischen Spiegel definieren, der in der <i>x/z</i>-Ebene liegt:</p>
+		<pre><code>
+void drawMirror()
+{
+	glDisable(GL_LIGHTING);
+	glBegin(GL_QUADS);
+	glNormal3f(0.0, 1.0, 0.0);
+	glTexCoord2f(0.0 , 0.0);
+	glVertex3f(-1.0, 0.0, -1.0);
+	glTexCoord2f(1.0, 0.0);
+	glVertex3f(1.0, 0.0, -1.0);
+	glTexCoord2f(1.0, 1.0);
+	glVertex3f(2.0, 0.0, 2.0);
+	glTexCoord2f(0.0, 1.0);
+	glVertex3f(-1.0, 0.0, 1.0);
+	glEnd();
+}
+		</code></pre>
+		<p>Nehmen Sie an, Sie wollen den Spiegel durch Verschieben und Drehen in seine gewünschte Position bringen. Die Transformation beschreiben folgende Zeilen:</p>
+		<pre><code>
+glRotatef(w, 0, 0, 1);
+glTranslatef(x, y, z);
+		</code></pre>
+		<p>Diese Transformation führen Sie auch aus, bevor Sie den Spiegel in den Stencil Buffer zeichnen. Sichern und restaurieren Sie die Modelview Matrix davor und danach. Beim endgültigen Zeichnen des Spiegels beim zweiten Renderpass verfahren Sie genauso.</p>
+		<p>Beim ersten Renderpass müssen Sie die Trans&shy;formationen in der richtigen Reihenfolge ausführen, die analog zur obigen Beschreibung der Matrix <i>M</i> ist. Sie finden die Matrix <i>F, F(inv)</i> und <i>S</i> wieder. Verwenden Sie die folgende Reihenfolge, um die gespiegelte Szene zu zeichnen:</p>
+		<pre><code>
+// Stencil Buffer an
+glStencilFunc(GL_EQUAL, 1, 1);
+glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+glEnable(GL_CLIP_PLANE0);
+glPushMatrix();
+
+// Transformation
+
+// Matrix F(inv)
+glTranslatef(x, y, z);
+glRotatef(w, 0, 0, 1);
+
+// hier die Clip-Plane setzen:
+glClipPlane(GL_CLIP_PLANE0, eqr);
+
+// Spiegelung an der XZ Ebene: S(1,-1,1)
+glScalef(1.0f, -1.0f, 1.0f);
+
+// Matrix F
+glRotatef(-w, 0, 0, 1);
+glTranslatef(-x, -y, -z);
+
+// Lichtquellen &amp; Co
+glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+
+// 3D Szene rendern
+drawScene();
+
+// fertig !
+glPopMatrix();
+		</code></pre>
+		<p>Wenn Sie mehrere Spiegel einsetzen wollen, müssen Sie einen Stencil Buffer mit einer größeren Bittiefe als einem Bit (wie im Beispiel&shy;programm) verwenden. Dann weisen Sie jedem Spiegel einen Referenz-Stencil-Wert zu. Im Bild unten sehen Sie unser Beispiel&shy;programm in Aktion.</p>
+		<figure class="large">
+			<img src="assets/200205_3.jpg" width="1152" height="817" alt="UNSER BEISPIELPROGRAMM in Aktion">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> in Aktion</figcaption>
+		</figure>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur und Web-Infos</b></p>
+		<p class="footnote">Advanced Rendering Techniques Using OpenGL, SIGGRAPH 99 Course Notes</p>
+		<p class="footnote">Thomas Möller, Eric Haines: Realtime Rendering, A K Peters, Ltd., 61,50 Euro, ISBN 1-56881-101-2, 512 Seiten</p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://developer.nvidia.com/" rel="external nofollow noreferrer">http://developer.nvidia.com/</a></p>
+		<p class="footnote"><a href="https://www.ati.com/na/pages/resource_centre/dev_rel/devrel.html" rel="external nofollow noreferrer">www.ati.com/na/pages/resource_centre/dev_rel/devrel.html</a></p>
+		<p class="footnote"><a href="https://www.opengl.org/developers/code/sig99/index.html" rel="external nofollow noreferrer">www.opengl.org/developers/code/sig99/index.html</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200204.html">4/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200206.html">6/2002</a>
+	</nav>
+</body>

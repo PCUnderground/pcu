@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Schnellster im Ziel (PC Underground, PC Magazin 8/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;8/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200107.html">7/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200109.html">9/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Der A*-Algorithmus</h2>
+		<h1><span class="highlight">Schnellster</span> im Ziel</h1>
+		<p class="summary">Mit dem <i>A*</i>-Algorithmus suchen Sie in Computerspielen den <span class="highlight">optimalen Pfad für Ihre Spielfiguren</span>. Lernen Sie die Methoden der Echtzeit-Strategiespiele kennen!</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Lernen Sie den <i>A*</i>-Algorithmus (gesprochen: A-Stern) kennen. Dieser Algorithmus findet seit 1968 in der Künstlichen Intelligenz (KI) und in akademischen Suchsystemen Anwendung.</p>
+		<p>Der <i>A*</i>-Algorithmus löst die Grundaufgabe der meisten Computerspiele: Sie planen damit einen Pfad, auf dem sich eine Spielfigur in Computer&shy;spielen bewegen soll. In der Spiele-KI neuerer Computerspiele, vor allem aus dem Echtzeit-Genre, tritt diese Situation häufig auf. Meist wird der Weg einer Figur berechnet, die sich auf einer Spielkarte zu einem vom Spieler gewählten Ziel bewegen soll.</p>
+		<p>Mit Hilfe des <i>A*</i>-Algorithmus können Sie Hindernissen ausweichen. Außerdem soll die Spielfigur die Gegebenheiten der Spielterrains bestmöglich ausnutzen. Der Spielheld soll also einen schlammigen Sumpf oder einen steilen Berg vermeiden und lieber auf Straßen oder freiem Gelände laufen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200108.zip">💾 200108.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Grundlagen: das Zahlenschiebepuzzle</h2>
+		<figure class="floatright">
+			<img src="assets/200108_1.png" width="455" height="537" alt="DAS ZAHLENPUZZLE ist ein Paradebeispiel für den A*-Algorithmus.">
+			<figcaption><span>DAS ZAHLENPUZZLE</span> ist ein Paradebeispiel für den A*-Algorithmus.</figcaption>
+		</figure>
+		<p>Der <i>A*</i>-Algorithmus ist ein Graph-Such&shy;algorithmus. Ein Graph besteht aus Knoten, die durch Kanten verbunden sind. Dieser Graph ist implizit definiert, wie im Folgenden erklärt: Zu einem Knoten sind die Knoten angegeben, die durch Kanten direkt erreichbar sind. Eine explizite Definition würde die Adjazenz&shy;information (die Verbindungs&shy;information) von jedem Knoten zu jedem anderen speichern. Ein Knoten dieses Graphs entspricht einem Zustand in unserer <i>A*</i>-Suche. Was Sie suchen, spielt keine Rolle. Es geht nur darum, einen Lösungsweg darzustellen. Der <i>A*</i>-Algorithmus sucht für Sie den besten Pfad von einem gegebenen Start- zu einem gewünschten Endzustand. Dabei läuft er durch den Graphen und untersucht die Nachbarknoten der besuchten Zustände.</p>
+		<p>Ein bekanntes Spiel – und gern vorgeführtes Beispiel für den <i>A*</i>-Algorithmus – ist das 8er Zahlen&shy;schiebepuzzle. Dieses bringt in einem 3 x 3 Feld die Ziffern 1 bis 8 unter. Die Ziffern können Sie verschieben. Der Graph erreicht einen neuen Zustand, wenn Sie eine Ziffer verschieben. Diesen Lösungsweg des Zustands&shy;graphen zeigt das Bild unten.</p>
+		<p>Mit dem <i>A*</i>-Algorithmus können Sie auch den Pfad einer Spielfigur in einer virtuellen Welt planen. Der aktuelle Zustand entspricht in diesem Fall der momentanen Position der Spielfigur. Erreichbare Zustände entsprechen in diesem Beispiel Spielfeldern, die die Figur durch einen Bewegungszug erreichen kann.</p>
+		<p>Der <i>A*</i>-Algorithmus untersucht immer wieder den Zustand, der voraus&shy;sichtlich zum optimalen Pfad gehört. Der Algorithmus untersucht dazu die Knoten des Graphen, die er noch nicht erforscht hat. Zuerst überprüft er, ob es sich schon um das Ziel handelt. In diesem Fall ist die Suche beendet. Sonst notiert der <i>A*</i>-Algorithmus alle Nachbar&shy;zustände des gerade untersuchten Zustands, um sie später zu betrachten.</p>
+		<p>Der <i>A*</i>-Algorithmus speichert zwei Listen von Zuständen: die <i>Open</i>- und die <i>Closed</i>-Liste für unerforschte und erforschte Zustände. Zu Beginn der Suche ist die <i>Closed</i>-Liste leer. Die <i>Open</i>-Liste enthält nur einen Startzustand: die aktuelle Position der Spielfigur. Der <i>A*</i>-Algorithmus sucht sich wiederum den besten Zustand aus der <i>Open</i>-Liste, um ihn zu untersuchen und entfernt ihn daraus. Danach werden alle Nachbar&shy;zustände erzeugt. Nun müssen Sie unterscheiden: Sind diese Zustände neu, werden sie an die <i>Open</i>-Liste angehängt.</p>
+	</section>
+
+	<section>
+		<h2>Schnellster Weg aus dem Labyrinth</h2>
+		<figure class="floatright">
+			<img src="assets/200108_5.jpg" width="390" height="390" alt="DER A*-ALGORITHMUS findet auch Wege durch ein Labyrinth.">
+			<figcaption><span>DER A*-ALGORITHMUS</span> findet auch Wege durch ein Labyrinth.</figcaption>
+		</figure>
+		<p>Befinden sich Zustände schon in der <i>Open</i>-Liste, dann wird – falls ein besserer Weg gefunden wurde – die Information dort neu gespeichert. Zustände in der <i>Close</i>-Liste für die der Algorithmus einen besseren Weg findet, nimmt er aus dieser Liste und fügt sie neu in die <i>Open</i>-Liste ein. Denn das könnte einen besseren Weg eröffnen. Das Suchen und Eintragen der Nachbar&shy;zustände heißt <i>Expansion eines Knotens</i>. Wenn die <i>Open</i>-Liste leer ist, bevor der Endzustand erreicht wird, gibt es keinen Pfad vom Start- zum Endzustand.</p>
+		<p>Um den besten Zustand zu wählen, betrachten Sie zunächst die Struktur, um einen Zustand zu speichern:</p>
+		<pre><code>
+class Position
+{
+private:
+	int _x, _y;
+	Position neighbour(const int d);
+...
+};
+
+class Node
+{
+friend class AStar;
+private:
+	int g, h, f;
+	Node *pred;
+	int nPred;
+	Position p;
+...
+};
+		</code></pre>
+		<p>Die Klasse <i>Position</i>, verwenden Sie, um einfacher 2D-Integer-Koordinaten zu speichern. Die Klasse bietet neben Zugriffs&shy;methoden so genannte <i>überladene</i> Operatoren, um den Umgang mit Koordinaten zu erleichtern. Die Methode</p>
+		<pre><code>Position::Position neighbour(const int d)</code></pre>
+		<p>liefert die Position eines Nachbarknotens.</p>
+		<p>In der <i>Node</i>-Klasse speichern Sie die Daten eines Zustandes. Die Klasse enthält die aufsummierten Kosten des besten Wegs vom Startzustand bis zum aktuellen Knoten <i>g</i> und die geschätzten Restkosten zum Ziel <i>h</i>.</p>
+		<p>Weiterhin speichern Sie <i>f</i>, die Summe aus <i>g</i> und <i>h</i>, einen Zeiger auf den Vorgänger-Zustand und einen weiteren Zeiger auf der verketten Liste der Zustände <i>*pred</i>. Sie schreiben auch die Zahl der Vorgänger <i>nPred</i> und die Position des Knotens in der virtuellen Welt <i>p</i> in den Arbeits&shy;speicher. Die <i>Kosten</i> bezeichnen damit den Aufwand, den die Spielfigur hätte, wenn sie den betrachteten Weg gehen würde. In einem Knoten sind in <i>g</i> die Kosten des optimalen Pfads vom Startzustand zu diesem Knoten gespeichert. Dieser Pfad ist <i>nPred</i> Knoten lang. Sie könnten ihn jederzeit zurück&shy;verfolgen, indem Sie den <i>*pred</i>-Zeigern folgen.</p>
+		<p>Nun gilt es, die Kosten zu berechnen oder zu schätzen. Die Kosten vom Startzustand bis zum aktuellen Knoten können Sie exakt berechnen. Sie benötigen dazu nur eine Funktion, die Ihnen die Kosten liefert, wenn Sie Ihre Spielfigur von einem Feld zum nächsten bewegen würden. Die Restkosten <i>h</i> müssen Sie schätzen.</p>
+		<p>Den restlichen Weg haben Sie noch nicht untersucht. Den wollen Sie ja erst berechnen. Der <i>A*</i>-Algorithmus verlangt eine optimistische Restkosten&shy;schätzung. Das bedeutet: Sie müssen die Restkosten schätzen, der Schätzwert muss kleiner sein, als die tatsächlichen Kosten sind. Trivial ist diese Bedingung erfüllt, wenn Sie die Restkosten immer auf <i>0</i> schätzen.</p>
+		<p>Der folgende theoretische Ansatz ist zwar in den Eigenschaften des <i>A*</i>-Algorithmus bewiesen, findet im Rahmen unserer Anwendung hier jedoch nur eine Randnotiz: Wenn es einen Pfad vom Start- zum Endknoten gibt, dann findet der <i>A*</i>-Algorithmus diesen, selbst wenn es sich um so genannte <i>unendliche</i> Graphen handelt. Unendliche Graphen sind bei impliziter Darstellung durchaus denkbar. In nicht-unendlichen Graphen terminiert der Algorithmus, wenn es keinen Pfad gibt.</p>
+		<p>Die Monotonie-Bedingung verlangt, dass die Differenz der Restkosten-Schätzwerte zweier Knoten kleiner ist als die tatsächlichen Kosten der Pfade zwischen den beiden Knoten. Ist diese Bedingung erfüllt, hat der Algorithmus zu jedem Knoten, den er zur Expansion wählt, bereits einen optimalen Pfad gefunden. Wenn Sie zwei <i>A*</i>-Algorithmen <i>A1</i> und <i>A2</i> mit den Restkosten&shy;schätzungen <i>c1(x)</i> und <i>c2(x)</i> verwenden und <i>c(x)</i> die tatsächlichen Restkosten bezeichnet, gilt für jeden Zustand <i>x</i> :</p>
+		<pre><code>c1(x) < c2(x) < c(x)</code></pre>
+		<p>Für diese Bedingung gilt, dass <i>A2</i> besser als <i>A1</i> informiert ist. Das hat zur Folge, dass nach der Terminierung jeder Knoten, der von <i>A2</i> expandiert wurde, auch von <i>A1</i> expandiert wurde. <i>A1</i> hat also mindestens so viele Knoten wie <i>A2</i> expandiert. Es ist wichtig, die Zahl der Knoten und die Rechenzeit zu reduzieren.</p>
+	</section>
+
+	<section>
+		<h2>Die Implementation des A*-Algorithmus</h2>
+		<p>Nachdem Sie die Grundlagen des <i>A*</i>-Algorithmus kennen gelernt haben, wagen Sie sich an die Implementation heran. Wir stellen Ihnen hier eine Basis&shy;implementation vor, die leicht verständlich, aber nicht rechenzeit&shy;optimiert ist. Bei Punkten, an denen Sie eine Optimierung vornehmen können, weisen wir Sie an der entsprechenden Stelle darauf hin. Im Folgenden behandeln wir den Spezialfall, dass wir einen Pfad auf einer Spielwelt suchen, deren Karte aus einem regelmäßigen Schachbrett besteht. In einer Landkarte der Spielewelt speichern Sie, wie aufwendig es für die Spielfigur ist, sich darüber zu bewegen.</p>
+		<p>Die Implementation ist in der <i>AStar</i>-Klasse verpackt.</p>
+		<pre><code>
+class AStar
+{
+private:
+	Position start, goal;
+
+	int lowestOpen;
+	int lowestCost;
+	int nodesExpanded;
+
+	int nOpen, nClosed;
+	Node **open;
+	Node **closed;
+
+	Node *goalNode;
+		</code></pre>
+		<p>Die <i>Member</i>-Variablen der Klassen speichern außer dem Start- und Zielpunkt die <i>Open</i>- und <i>Closed</i>-Listen als Array. In einer optimierten <i>A*</i>-Suche würden Sie diese als <i>Priority Queues</i> speichern. In Priority Queues, die Sie als binäre Bäume verwalten, geht es schneller, nach der <i>Node</i> (Knoten) mit den geringsten Kosten zu suchen. Außerdem speichern Sie den Index des voraus&shy;sichtlich besten Knotens, seine Kosten und einen Zeiger auf den Endknoten, sofern dieser gefunden wurde.</p>
+		<p>Für die Verwaltung der <i>Open</i>- und <i>Close</i>-Liste benötigen Sie Methoden, um Elemente einzufügen, zu suchen oder zu löschen:</p>
+		<pre><code>
+void pushNode(Node **list,
+	int *count, Node *node)
+{
+	list[(*count)++] = node;
+}
+
+int containsNode(Node **list,
+	int count, Node *me)
+{
+	for(int i = 0; i &lt; count; i++)
+		if(list[i]-&gt;p == me-&gt;p)
+			return i;
+	return -1;
+}
+
+void removeNode(Node **list,
+	int *count, int me)
+{
+	list[me] = list[--(*count)];
+}
+		</code></pre>
+		<p>Für die Kosten&shy;berechnung oder -schätzung benötigen Sie folgende Funktionen, wobei Sie die Schätzung genauer untersuchen:</p>
+		<pre><code>
+// Kosten als Integerwerte !
+#define COSTDIAGONAL 554
+// sqrt(2) * 100000 / 255
+#define COSTSTRAIGHT 392
+// 100000 / 255
+static const int travCost[8] =
+{
+	COSTDIAGONAL, COSTSTRAIGHT,
+	COSTDIAGONAL, COSTSTRAIGHT,
+	COSTSTRAIGHT, COSTDIAGONAL,
+	COSTSTRAIGHT, COSTDIAGONAL
+};
+
+// Berechnung: d ist eine der 8
+// Richtungen auf der Karte
+// (NW,N,NO,W,O,SW,S,SO)
+
+int traversalCost(Position &amp;a,
+	Position &amp;b, int d)
+{
+	int c = (map[a.x()][a.y()] +
+		map[b.x()][b.y()]) &gt;&gt; 1;
+	return c * travCost[d];
+}
+
+// Schätzung
+int pathCostEstimate
+	(Position &amp;s, Position &amp;g)
+{
+	return 0;
+}
+		</code></pre>
+		<p>Beim Start der Suche löschen Sie die <i>Open</i>- und <i>Close</i>-Liste und erzeugen einen Startknoten, den Sie in die <i>Open</i>-Liste eintragen. Außerdem speichern Sie den Zielknoten:</p>
+		<pre><code>
+void init(Position &amp;s, Position &amp;g)
+{
+	nOpen = nClosed = 0;
+	Node *startNode = new Node();
+	startNode-&gt;p = s;
+	startNode-&gt;h =
+	pathCostEstimate(s, g);
+	startNode-&gt;f = startNode-&gt;h;
+	startNode-&gt;pred = NULL;
+	startNode-&gt;nPred = 0;
+	goal = g;
+	pushNode(open,&amp;nOpen,startNode);
+	lowestOpen = nOpen - 1;
+	lowestCost = startNode-&gt;f;
+}
+		</code></pre>
+		<p>Nun können Sie mit der Suche und der Expansion der Knoten anfangen:</p>
+		<pre><code>
+int searchPath()
+{
+	//noch nodes in der open list?
+	while(nOpen &gt; 0)
+	{
+		// beste node nehmen
+		Node *node = open[lowestOpen];
+		removeNode((Node**)open,
+			&amp;nOpen, lowestOpen);
+		findLowestCost();
+		if (node-&gt;p == goal)
+		{
+			// ziel gefunden !
+			goalNode = node;
+			return node-&gt;nPred + 1;
+		} else
+		{
+			expandNode(node);
+			nodesExpanded ++;
+		}
+		pushNode(closed,&amp;nClosed,node);
+	}
+	// kein weg gefunden !
+	return -1;
+}
+		</code></pre>
+		<p>Die Expansion der Knoten ist das Kernstück des <i>A*</i>-Algorithmus. Zunächst betrachten Sie jeden Nachbarknoten, der auf der Karte liegt und kein unbegehbares Spielfeld ist. Sie testen die Begehbarkeit in der If-Abfrage von <i>isValid()</i>:</p>
+		<pre><code>
+void expandNode(Node *node)
+{
+	for (int d = 0; d &lt; 8; d++)
+{
+	Position p = node-&gt;p.neighbour(d);
+	if (isValid(p))
+	{
+		</code></pre>
+		<p>Die Kosten bis zu dieser Node können Sie berechnen und in einer neuen Node speichern:</p>
+		<pre><code>
+int newCost = node-&gt;g +
+	traversalCost(node-&gt;p, p, d);
+
+Node *newNode = new Node(newCost,
+	pathCostEstimate(p, goal),
+	node, node-&gt;nPred + 1, p);
+
+int io, ic, contained = 0, oldCost = -1;
+		</code></pre>
+		<p>Prüfen Sie, ob die neue Node schon in einer Liste gespeichert ist:</p>
+		<pre><code>
+io = containsNode(open, nOpen, newNode);
+ic = containsNode(closed, nClosed, newNode);
+
+if (io != -1 || ic != -1)
+{
+	if (io != -1)
+		oldCost = open[io]-&gt;g;
+	else
+		oldCost = closed[ic]-&gt;g;
+}
+
+if (oldCost != -1 &amp;&amp;
+	oldCost <= newCost)
+{
+	delete newNode;
+	continue;
+}
+else {
+		</code></pre>
+		<p>Nur einen neuen, besseren Weg zur aktuellen Node müssen Sie speichern:</p>
+		<pre><code>
+	if (ic != -1)
+		removeNode(closed,&amp;nClosed,ic);
+
+	if (io != -1)
+		removeNode(open, &amp;nOpen, io);
+
+	pushNode(open,&amp;nOpen,newNode);
+	findLowestCost();
+}
+		</code></pre>
+		<p>Wenn ein Weg gefunden ist, übertragen Sie diesen in ein Array aus der Elementen-<i>Position</i>. Dazu müssen Sie rückwärts den Weg vom Zielknoten aus verfolgen:</p>
+		<pre><code>
+int getPath(Position *p)
+{
+	Position *dst=
+		&amp;p[goalNode-&gt;nPred];
+
+	int length = goalNode-&gt;nPred + 1;
+	Node *node = goalNode;
+	while(1)
+	{
+		*dst = node-&gt;p;
+		*dst--;
+		if(node-&gt;pred != NULL)
+			node = node-&gt;pred;
+		else
+			break;
+	}
+	return length;
+}
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200108_2.jpg" width="808" height="827" alt="UNSER TESTPROGRAMM hat einen Pfad gefunden!">
+			<figcaption><span>UNSER TESTPROGRAMM</span> hat einen Pfad gefunden!</figcaption>
+		</figure>
+		<p>Im Bild oben sehen Sie die Landkarte aus dem Testprogramm der Heft-CD. Helle Felder sind leichter passierbar, dunkle schwerer und schwarze Felder gar nicht. Die roten Pfeile markieren den Weg der Spielfigur. Die Felder, deren Nodes expandiert wurden, sind mit einem kleinen blauen Kästchen gekennzeichnet.</p>
+	</section>
+
+		<section>
+		<h2>Nachbarzustände</h2>
+		<p>Nach der Theorie und der Implementation des <i>A*</i>-Algorithmus können Sie die Ästhetik und die Performance der Wegsuche verbessern.</p>
+		<p>Eine Karte aus regelmäßigen Feldern erleichtert die Wahl der Nachfolge&shy;knoten, die aus den vier direkt anliegenden Nachbarfeldern und den vier diagonal erreichbaren Feldern resultieren. Wenn Sie die Pfadsuche daran hindern wollen, ein Feld zu betreten, schließen Sie dies in der Funktion <i>expandNode(...)</i> aus.</p>
+		<p>In Computer&shy;spielen sichert dieses Verfahren, dass kein Fahrzeug über Wasser fährt und kein Schiff das Wasser verlässt. Wenn Sie einen beliebigen Graphen verwenden und kein regelmäßiges Gitter, ist es für die Rechenzeit wichtig, dass Sie die Adjazenz&shy;information (Nachbarschaft- oder Verbindungs&shy;information) für jeden Knoten speichern, denn Rechnen kostet Zeit und Geld.</p>
+	</section>
+
+	<section>
+		<h2>Die Kostenfunktion</h2>
+		<figure class="floatright">
+			<img src="assets/200108_4.jpg" width="472" height="239" alt="DIE RESTKOSTENSCHÄTZUNG NULL und der euklidische Abstand im freien Gelände im direkten Vergleich.">
+			<figcaption><span>DIE RESTKOSTENSCHÄTZUNG NULL</span> und der euklidische Abstand im freien Gelände im direkten Vergleich.</figcaption>
+		</figure>
+		<p>Die Kostenfunktion repräsentiert für einen Pfad vom Start- zum Endknoten den Wert, der minimiert werden soll. Das kann die Entfernung, Reisezeit oder verbrauchter Treibstoff sein. Sie können auch andere Faktoren einbringen. Denkbar wären Aufschläge für schlecht passierbares Terrain.</p>
+		<p>Je nach Typ der Spielfigur (Aktortyp) in Ihrem Spiel sollten Sie die Aufschläge variieren. Fahrzeuge bewegen sich auf Straßen deutlich schneller als querbeet, wohingegen der Unterschied für Infantrie nicht entscheidend ist. Die Kosten können von der Bewegungs&shy;richtung abhängen. Bergauf ist teurer als bergab. Mit der Kostenfunktion beeinflussen Sie also nicht nur die Rechenzeit, sondern auch die Ästhetik des gefundenen Pfades und den Realismus. Die folgende einfache Kostenfunktion berücksichtigt die Richtung der Bewegung nicht, dafür das Terrain mit Start- und Endposition:</p>
+		<pre><code>
+int traversalCost(Position &amp;a,
+	Position &amp;b, int d)
+{
+	int c =(map[a.x()][a.y()] +
+		map[b.x()][b.y()]) &gt;&gt; 1;
+
+	return c * travCost[d];
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Die Kostenschätzung</h2>
+		<p>Die Schätzung der Restkosten ist ein weiterer zeitkritischer Punkt bei der Pfadsuche mit dem <i>A*</i>-Algorithmus. Die Restkosten optimistisch auf Null zu schätzen, ist an hier optimal: Die Rechenzeit ist auch Null.</p>
+		<figure class="large">
+			<img src="assets/200108_3.jpg" width="808" height="827" alt="DIE OPTIMISTISCHE Restkostenschätzung Null expandiert zu viele Knoten.">
+			<figcaption><span>DIE OPTIMISTISCHE</span> Restkostenschätzung Null expandiert zu viele Knoten.</figcaption>
+		</figure>
+		<p>In Folge müssen Sie dafür sehr viel mehr Knoten expandieren als bei einer etwas sinnvolleren Schätzung: Verwenden Sie besser den euklidischen Abstand, den sie mit den minimalen Bewegungs&shy;kosten multiplizieren. Diese Schätzung liefert schon deutlich bessere Ergebnisse.</p>
+		<p>Da der Abstand nicht kürzer sein kann als die Fluglinie, ist das auch eine optimistische Schätzung. Eine einfache Kostenschätz&shy;funktion ist der euklidische Abstand zweier Knoten unter Berücksichtung der Begehbarkeit der Landschaft:</p>
+		<pre><code>
+int pathCostEstimate(Position &amp;s, Position &amp;g)
+{
+	int c = (map[s.x() ][s.y()] +
+		map[g.x()][g.y()]) &gt;&gt; 1;
+
+	return max(abs(s.x()- g.x()),
+		abs(s.y() - g.y())) *
+		COSTSTRAIGHT * c;
+
+	// triviale variante
+	return 0;
+}
+		</code></pre>
+		<p>Anhand der Zahl der expandierten Knoten in den beiden vorigen Bildern sehen Sie die Auswirkungen verschiedener Kosten&shy;schätzungen. Diese beweisen, wie unter&shy;schiedlich die Zahl der expandierten Knoten sein kann.</p>
+	</section>
+
+	<section>
+		<h2>Schwächen des A*-Algorithmus</h2>
+		<p>Der <i>A*</i>-Algorithmus kann auf großen Spielkarten sehr viel Speicher verbrauchen, wenn Hunderte oder Tausende von Nodes expandiert werden. Er nimmt die CPU stark in Beschlag.</p>
+		<p>Besonders schlecht ist der <i>A*</i>-Algorithmus in Fällen, in denen kein Weg existiert, da er dann jede vom Startknoten aus erreichbare Position expandiert. Um in diesem Fall Rechenzeit zu sparen, analysieren Sie vorab Ihre Spielfeldkarte. Dies können Sie manuell oder algorithmisch tun. Speichern Sie das Ergebnis, wenn es überhaupt einen Pfad zwischen zwei Feldern gibt.</p>
+		<p>Daneben gibt es einige Ansatzpunkte den <i>A*</i>-Algorithmus schneller zu machen. Sie können die Geschwindig&shy;keit durch bessere Expansion der Knoten und der Restkosten&shy;schätzung erhöhen. Die Ästhetik können Sie durch Ausschließen von Knoten, die Glättung des resultierenden Pfades oder Verwendung von Splines für die tatsächlichen Wege verbessern.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur:</b></p>
+		<p class="footnote">Russel, Stuart und Norvig, Peter, Artificial Intelligence: A Modern Approach, Prentice Hall, 1995</p>
+		<p class="footnote">Nilsson, Nils J., Artificial Intelligence: A New Synthesis. Morgan Kaufmann, 1998</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200107.html">7/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200109.html">9/2001</a>
+	</nav>
+</body>

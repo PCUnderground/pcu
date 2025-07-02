@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Sternenhagel unter der Lupe (PC Underground, PC Magazin 3/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;3/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200002.html">2/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200004.html">4/2000</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/98/NT</h2>
+		<h1><span class="highlight">Sternenhagel</span> unter der Lupe</h1>
+		<p class="summary">Durch <span class="highlight">geschickte Eingriffe</span> in das Windows-System vergrößern Sie Teile Ihres Desktops und lassen Sterne rieseln.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Oliver Käferstein</h3>
+		<p>In dieser Ausgabe programmieren wir eine Lupe für den Windows-Desktop, die Sie mit der Maus an die näher zu betrachtende Stelle fahren können. Die Schwierigkeit besteht darin, solch ein kleines, frei bewegliches Grafikobjekt (Sprite) so über den Desktop zu bewegen, daß der Hintergrund korrekt dargestellt wird. In einem zweiten Programmier&shy;beispiel zeigen wir Ihnen, wie Sie ins Windows-System eingreifen, um die Bewegungen des Mauszeigers abzufangen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Sprites auf dem Desktop</h2>
+		<p>In der letzten Ausgabe von PC Underground haben Sie gesehen, wie Sie beliebig geformte Fenster verwenden. Warum sollte man nicht auch animierte Sprites mit dieser Technik realisieren? Auf den ersten Blick wären damit alle Darstellungs&shy;probleme gelöst: Windows restauriert den Hintergrund selbst.</p>
+		<p>Doch so einfach ist das nicht. Dieser Ansatz funktioniert nur, solange das Fenster seine Form beibehält. Sobald Sie die Konturen ändern, also dem Fenster eine neue Window-Region zuordnen, kann Windows ins Schleudern geraten und mit unschönen Darstellungs&shy;fehlern reagieren – abhängig vom jeweiligen Bildschirm- bzw. Grafikkarten&shy;treiber. Das Problem liegt bei der Behandlung von Window-Messages und beim Zeichnen des Desktops.</p>
+		<p>Sie arbeiten nach wie vor mit rechteckigen Fenstern ohne Rahmen. Der Fensterinhalt, also das Bild, das Sie im Rechteck darstellen, besteht aus Teilen des Hintergrunds und dem darzu&shy;stellenden Sprite. Der Hintergrund ist ein Screenshot des Desktops. Dieses trickreiche Vorgehen ist ähnlich wie bei den Splash-Screens in der vergangenen Ausgabe. Sie verwenden den Desktop als Hinter&shy;grundbild in Ihrem Fenster, zeichnen darauf Ihr Sprite – aber eben nur die sichtbaren Teile – und lassen die übrigen Hinter&shy;grundpixel stehen.</p>
+		<p>Einen Screenshot vom Desktop-Bereich unter dem Fenster erzeugen Sie, bevor Sie Ihr Fenster anzeigen lassen. Die Daten behalten Sie als Hinter&shy;grundbild. Das funktioniert, wenn Sie Ihr Fenster an einer Stelle auf dem Bildschirm erzeugen und dort belassen.</p>
+		<p>Schwierig wird es, wenn Sie das Fenster bewegen wollen. Bei einer kleinen Bewegung überschneidet sich die neue Fenster&shy;position höchst&shy;wahrscheinlich mit der alten. Wenn Sie einen Screenshot vom Desktop machen, bekommen Sie Ihr eigenes Fenster mit auf das Bild. Genau das wollen Sie aber vermeiden.</p>
+		<p>Es gibt mehrere Methoden, um an die ersehnten Hintergrund&shy;daten zu gelangen. Zunächst ein Ansatz, der in eine Sackgasse führt: Sie könnten den Hintergrund in einen eigenen Speicher&shy;bereich kopieren und diesen als Fenster&shy;hintergrund verwenden. Bei bewegten Fenstern würden Sie dann Ihr eigenes Fenster im Hintergrund sehen, Ihre Sprite-Animation wäre zuerst einmal unsichtbar. Dies funktioniert ohne Schwierig&shy;keiten mit der <i>WM_HIDE</i>-Window-Message. Nachdem das Fenster nicht mehr auf dem Desktop zu sehen ist, könnten Sie dann einen Screenshot machen, den Sie mit dem zu zeichnenden Sprite kombinieren und danach im Fenster darstellen.</p>
+		<figure class="floatright">
+			<img src="assets/200003_1.jpg" width="553" height="385" alt="IN DER EINFACHEN VARIANTE der Hintergrundberechnung fallen große Mengen an Screenshot-Daten an.">
+			<figcaption><span>IN DER EINFACHEN VARIANTE</span> der Hintergrundberechnung fallen große Mengen an Screenshot-Daten an.</figcaption>
+		</figure>
+		<p>Das Problem dabei: Alle Änderungs&shy;wünsche an den Desktop werden in einem Cache verwaltet . Windows nimmt also zuerst einmal alle Zeichenbefehle – unter anderem <i>WM_HIDE</i>, <i>WM_SHOW</i> und den Befehl für Screenshots – entgegen, führt sie aber nicht zwingend in derselben Reihenfolge und auch nicht zu bestimmten Zeiten aus. Sie können deshalb keine Aussagen über den aktuellen Inhalt oder Zustand des Desktops treffen. Und eine Anfrage an Windows, ob bestimmte Befehle ausgeführt wurden, kommt ebensowenig in Betracht.</p>
+		<p>Die erste funktionierende Variante nutzt zwei Speicher&shy;bereiche (Bitmaps). Diese sind so groß wie Ihr Fenster bzw. Sprite. Die Bitmaps dienen als Hintergrund&shy;puffer. Sie legen sie mit Hilfe der <i>pcPicture</i>-Klasse an. Wenn Sie diese Klasse nicht schon aus der letzten Ausgabe kennen, finden Sie den Quellcode und die dazugehörige dokumentierte Header-Datei bei den anderen Quelltexten dieser Ausgabe:</p>
+		<pre><code>
+//Spriteeffekte und Anzeigeroutinen
+pcPicture _spr;
+//Fensterhintergrund
+pcPicture _bkg;
+pcPicture _bkg2;
+
+//Sprite laden
+_spr.load(„irgendwas.bmp“);
+//Speicher reservieren
+_bkg.create(_spr.width(), _spr.height(), 32, true);
+_bkg2.create(_spr.width(), _spr.height(), 32, true);
+		</code></pre>
+		<p>Der Wert 32 im Aufruf der <i>create</i>-Methode bestimmt, daß Bilder mit einer Farbtiefe von 32 Bit angelegt werden. Dadurch verbraucht Ihr Programm mehr Speicher, vor allem steigt der Kopieraufwand für den Speicherinhalt. Für einen guten visuellen Eindruck ist dieser Aufwand gerechtfertigt: Würden Sie beim Zwischen&shy;speichern nur eine Farbtiefe von 16 Bit einsetzen, käme es bei Desktops mit 32-Bit-Farben zum Verlust von Grafikdaten. Diese würden sich dann in Form von leichten Verfärbungen bemerkbar machen. Umgekehrt können Sie 32-Bit-Screenshots selbst dann verwenden, wenn Ihre Grafikkarte auf 16 Bit eingestellt ist. Windows kümmert sich um die korrekte Farb&shy;konvertierung der Pixel.</p>
+		<p>Bevor Sie ein Fenster bewegen, fertigen Sie einen Screenshot von dem Bereich an, den das Fenster einnehmen wird. Auf einem Teil dieses Screenshots sehen Sie Ihr eigenes Fenster. Um das zu vermeiden, berechnen Sie, welchen Teil des Bildschirms das Fenster sowohl vor als auch nach der Bewegung überdeckt – der alte Fenster&shy;hintergrund ist in einem der Hintergrund&shy;puffer gespeichert.</p>
+		<p>Wie Sie im Bild auf S. 257 unten erkennen, handelt es sich um die Schnittmenge (das Schnitt&shy;rechteck). Den Originalinhalt dieses Rechtecks müssen Sie selbst wieder&shy;herstellen, weil Sie ihn nicht auslesen können. Sie kopieren den Teil des Hintergrunds, der das Schnitt&shy;rechteck abdeckt, vom alten in den neuen Hintergrund&shy;puffer.</p>
+		<p>Wie das funktioniert, sehen Sie in Listing 1. Bei größeren Sprites dauert das Erzeugen des Screenshots relativ lange, weil dazu Zugriffe auf den Bildschirm&shy;speicher notwendig sind. Deshalb empfiehlt sich diese Methode nur bei kleinen Objekten. Durch den immensen Kopieraufwand bei größeren Fenstern können Sie diese nicht mehr flüssig über den Bildschirm bewegen.</p>
+		<figure class="floatright">
+			<img src="assets/200003_2.jpg" width="509" height="381" alt="DIE ELEGANTERE VERSION der Hintergrundberechnung schießt statt einem großen Screenshot zwei kleinere.">
+			<figcaption><span>DIE ELEGANTERE VERSION</span> der Hintergrundberechnung schießt statt einem großen Screenshot zwei kleinere.</figcaption>
+		</figure>
+		<p>In einer Verfeinerung dieses Verfahrens sparen Sie den Bereich des Hintergrunds, in dem Ihr Fenster liegt, von den Screenshots aus. Wie Sie in der Abbildung S. 258 unten erkennen, berechnen Sie zuerst die Position und Größe der beiden Streifen <i>Rect 1</i> und <i>Rect 2</i>, die mit neuen Daten vom Screenshot des Desktops gefüllt werden. Wenn Sie nur diese Bereiche kopieren, sparen Sie eine Menge langsamer Zugriffe auf den Bildschirm&shy;speicher. Danach brauchen Sie nur noch das Schnitt&shy;rechteck von der entsprechenden Position des einen Hintergrund&shy;puffers an die richtige Stelle im anderen zu übertragen.</p>
+		<p>Durch diese Berechnungen können Sie eine merkliche Geschwindigkeits&shy;steigerung erzielen. Erst durch diesen Kniff können Sie große Sprites ohne Ruckeln auf dem Bildschirm bewegen. Den Code für diese elegantere Version sehen Sie in Listing 2.</p>
+	</section>
+
+	<section>
+		<h2>Lupenreine Bewegungen</h2>
+		<figure class="floatright">
+			<img src="assets/200003_4.png" width="800" height="482" alt="UNTER DER LUPE erkennen Sie auch kleinste Details auf Ihrem Desktop.">
+			<figcaption><span>UNTER DER LUPE</span> erkennen Sie auch kleinste Details auf Ihrem Desktop.</figcaption>
+		</figure>
+		<p>Mit dem beschriebenen Verfahren erzeugen wir eine elektronische Lupe, die Sie über den Bildschirm bewegen können. Auch wenn sich die Form der Lupe nicht ändert – um einen Teil des Bildschirms zu vergößern, brauchen Sie eine Bitmap, die den Bildschirm&shy;inhalt hinter dem Fenster enthält.</p>
+		<p>Sie stehen wieder vor dem Problem, daß Sie keinen Screenshot vom Desktop unterhalb Ihres Fensters bekommen. Sie müssen sich das Hintergrund&shy;bild wieder selbst zusammenbauen. Das Programm für die Lupe verwendet somit drei Bitmaps:<br>
+		• eine für den Hintergrund,<br>
+		• eine für die Vergößerung des Hintergrundes<br>
+		• sowie eine mit dem Bild der Lupe selbst:</p>
+		<pre><code>
+//Spriteeffekte und Anzeigeroutinen
+pcPicture _spr;
+//Fensterhintergrund
+pcPicture _bkg;
+pcPicture _bkg2;
+
+//Sprite laden
+_spr.load(„lupe.bmp“);
+_bkg.create(_spr.width(), _spr.height(), 32, true);
+_cmb.create(_spr.width(), _spr.height(), 32, true);
+{...}
+//Hintergrund zur Bearbeitung in Puffer kopieren
+_bkg.blitTO(&amp;wnd-&gt;_cmb);
+//Lupe berechnen
+_lupe.calc(&amp;wnd-&gt;_cmb, &amp;wnd-&gt;_bkg);
+//Lupe darüber zeichnen
+_spr.blitTRANSTO(&amp;wnd-&gt;_cmb);
+//... und ab damit ins Fenster
+_cmb.blitTO(hdc);
+		</code></pre>
+		<p>Die Funktion <i>pcLupe.calc(...)</i> gibt zwei Objekte der <i>pcPicture</i>-Klasse zurück. Diese Klasse bietet die Option, einen Zeiger auf die Bitmap-Daten zu bekommen. In diesem Fall handelt es sich um Bitmaps mit 32 Bit Farbtiefe, da Sie die Bitmaps so angelegt haben.</p>
+		<p>Die Zeiger erhalten Sie mit:</p>
+		<pre><code>
+pcLupe::calc(pcPicture* trgPIC, pcPicture* srcPIC)
+{
+	{...}
+	unsigned int *dst = (unsigned int *)trgPIC-&gt;_bytes;
+	unsigned int *src = (unsigned int *)srcPIC-&gt;_bytes;
+	{...}
+}
+		</code></pre>
+		<p> Jetzt können Sie sowohl auf die Bitmap-Daten des Hintergrundes als auch auf die des Fensters zugreifen. Sie haben fast alles, was Sie zum Zeichnen brauchen: Es fehlt nur noch die Routine für die Darstellung einer Vergrößerungs&shy;linse.</p>
+		<p>Um einen interessanten Verzerrungs&shy;effekt wie im Bild links unten zu erreichen, soll die Linse im Zentrum stärker vergrößern als im Randbereich. Dazu lesen Sie jeden Hintergrund&shy;pixel, den Sie setzen, an einer leicht verschobenen Position aus. Diese Verschiebung entnehmen Sie einer Tabelle, die Sie während des Programmstarts einmal berechnen.</p>
+		<figure class="floatleft">
+			<img src="assets/200003_3.png" width="217" height="162" alt="DIE LINSE VERGRÖßERT im Zentrum stärker als an den Rändern.">
+			<figcaption><span>DIE LINSE VERGRÖßERT</span> im Zentrum stärker als an den Rändern.</figcaption>
+		</figure>
+		<p>Um die Tabelle mit Werten zu füllen, gehen Sie wie folgt vor: Zuerst wählen Sie eine bestimmte Breite für die Linse und legen eine Tabelle mit doppelt so vielen Integer-Werten an, wie die Breite zum Quadrat ist, also</p>
+		<span class="code">Tabellengröße = 2 * Linsenbreite2</span>
+		<p>Dann gehen Sie mit zwei Schleifen – die äußere für die Zeilen, die innere für die Spalten – innerhalb der Tabelle jeden Punkt durch. Ermitteln Sie zuerst die Differenz zwischen der Position des aktuellen Punkts und des Mittelpunkts der Linse. Mit diesem „Vektor“ können Sie den Abstand zum Mittelpunkt berechnen.</p>
+		<p>Wenn Sie diesen Abstand durch den maximalen Abstand vom Mittelpunkt (also durch den Kreisradius, der der halben Breite der Lupe entspricht) teilen, erhalten Sie einen Skalierungs&shy;faktor. Daraus schließen Sie auf die Koordinate des auszulesenden Punktes. Da die Tabelle relative Angaben enthalten soll, ziehen Sie davon noch die Original&shy;position ab. Was sich in der Beschreibung kompliziert anhört, liest sich im C-Quelltext kurz und bündig:</p>
+		<pre><code>
+#define LSIZE 100
+signed int lupe[LSIZE*LSIZE][2];
+int i, j;
+for(j = 0; j &lt; LSIZE; j++)
+	for(i = 0; i &lt; LSIZE; i++)
+	{
+		//Vektor bilden
+		double x = i - LSIZE / 2;
+		double y = j - LSIZE / 2;
+		//Entfernung zum Mittelpunkt der Linse
+		double d= s qrt(x * x + y * y);
+		//Verhältnis zur maximalen Entfernung
+		double q = d / sqrt((LSIZE / 2) * (LSIZE / 2));
+		//Lupe auf runden Rand begrenzen
+		if(d &gt; (LSIZE / 2)) q = 1.0;
+		//Verschiebung der Koordinate des auszulesenden
+		//Pixels in Relation zur originalen Position
+		double nx = (double)(i - LSIZE / 2) * (q - 1.0);
+		double ny = (double)(j - LSIZE / 2) * (q - 1.0);
+		lupe[i + j * LSIZE][0] = (int)nx;
+		lupe[i + j * LSIZE][1] = (int)ny;
+	}
+		</code></pre>
+	<p>Der folgende Code-Ausschnitt demonstriert, wie einfach der Lupeneffekt ist, wenn Ihnen erst einmal die Tabelle zur Verfügung steht. Um den Bereich der Lupe zu zeichnen, brauchen Sie nur die Zeiger auf die Bitmap-Daten und die Breite der Bitmaps einzugeben:</p>
+	<pre><code>
+//Zeiger auf Zielbitmap und deren Breite
+unsigned int *dest;
+int dwidth;
+//Zeiger auf Quellbitmap und deren Breite
+unsigned int *source;
+int swidth;
+//Position der Lupe
+int x, y;
+
+for (int j = 0; j &lt; LSIZE; j++)
+for (int i = 0; i &lt; LSIZE; i++)
+{
+	//Koordinaten in Bitmaps
+	int nx = i + x;
+	int ny = i + y;
+	dest[nx + ny * dwidth] = source[lupe[i + j * LSIZE] + nx + ny * swidth];
+}
+		</code></pre>
+		<p>Diesen Code bauen Sie in die <i>WM_MOVE</i>- und <i>WM_PAINT</i>-Message-Behandlung des Fensters ein, welches die Lupe darstellen soll. Damit besitzen Sie ein Vergrößerungs&shy;glas, das Sie beliebig über den Desktop bewegen können.</p>
+	</section>
+
+	<section>
+		<h2>Sternchenregen</h2>
+	 	<p>Jetzt wollen wir Ihrem Windows-Bildschirm noch einen Sternchenregen spendieren. Die einzelnen Sterne sind Instanzen der beschriebenen Fensterklasse für animierte, bewegte Sprites. Es fehlt nur eine geeignete Verwaltung der Sterne.</p>
+		<p>Dazu legen Sie in Ihrem Hauptprogramm ein Array mit einer festgelegten Anzahl <i>ANZ_STERNE</i> von Sternklassen an. Ein Stern enthält Bitmaps, ein Fenster und eine Zeitsteuerung für die Animation. Zudem verfügt er über Funktionen, um sich wieder zu reinitial&shy;isieren. Bei dieser Reinitial&shy;isierung taucht er an einer zufälligen Stelle des Bildschirms wieder auf und fällt ein Stück herunter.</p>
+		<p>Ein Stern übernimmt die Kontrolle über seine Animation und seine Bewegung. Im Hauptprogramm befindet sich ein Timer, der das Array mit den Zeigern auf die Sterne im 20-Millisekunden-Takt überprüft und einen Eintrag sucht, in dem sich ein nicht aktiver Stern (dessen Animation abgelaufen ist) befindet. Solche Einträge werden reaktiviert und an einer zufälligen Bildschirm&shy;position neu gestartet.</p>
+		<figure class="floatright">
+			<img src="assets/200003_5.png" width="453" height="185" alt="JEDES DER STERNCHEN steuert sich selbst.">
+			<figcaption><span>JEDES DER STERNCHEN</span> steuert sich selbst.</figcaption>
+		</figure>
+		<p>Sterne funktionieren nur, wenn sie sich bewegen. Nur durch die Bewegung kann ein Sprite die nötigen Daten von Windows erfragen, die für eine korrekte Berechnung des Hintergrunds wichtig sind: Windows kann einem Fenster zwar mitteilen, daß ein anderes Fenster über ihm die Position geändert hat, ohne aufwendige Tricks wissen Sie jedoch nicht, ob ein Fenster unter dem eigenen den Inhalt ändert.</p>
+		<p>Damit die Sternchen immer in der Nähe des Mauszeigers auftauchen, müssen Sie dessen Positions&shy;änderungen mitbekommen. Dazu installieren Sie einen sogenannten „Hook“ unter Windows. Die Code-Auszüge finden Sie im Unterver&shy;zeichnis <i>MOUSEHOOK</i> bei den Quelltexten zu dieser Ausgabe.</p>
+		<p>So „haken“ Sie sich in die Mausüber&shy;wachung ein:</p>
+		<pre><code>
+HHOOK SetWindowsHookEx(
+	//Was wollen wir „hooken“
+	int idHook,
+	//Adresse auf Hook-Prozedur
+	HOOKPROC lpfn,
+	//Application Instance
+	HINSTANCE hMod,
+	//Thread ID
+	DWORD dwThreadId
+);
+		</code></pre>
+		<p>Diese Prozedur verlangt zunächst die Instanz Ihrer Anwendung und des Thread-Identifiers. Außerdem müssen Sie ihr mitteilen, was Sie überwachen wollen – hier die Mausbewegung.</p>
+		<p>Übergeben Sie als <i>idHook</i> die Konstante <i>WH_MOUSE</i>. Sie brauchen nur noch einen Zeiger auf eine Hook-Prozedur zu übergeben. Diese führt das System immer dann aus, wenn die Anwendung <i>GetMessage()</i> oder <i>PeekMessage()</i> aufruft und eine die Maus betreffende Nachricht gesendet wird.</p>
+		<p>Für diese Hook-Prozedur ist folgende Prozedur&shy;definition vorgegeben:</p>
+		<pre><code>
+LRESULT CALLBACK MouseProc
+(
+	//Hook-Code
+	int nCode,
+	//Message ID
+	WPARAM wParam,
+	//Maus-Koordinaten
+	LPARAM lParam
+);
+		</code></pre>
+		<p>Da sich auch mehrere Programme in die Nachrichten&shy;kette einhaken können, erhält Ihre <i>MouseProc</i> von Windows unter Umständen den Auftrag, manche Nachrichten weiterzuleiten. Dies ist immer dann der Fall, wenn der Hook-Code <i>nCode</i> kleiner als 0 ist.</p>
+		<p>Nachrichten leiten Sie mit der folgenden Prozedur weiter:</p>
+		<pre><code>
+LRESULT CallNextHookEx
+(
+	//Handle Ihres Hooks
+	HHOOK hhk,
+	//Hook-Code
+	int nCode,
+	//Parameter weitergeben
+	WPARAM wParam,
+	LPARAM lParam
+);
+		</code></pre>
+		<p>Der ID-Code im Parameter <i>wParam</i> der <i>MouseProc</i>-Funktion benennt den Typ der Mausnachricht. Den Wert von <i>lParam</i> interpretieren Sie als Zeiger auf eine <i>MOUSEHOOKSTRUCT</i>-Struktur:“</p>
+		<pre><code>
+typedef struct tagMOUSEHOOKSTRUCT
+{
+	//Koordinaten der Maus
+	POINT pt;
+	//hwnd des Fensters, das die Mousemessage bekommen wird
+	HWND hwnd;
+	//sonstiges
+	UINT wHitTestCode;
+	DWORD dwExtraInfo;
+} MOUSEHOOKSTRUCT;
+		</code></pre>
+		<p>In dieser Struktur finden Sie die Koordinaten die Sie brauchen, um die kleinen Sternchen wie im Bild unten auf den Desktop loszulassen.</p>
+		<p class="tip">Die vorgestellten Programme verweigern auf einigen älteren Matrox-Mystique-Grafikkarten ihren Dienst. Das liegt an deren Treibern.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200002.html">2/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200004.html">4/2000</a>
+	</nav>
+</body>
+

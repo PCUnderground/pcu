@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Assemblierte Schönheit (PC Underground, PC Magazin 2/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;2/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200201.html">1/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200203.html">3/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Vertex-Shader in OpenGL</h2>
+		<h1>Assemblierte <span class="highlight">Schönheit</span></h1>
+		<p class="summary">Mit Vertex-Shadern machen Sie Ihrer Grafikkarte Beine und bestimmen selbst, wie Vertices <span class="highlight">transformiert und beleuchtet</span> werden.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Ein unaufhaltsamer Trend bei moderner Grafik-Hardware ist eine immer größere Geschwindig&shy;keit bei der Berechnung und Darstellung von 3D-Grafik. Das Rendering von virtuellen Szenen läuft immer nach demselben Schema, der Grafik-Pipeline, ab, wie Sie im Bild unten sehen können.</p>
+		<figure class="floatright">
+			<img src="assets/200202_1.png" width="451" height="560" alt="JEDER VERTEX muss die Grafik-Pipeline durchlaufen.">
+			<figcaption><span>JEDER VERTEX</span> muss die Grafik-Pipeline durchlaufen.</figcaption>
+		</figure>
+		<p>Die Grafik-Pipeline transformiert die Geometrie abhängig von der Lage der Objekte und der Kamera und berechnet anschließend die Beleuchtung. Das Resultat sind im allgemeinen Dreiecke, deren Eckpunkte (Vertices) mit Attributen wie Textur-Koordinaten, Farb- und Transparenz-Werten ausgestattet sind. Der Rasterizer, der Teil der Grafik-Hardware, der das Zeichnen verantwortet, bekommt diese Daten und rendert entsprechend in den Framebuffer. Neuere nVidia-Hardware und die Radeon-Karten von ATI gestatten Programmierern, die Transform- and Lighting-Stufe der Grafik-Pipeline mit einer eigenen Assembler-Sprache zu gestalten. Diese Schnittstelle heißt in OpenGL <i>Vertex Programs</i> und in DirectX 8 <i>Vertex-Shader</i>. (Vertex Shader passt nicht ganz, da sich das Wort <i>Shading</i> eigentlich auf Pixel und nicht auf Vertices bezieht.)</p>
+		<p>In diesem Artikel werden Sie diese Assembler Sprache kennenlernen und erfahren, wie Sie sie mit nVidia-Grafikkarten (GeForce) und OpenGL ab Version 1.2 einsetzen können. Die aktuelle OpenGL Version ist 1.3.</p>
+		<p>Als Beispiel dienen zwei von vielen Einsatz&shy;gebieten: Sie schreiben eine eigene Beleuchtungs&shy;berechnung und verwenden die <i>Vertex Programs</i>, um so genannte Billboards auszurichten. Billboards sind Polygone, die immer senkrecht zur Blickrichtung liegen, also zum Betrachter hinzeigen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Das Vertex-Programm</h2>
+		<figure class="floatright">
+			<img src="assets/200202_2.jpg" width="445" height="430" alt="DIE BELEUCHTUNG UND FARBE dieses Torus wurde von einem Vertex-Programm berechnet.">
+			<figcaption><span>DIE BELEUCHTUNG UND FARBE</span> dieses Torus wurde von einem Vertex-Programm berechnet.</figcaption>
+		</figure>
+		<p>Mit Vertex-Programmen haben Sie die volle Kontrolle über die Transform- and Lighting-Stufe der Grafik Pipeline. Damit können Sie komplexe Operationen mit den Vertices in der GPU (Graphic Processing Unit) Ihrer Grafikkarte ausführen lassen. So entlasten Sie die CPU des Rechners, die Sie damit für andere Aufgaben physikalisch oder für Simulationen freimachen. Sie geben der CPU also mehr Zeit für physikalische Berechnungen wie Partikel-Bewegungen.</p>
+		<p>Sie verwenden Vertex-Programme, um die Beleuchtung zu berechnen, für <i>Skinning</i>- und <i>Blending</i>-Techniken, also das Überblenden von Bewegungs&shy;abläufen bei der Animation von Charakteren, und um Texture-Koordinaten zu generieren. Außerdem können Sie beliebige Texture-Matrix-Berechnungen durchführen oder die Vertices durch weitere Rechenschritte modifizieren.</p>
+		<p>Sie schreiben Ihr Vertex-Programm in einer speziellen, mächtigen SIMD-Assembler&shy;sprache (Single Instruction Multiple Data). Als Eingabedaten dienen eine Reihe von Variablen, deren Inhalt Sie von außen festlegen können, und ein nicht trans&shy;formierter, nicht beleuchteter Vertex inklusive einiger Attribute.</p>
+		<p>Die Ausgabe muss die trans&shy;formierten Koordinaten enthalten und optional die Beleuchtung, die Texture-Koordinaten, Fog-Koordinaten (Nebel) und Point Sizes (die Größe der Punkte beim Rendering von <i>GL_POINTS</i>). Ein Vertex-Programm bearbeitet also immer nur einen Vertex. Es werden keine zusätzlichen Vertices erzeugt oder gelöscht, es gibt keine topologischen Informationen zu benachbarten Vertices, die vielleicht zusammen ein Dreieck bilden könnten (Nachbarschafts&shy;information).</p>
+	</section>
+
+	<aside>
+		<h2>DIE VERTEX-ATTRIBUTE (REGISTER)</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Register</th><th>Name</th><th>normale Belegung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>v[0]</td><td>v[OPOS]</td><td>Vertex-Koordinate</td></tr>
+					<tr><td>v[1]</td><td>v[WGHT]</td><td>Vertex Weight (für Blending)</td></tr>
+					<tr><td>v[2]</td><td>v[NRML]</td><td>Normale</td></tr>
+					<tr><td>v[3]</td><td>v[COL0]</td><td>primäre Farbe</td></tr>
+					<tr><td>v[4]</td><td>v[COL1]</td><td>sekundäre Farbe</td></tr>
+					<tr><td>v[5]</td><td>v[FOGC]</td><td>Fog-Koordinate</td></tr>
+					<tr><td>v[6]</td><td>—</td><td>—</td></tr>
+					<tr><td>v[7]</td><td>—</td><td>—</td></tr>
+					<tr><td>v[8]</td><td>v[TEX0]</td><td>Textur-Koordinate 0</td></tr>
+					<tr><td>v[9]</td><td>v[TEX1]</td><td>Textur-Koordinate 1 v[10] v[TEX2] Textur-Koordinate 2</td></tr>
+					<tr><td>v[11]</td><td>v[TEX3]</td><td>Textur-Koordinate 3 v[12] v[TEX4] Textur-Koordinate 4</td></tr>
+					<tr><td>v[13]</td><td>v[TEX5]</td><td>Textur-Koordinate 5 v[14] v[TEX6] Textur-Koordinate 6</td></tr>
+					<tr><td>v[15]</td><td>v[TEX7]</td><td>Textur-Koordinate 7</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<aside>
+		<h2>DIE VERTEX-RESULT-REGISTER</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Registername</th><th>Beschreibung</th><th>Interpretation</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>o[HPOS]</td><td>homogene Koordinaten</td><td>(x,y,z,w)</td></tr>
+					<tr><td>o[COL0]</td><td>primäre Farbe (vorne)</td><td>(r,g,b,a)</td></tr>
+					<tr><td>o[COL1]</td><td>sekundäre Farbe (vorne)</td><td>(r,g,b,a)</td></tr>
+					<tr><td>o[BFC0]</td><td>primäre Farbe (hinten)</td><td>(r,g,b,a)</td></tr>
+					<tr><td>o[BFC1]</td><td>sekundäre Farbe (hinten)</td><td>(r,g,b,a)</td></tr>
+					<tr><td>o[FOGC]</td><td>Fog Koordinaten</td><td>(x,y,z,w)</td></tr>
+					<tr><td>o[PSIZ]</td><td>Point Size</td><td>(x,y,z,w)</td></tr>
+					<tr><td>o[TEX0]</td><td>Texture Koordinaten Set 0</td><td>(s,t,r,q)</td></tr>
+					<tr><td>o[TEX1]</td><td>Texture Koordinaten Set 1</td><td>(s,t,r,q)</td></tr>
+					<tr><td>o[TEX2]</td><td>Texture Koordinaten Set 2</td><td>(s,t,r,q)</td></tr>
+					<tr><td>o[TEX3]</td><td>Texture Koordinaten Set 3</td><td>(s,t,r,q)</td></tr>
+					<tr><td>o[TEX4]</td><td>Texture Koordinaten Set 4</td><td>(s,t,r,q)</td></tr>
+					<tr><td>o[TEX5]</td><td>Texture Koordinaten Set 5</td><td>(s,t,r,q)</td></tr>
+					<tr><td>o[TEX6]</td><td>Texture Koordinaten Set 6</td><td>(s,t,r,q)</td></tr>
+					<tr><td>o[TEX7]</td><td>Texture Koordinaten Set 7</td><td>(s,t,r,q)</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Die Vertex-Attribute</h2>
+		<p>Die Vertex-Attribute sind 16 Register, die aus je vier Float-Werten bestehen, also ein Vektor sind. Sie enthalten jeweils die Daten des Vertex, der transformiert werden soll und mit einem <i>readonly</i>-Attribut versehen ist. Eine Instruktion eines Vertex-Programms darf jeweils nur eines dieser Register enthalten, aber sie darf zweimal dasselbe Register verwenden. Die Register finden Sie in der Tabelle.</p>
+		<p>Sie können auf zwei Arten darauf zugreifen: mit der Indizierung durch eine Zahl von 0 bis 15 oder durch die Kürzel in der zweiten Spalte, die in der dritten Spalte beschrieben sind. Die Beschreibungen bezeichnen die normale Belegung der Register. Beispielsweise befindet sich die Normale eines Vertex im Register <i>v[2]</i>. Da Sie dies als Programmierer beliebig festlegen können, müssen diese Bezeichnungen nicht verbindlich sein. Sie können diese Vertex-Attribute-Register mit beliebigen Werten pro Vertex füllen, also mit Indizes, Vektoren oder anderen Parametern.</p>
+		<p>Das Ergebnis des Vertex-Programms wird in die 15 Vertex-Result-Register geschrieben. Darin ist die Information enthalten, die die Rasterizer-Einheit der Grafik-Hardware anschließend für das Rendering enthält. Die Result-Register haben jeweils eine Bezeichnung, an die Sie sich halten müssen: So befinden sich die tranformierten Koordinaten immer im Register <i>o[HPOS]</i></p>
+	</section>
+
+	<section>
+		<h2>Die Vertex-Programme</h2>
+		<p>Ein Vertex-Programm besteht aus bis zu 128 SIMD-Instruktionen. Die Befehle sind nach einem festen Schema aufgebaut, wobei eckige Klammern jeweils einen optionalen Teil ausweisen:</p>
+		<pre><code>
+Opcode dst, [-]src0 [,[-]src1[,[-]src2]]; #Kommentar
+		</code></pre>
+		<p><i>dst</i> ist das Zielregister <i>src0, src1</i> und <i>src2</i> sind Quellregister. Der Inhalt jedes Quellregisters kann auf Wunsch negiert werden, zum Beispiel beim <i>MOV</i>-Befehl, der den Inhalt eines Registers in ein anderes kopiert:</p>
+		<pre><code>
+MOV R1, R2 oder MOV R1, -R2
+		</code></pre>
+		<p>Weiterhin können Sie die Komponenten der Register vertauschen:</p>
+		<pre><code>
+MOV R1, R2.wzyx
+		</code></pre>
+		<p>Dabei passiert Folgendes:</p>
+		<pre><code>
+R1.x = R2.w
+R1.y = R2.z
+...
+		</code></pre>
+		<p>Bei <i>MOV R1.xw, R2</i> werden nur die <i>x</i>- und <i>w</i>-Komponente von <i>R1</i> mit den entsprechenden Werten von <i>R2</i> gefüllt. Die <i>y</i>- und <i>z</i>-Komponente bleiben unberührt. Eine Liste der Befehle finden Sie in der Tabelle.</p>
+		<p>SIMD-Befehle verfügen nicht über Verzweigungs&shy;befehle. Für diese Operationen brauchen Sie die verschiedenen Berechnungs&shy;zweige, die Sie mit den Maskierungen von <i>SLR</i> und <i>SGE</i> multiplizieren und addieren.</p>
+		<p>Für jeden Vertex rufen Sie ein Vertex-Programm auf. Sie können dabei auf die Attribute sowie Result-Register zurückgreifen. Weiterhin gibt es 12 temporäre Register <i>R1</i> bis <i>R11</i> (<i>read/write)</i>, jeweils aus vier Floats bestehend, und die Programm&shy;parameter, die <i>96</i> Register mit vier Floats (<i>c[0]</i> bis <i>c[95]</i>) aufweisen. Die Programm&shy;parameter sind <i>read-only</i>, die Sie außerhalb des Renderns (also vor oder nach dem <i>glBegin/glEnd</i>-Befehlspaar) modifizieren können.</p>
+		<p>Es ist notwendig, dass Sie zur Transformation der Koordinaten die jeweils gültige <i>Modelview</i> und <i>Projection Matrix</i> von OpenGL kennen. Dazu nutzen Sie das <i>Tracking</i>-Verfahren. Damit legen Sie fest, dass die Vektoren der Matrizen in bestimmten Programm&shy;parametern und Registern gespeichert sind. Folgende Zeilen legen dies fest:</p>
+		<pre><code>
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 4,
+	GL_MODELVIEW, GL_IDENTITY_NV);
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 20,
+	GL_MODELVIEW, GL_INVERSE_NV);
+		</code></pre>
+		<p>Diese Zeilen besagen, dass die Register <i>c[4], c[5], c[6]</i> und <i>c[7]</i> die Modelview <i>Matrix</i> enthalten und <i>c[20]</i> bis <i>c[23]</i> die Inverse dieser Matrix. Andere Werte speichern Sie mit dem folgenden Befehl:</p>
+		<pre><code>
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV, 16, 1, 2, 3, 4);
+		</code></pre>
+		<p>Damit enthält das Register <i>c[16]</i> den Vektor <i>(1, 2, 3, 4)</i>.</p>
+		<p>Ein Vertex-Programm bekommt in OpenGL einen Integer-Wert als Bezeichnung zugeordnet. Diesen Wert erhalten Sie – ähnlich wie bei der Verwaltung von Texturen – durch den Befehl</p>
+		<pre><code>
+glGenProgramsNV(int n, int *ids)
+		</code></pre>
+		<p>Ein Vertex-Programm speichern Sie im Quelltext mit einem String und übergeben diesen mit</p>
+		<pre><code>
+glLoadProgramNV(enum target,
+	int id, int length, const char *program)
+		</code></pre>
+		<p>an OpenGL:</p>
+		<pre><code>
+const unsigned char program[] = {...};
+int vertexProgram;
+glGenProgramsNV(1, &amp;vertexProgram);
+glBindProgramNV(GL_VERTEX_PROGRAM_NV, vertexProgram);
+glLoadProgramNV(GL_VERTEX_PROGRAM_NV, vertexProgram,
+	strlen(program), program);
+		</code></pre>
+		<p>Sobald Sie nun mit <i>glEnable(GL_VERTEX_PROGRAM_NV)</i> die Vertex-Programme aktiviert haben, nutzen Sie die gesamte <i>Transform</i>- und <i>Lighting</i>-Stufe von OpenGL für Ihr eigenes Programm. Jetzt müssen Sie nur noch spezifizieren, welche Daten in den Vertex-Attribut-Registern gespeichert werden sollen. Dazu brauchen Sie zwei Befehle. Zuerst aktivieren Sie einen Stream von Daten mit</p>
+		<pre><code>
+glEnableClientState(GL_VERTEX_ATTRIB_ARRAY0_NV);
+		</code></pre>
+		<p>Die zu übermittelnden Daten übergeben Sie mit dem Befehl unten. Dabei ist der erste Parameter der Index des Streams, den Sie soeben aktiviert haben. Der zweite Parameter gibt die Anzahl der Komponenten an. Bei folgendem Beispiel werden die <i>x-, y-</i> und <i>z</i>-Komponenten von <i>v[HPOS]</i> mit den Koordinaten aus <i>vertexArray</i> gefüllt:</p>
+		<pre><code>
+glVertexAttribPointerNV(0, 3, GL_FLOAT,
+	sizeof(VERTEX3D), &amp;vertexArray);
+		</code></pre>
+		<p>Weiterhin gibt es eine spezielle Variante von Vertex-Programmen, die so genannten Vertex-State-Programs. Diese dürfen die Parameter-Register modifizieren, müssen aber explizit – von Ihrem Programm – ausgeführt werden.</p>
+		<pre><code>
+// upload
+int vertexStateProgram;
+glGenProgramsNV(1, &amp;vertexStateProgram);
+glLoadProgramNV(GL_VERTEX_STATE_PROGRAM_NV,
+	vertexStateProgram, strlen(stateProgram),
+	stateProgram);
+
+// ausführen
+float nulldata[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+glExecuteProgramNV(GL_VERTEX_STATE_PROGRAM_NV,
+	vertexStateProgram, (float*)nulldata);
+		</code></pre>
+		<p>Die speziellen OpenGL-Befehle sind Erweiterungen des ursprünglichen OpenGL Standards, und Sie müssen überprüfen, ob sie zur Verfügung stehen. Dazu suchen Sie nach der <i>NV_vertex_program</i>-Erweiterung und holen sich mit <i>wglGetProcAdress(...)</i> die Adressen der neuen Befehle. Die entsprechenden Aufrufe und Konstanten finden Sie im Beispiel-Programm auf der Heft CD.</p>
+	</section>
+
+	<aside>
+		<h2>DIE BEFEHLE DER VERTEX-PROGRAMME</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Befehl</th><th>Beschreibung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>MOV dest, src0</td><td>Kopiert den Inhalt von <i>src0</i> nach <i>dest</i></td></tr>
+					<tr><td>MUL dest, src0, src1</td><td>Komponentenweise Multiplikation</td></tr>
+					<tr><td>ADD dest, src0, src1</td><td>Komponentenweise Addition</td></tr>
+					<tr><td>MAD dest, src0, src1, src2</td><td>Addiert die Werte von <i>src2</i> zu dem Multiplikationsergebnis von <i>rc0</i> und <i>src1</i></td></tr>
+					<tr><td>RCP dest, src0.C</td><td>Berechnet das Reziproke zu einer Komponente <i>C</i> von <i>src0</i></td></tr>
+					<tr><td>RSQ dest, src0.C</td><td>Berechnet die inverse Wurzel zu einer Komponente von <i>src0</i></td></tr>
+					<tr><td>DP3 dest, src0, src1</td><td>Skalarprodukt zweier Vektoren/3 Komponenten <i>(x, y, z)</i></td></tr>
+					<tr><td>DP4 dest, src0, src1</td><td>Skalarprodukt zweier Vektoren/4 Komponenten <i>(x, y, z, w)</i></td></tr>
+					<tr><td>MIN dest, src0, src1</td><td>Komponentenweises Minimum bilden</td></tr>
+					<tr><td>MAX dest, src0, src1</td><td>Komponentenweises Maximum bilden</td></tr>
+					<tr><td>SLR dest, src0, src1</td><td>Komponentenweiser Vergleich auf kleiner als. Ist eine Komponente von <i>src0</i> kleiner als die von <i>src1</i>, dann wird die entsprechende Komponente in dest auf <i>1.0</i> — sonst <i>0.0</i> gesetzt.</td></tr>
+					<tr><td>SGE dest, src0, src1</td><td>Komponentenweiser Vergleich auf größer gleich (siehe <i>SLR</i>)</td></tr>
+					<tr><td>EXP dest, src0.C</td><td>Berechnet <i>2<sup>src0.C</sup></i></td></tr>
+					<tr><td>LOG dest, src0.C</td><td>Berechnet Logarithmus zur Basis <i>2</i> von <i>src0.C</i></td></tr>
+					<tr><td>ARL A0.x, src0.C</td><td>Laden des Adressregisters</td></tr>
+					<tr><td>LIT dest, src0</td><td>Beleuchtungsberechnung</td></tr>
+					<tr><td>src0.x</td><td>Skalarprodukt für diffuse Beleuchtung <i>(N*L)</i></td></tr>
+					<tr><td>src0.y</td><td>Skalarprodukt für spiegelnde (specular) Beleuchtung <i>(N*H)</i></td></tr>
+					<tr><td>src0.w</td><td>Phong Exponent, Resultat: Koeffizient für ambiente <i>(dest.x)</i>, diffuse <i>(dest.y)</i> und spiegelnde (specular) <i>(dest.z)</i> Beleuchtung</td></tr>
+					<tr><td>DST dest, src0.C, src1.D</td><td>Distance Vector: <i>src0.C = d<sup>2</sup>, src1.D = 1/d</i>, Resultat: <i>dest = (1, d, d<sup>2</sup>, 1/d)3</i></td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Das erste Vertex-Program</h2>
+		<p>Los geht’s mit Ihrem ersten Vertex-Programm: Dieses soll einen Vertex von seinen angegebenen Koordinaten (mit <i>glVertex</i>) ins Koordinaten&shy;system der Betrachter&shy;kamera transformieren. Kommentare innerhalb des Vertex-Programms, das immer mit der Kennung <i>!!VP 1.0</i> beginnt, kennzeichnen Sie mit einem <i>#</i>-Symbol. Für die Tranformation benötigen Sie die Modelview- und die Projection-Matrix, die in den Parameter-Registern gespeichert werden.</p>
+		<pre><code>
+const unsigned char simpleShader[]=
+{
+	"!!VP1.0 \
+	# Transformation Objectspace
+	>Worldspace
+	DP4 R0.x,v[OPOS],c[0]; \
+	DP4 R0.y,v[OPOS],c[1]; \
+	DP4 R0.z,v[OPOS],c[2]; \
+	DP4 R0.w,v[OPOS],c[3]; \
+
+	# Transformation Worldspace-&gt;Cameraspace
+	DP4 R1.x,R0,c[4]; \
+	DP4 R1.y,R0,c[5]; \
+	DP4 R1.z,R0,c[6]; \
+	DP4 R1.w,R0,c[7]; \
+	# und speichern
+	MOV o[HPOS],R1; \
+	# Farbwert einfach durchreichen
+	MOV o[COL0], v[COL0]; \
+	END"
+};
+
+glEnable(GL_VERTEX_PROGRAM_NV);
+glBindProgramNV(GL_VERTEX_PROGRAM_NV, 1);
+glLoadProgramNV(GL_VERTEX_PROGRAM_NV, 1,
+	strlen(simpleShader), simpleShader);
+
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 0,
+	GL_MODELVIEW, GL_IDENTITY_NV);
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 4,
+	GL_PROJECTION, GL_IDENTITY_NV);
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200202_3.jpg" width="495" height="251" alt="DIE VEKTOREN im Phong-Beleuchtungsmodell.">
+			<figcaption><span>DIE VEKTOREN</span> im Phong-Beleuchtungs&shy;modell.</figcaption>
+		</figure>
+		<p>Als nächstes fügen Sie eine eigene Beleuchtungs&shy;berechnung in das Vertex-Programm ein. Als Beispiel wollen wir Ihnen hier eine bunt eingefärbte Oberfläche mit Beleuchtung mit dem Phongmodell vorstellen. Dazu benötigen Sie weitere Parameter:</p>
+		<pre><code>
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 8,
+	GL_MODELVIEW, GL_INVERSE_TRANSPOSE_NV);
+
+// Licht Richtung
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	32, 0, 0, 1, 1);
+// Halfspace Vektor H
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	33, 0, 0, 1, 1);
+// diffus-ambienter Koeffizient Oberfläche
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	35, 0.8, 0.2, 0, 0);
+// Farbe der Highlights
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	36, 1.0, 1.0, 1.0, 1.0);
+// Phongexponent
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	38, 30.0, 0, 0, 0);
+		</code></pre>
+		<p>Die Farbe der Objekt&shy;oberfläche wird schön bunt, indem Sie den Betrag der Normalen als Farbe verwenden. Den Betrag berechnen Sie mit einem kleinen Trick per <i>MAX</i>-Befehl:</p>
+		<pre><code>
+MOV R4, v[NRML];
+MAX R4, R4, -R4;
+		</code></pre>
+		<p>Jetzt berechnen Sie Schritt für Schritt die Beleuchtung. Zunächst transformieren Sie die Normale mit der inversen Modelview-Matrix in dasselbe Koordinaten&shy;system wie die Lichtrichtung:</p>
+		<pre><code>
+DP3 R2.x, c[8], v[NRML];
+DP3 R2.y, c[9], v[NRML];
+DP3 R2.z, c[10], v[NRML];
+		</code></pre>
+		<p>Anschließend berechnen Sie die Skalarprodukte der Lichtrichtung bzw. des Halfspace-Vektors und der Normalen und schließen die Vorbereitung der Beleuchtungs&shy;berechnung ab, indem Sie in <i>R3.z</i> den Phong-Exponenten speichern.</p>
+		<pre><code>
+DP3 R3.x, c[32], R2;
+DP3 R3.y, c[33], R2;
+MOV R3.w, c[38].x;
+LIT R4, R3;
+		</code></pre>
+		<p>Jetzt können Sie den resultierenden Farbwert an Hand des berechneten Shadings bestimmen:</p>
+		<pre><code>
+MAD R5, c[35].x, R4.y, c[35].y;
+# R5.x = Diffuse * (N * L) + Ambient
+MUL R6.xyz, c[36], R4.z;
+# R6 = SpecularFarbe * Koeff.
+MAD o[COL0].xyz, R4, R5.x, R6;
+# Farbe = R4 * (Amb + Diff) + Specular-Farbe
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Modifikation der Vertex-Koordinaten</h2>
+		<p>Unser zweites Anwendungs&shy;beispiel erledigt nicht nur die Transformation und Beleuchtung, sondern modifiziert die Lage der Vertices selbst. Es soll so genannte Billboards (Polygone), die immer zum Betrachter hinzeigen, automatisch ausrichten.</p>
+		<p>Für jedes Billboard verwenden Sie ein Quadrat, also vier Vertices, und zeichnen diese mit <i>GL_QUADS</i>. Mit den Billboards wollen wir eine Partikel&shy;fontäne darstellen.</p>
+		<p>Für einen Partikel ist jeweils nur der Ort bekannt. Es ist also die Aufgabe des Vertex Programms, aus der Position ein Quadrat im Raum zu platzieren. Die benötigten Vektoren, die vom Betrachter aus nach rechts und nach oben zeigen, sind die <i>Right</i>- und <i>Up</i>-Vektoren der Modelview-Matrix. Da die Vertex-Programme keine neuen Vertices erzeugen können, legen Sie von vornherein eine Liste von Vertices, für jeden Partikel vier Stück, an. Für jeden Knoten speichern Sie zusätzlich zur Koordinate weitere Daten. Zunächst legen Sie die Programm&shy;parameter fest:</p>
+		<pre><code>
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 0,
+	GL_MODELVIEW, GL_IDENTITY_NV);
+glTrackMatrixNV(GL_VERTEX_PROGRAM_NV, 4,
+	GL_MODELVIEW_PROJECTION_NV, GL_IDENTITY_NV);
+// texture koordinaten
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	24, 0, 0, 0, 0);
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	25, 1, 0, 0, 0);
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	26, 1, 1, 0, 0);
+glProgramParameter4fNV(GL_VERTEX_PROGRAM_NV,
+	27, 0, 1, 0, 0);
+		</code></pre>
+		<p>Rufen Sie vor dem Zeichnen das Vertex-State-Programm auf. Dieses verwendet die <i>Up</i>- und <i>Right</i>-Vektoren, um die vier Vektoren zu bilden, die das Billboard aufspannen:</p>
+		<pre><code>
+!!VSP1.0
+MOV R0.xyz,c[0];
+MOV R1.xyz,c[1];
+ADD c[20], -R0, -R1; #links oben
+ADD c[21], R0, -R1; #rchts oben
+ADD c[22], R0, R1; #rchts unt.
+ADD c[23], -R0, R1; #lnks unten
+END
+		</code></pre>
+		<p>Die Speicherung der Vertices erfolgt mit der Struktur, wobei pro Partikel vier Vertices notwendig sind:</p>
+		<pre><code>
+typedef struct
+{
+	VERTEX3D pos;
+	VERTEX3D vdata;
+} BILLBOARDVERTEX;
+
+BILLBOARDVERTEX *particleVertex;
+		</code></pre>
+		<p>In <i>vdata.x</i> speichern Sie für jeden Vertex, ob es sich um den ersten, zweiten, dritten oder vierten Vertex des Billboards handelt, die Werte <i>0, 1, 2</i> oder <i>3</i>. Diesen Index benötigen Sie im Vertex-Programm, um die oben berechneten Vektoren und die Textur&shy;koordinaten zu indizieren. In <i>vdata.y</i> speichern Sie einen Faktor für die Größe des Partikels und in <i>vdata.z</i> seine Helligkeit.</p>
+		<p>Diese Daten wird das zweite Vertex Programm verwenden. In <i>pos</i> speichern Sie die Koordinate, wobei Sie für jeden Vertex eines Billboards dieselbe Koordinate verwenden. Diese Daten übermitteln Sie wie folgt:</p>
+		<pre><code>
+glEnableClientState(GL_VERTEX_ATTRIB_ARRAY0_NV);
+glEnableClientState(GL_VERTEX_ATTRIB_ARRAY1_NV);
+
+glVertexAttribPointerNV(0, 3, GL_FLOAT,
+	sizeof(BILLBOARDVERTEX), &amp;particleVertex[0].pos);
+glVertexAttribPointerNV(1, 3, GL_FLOAT,
+	sizeof(BILLBOARDVERTEX), &amp;particleVertex[0].vdata);
+
+// zeichnen
+glDrawElements(GL_QUADS, nParticles * 4,
+	GL_UNSIGNED_INT, particleIndex);
+glDisableClientState(GL_VERTEX_ATTRIB_ARRAY0_NV);
+glDisableClientState(GL_VERTEX_ATTRIB_ARRAY1_NV);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200202_4.jpg" width="606" height="480" alt="DIE PARTIKEL dieser Fontäne werden mit Billboards dargestellt.">
+			<figcaption><span>DIE PARTIKEL</span> dieser Fontäne werden mit Billboards dargestellt.</figcaption>
+		</figure>
+		<p>Dieses Vertex-Programm übernimmt die Arbeit:</p>
+		<pre><code>
+!!VP1.0
+ARL A0.x,v[1].x;
+#Index laden
+MUL R0, c[A0.x+20], v[1].y;
+#Vektor indizieren
+#und Vektor skalieren
+ADD R1, R0, v[0];
+#auf die Koordinate addieren
+DP4 o[HPOS].x,R1,c[4];
+#Koordinate transformieren
+DP4 o[HPOS].y,R1,c[5];
+DP4 o[HPOS].z,R1,c[6];
+DP4 o[HPOS].w,R1,c[7];
+MOV R1, v[1];
+MUL o[COL0], v[COL0],R1.z;
+#helligkeit der farbe
+MOV o[TEX0].xy,c[A0.x+24];
+#Texture-Koordinate kopieren
+END
+		</code></pre>
+		<p>Das Resultat des Vertex-Programms sehen Sie im nebenstehenen Bild. Die optischen Spielereien erreichen Sie mit einer spiegelnden Fläche. Der wolkige Hintergrund bereichert den lebendigen Eindruck. Die vollständige Implementation inklusive der Partikel&shy;routine finden Sie auf der Heft-CD.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote">Lesen Sie zur Programmierung von Grafikkarten: <a href="https://developer.nvidia.com" rel="external nofollow noreferrer">http://developer.nvidia.com</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200201.html">1/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200203.html">3/2002</a>
+	</nav>
+</body>
+

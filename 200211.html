@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Im Scheinwerferlicht (PC Underground, PC Magazin 11/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;11/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200210.html">10/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200212.html">12/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Shadow Depth Maps mit OpenGL</h2>
+		<h1>Im Scheinwerfer<span class="highlight">licht</span></h1>
+		<p class="summary">Mit wenigen OpenGL-Befehlen und etwas Theorie entlocken Sie Ihrer modernen Grafikkarte <span class="highlight">Schatten&shy;effekte</span>. Dabei können sich die 3D-Objekte auch selbst beschatten.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Das Rendering von Schatten in 3D-Engines und Computer&shy;spielen ist heutzutage schon fast ein Muss. Die Leistungs&shy;fähigkeit moderner 3D-Beschleuniger und CPUs stellen Ihnen die technischen Werkzeuge zur Verfügung. Einzige Voraussetzung: Sie müssen die Theorie dahinter kennen – dafür sorgt dieser Artikel. Sie hatten sich bereits in PC Underground 6/02, ab S. 196, mit einem Verfahren vertraut gemacht, um in Echtzeit Schatten zu rendern. Dabei handelte es sich um die Stencil-Buffer-Schatten. Diese Technik betrachtet Schatten eines 3D-Objekts als polygonales Volumen. Für jedes gerenderte Bild mussten Sie dabei das Volumen bestimmen – das heißt, die Silhouette des Objekts aus der Sicht der Lichtquelle bestimmen.</p>
+		<p>Dieses Verfahren ist mit Rechen- und Speicher&shy;aufwand für die Adjazenz-Information verbunden. Und es gibt weitere Nachteile: Sie können beispielsweise keinen korrekten Schatten rendern, wenn Verfahren wie die PN-Triangles der neueren ATI-Grafikkarten verwendet werden. Die PN-Triangles bieten die Option, mit einem Dreieck eine gewölbte Oberfläche darzustellen, ähnlich wie bei herkömmlichen parametrischen Flächen.</p>
+		<p>Lernen Sie die Shadow-Map-Technik kennen, die Sie mit den Stencil Shadows schon gestreift hatten.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200211.zip">💾 200211.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Shadow Depth Maps</h2>
+		<figure class="floatright">
+			<img src="assets/200211_1.png" width="256" height="207" alt="DER IN EINE TEXTUR KOPIERTE Z-Buffer zeigt dunklere Teile nahe an der Lichtquelle, hellere weiter entfernt.">
+			<figcaption><span>DER IN EINE TEXTUR KOPIERTE</span> Z-Buffer zeigt dunklere Teile nahe an der Lichtquelle, hellere weiter entfernt.</figcaption>
+		</figure>
+		<p>Bei den Shadow Maps verwenden Sie den Z-Buffer und projektives Texture Mapping, um die Schatten zu rendern. Dieses Verfahren ist für Spotlights gedacht: Lichtquellen, die einen begrenzten Lichtkegel in eine Richtung abstrahlen. Omnilights sind Lichtquellen, die in jede Richtung gleichmäßig Licht aussenden.</p>
+		<p>Bei der Shadow-Mapping-Technik transformieren Sie die 3D-Szene, die Sie mit Schatten rendern wollen. Dabei muss die OpenGL-Kamera in die gleiche Position wie das entsprechende Spotlight rücken. Mit dieser Einstellung rendern Sie die 3D-Szene aus der Sicht der Lichtquelle. Von diesem gerenderten Bild benötigen Sie nur den Z-Buffer, den Sie in die Depth Map kopieren. Mit Z-Buffer heben Sie sich also lediglich die Tiefen&shy;information auf.</p>
+		<p>Ein Beispiel sehen Sie im Bild links. Diese Textur verwenden Sie dann beim Rendering des fertigen Bildes wieder. Dabei projizieren Sie die Textur mit der OpenGL-Textur-Koordinaten-Generierung auf die Geometrie der 3D-Objekte.</p>
+		<p>Die Koordinaten-Generierung stellen Sie so ein, dass die Textur&shy;koordinaten eines Punktes den Vertex&shy;koordinaten des Punktes bezüglich der Lichtquelle entsprechen. Diese Textur&shy;koordinaten sind mit <i>(s, t, r)</i> bezeichnet. Mit der entsprechenden OpenGL-Erweiterung können Sie die <i>r</i>-Komponente (also den Abstand des Punktes von der Lichtquelle) mit der Tiefen&shy;information in der Depth Map vergleichen. Kurz: Sie vergleichen bei jedem Fragment (Pixel), das gezeichnet wird, seinen tatsächlichen Abstand zur Lichtquelle mit dem in der Depth Map gespeicherten Abstand.</p>
+		<p>In der Depth Map sind durch das Z-Buffering die jeweils kleinsten Abstände zwischen der Lichtquelle und einer Oberfläche gespeichert. Ist der tatsächliche Abstand <i>r</i> größer als der gespeicherte Wert im Texel der Depth Map, liegt der betrachtete Pixel hinter einer Oberfläche, die von der Lichtquelle aus sichtbar ist. Das bedeutet, er liegt im Schatten.</p>
+		<p>Dieses Verfahren ist universell einsetzbar und sehr flexibel. Es lässt auch Selbst&shy;beschattung von 3D-Objekten zu. Ein weiterer Vorteil ist, dass der Aufwand des Schatten-Rendering nicht direkt von der Komplexität der Geometrie abhängt. Außerdem können Sie, um die Shadow Depth Maps zu generieren, 3D-Objekte mit reduzierten Details verwenden.</p>
+		<p>Bei diesem Screen-Space-Schatten&shy;verfahren hängt die Auflösung der Schatten von der Auflösung der Depth Map ab. Dabei sind unter Umständen Treppchen&shy;effekte an den Rändern der Schatten zu erkennen.</p>
+	</section>
+
+	<section>
+		<h2>Umsetzung in OpenGL</h2>
+		<p>Nachdem Sie jetzt das Prinzip kennen, implementieren Sie das Schatten-Rendering. Zunächst müssen Sie sich um die benötigten OpenGL-Extensions kümmern, da die Funktionalität der Depth-Map-Vergleiche noch nicht Bestandteil einer OpenGL-Spezifikation ist. Außerdem verwenden Sie Multitexturing, um nicht nur Schatten zu rendern, sondern dem Lichtkegel auch einen attraktiven Helligkeits&shy;verlauf und den 3D-Objekten eine normale Textur zu verpassen.</p>
+		<p>Für die Depth Maps stehen Ihnen entweder die <i>GL_SGIX_depth_texture</i> und <i>GL_SGIX_shadow</i>-Extensions zur Verfügung, oder Sie verwenden die <i>GL_ARB_depth_texture</i> und <i>GL_</i> <i>ARB_shadow</i>-Extentions. Ihre Wahl hängt davon ab, was die Treiber anbieten.</p>
+		<p>Bislang werden diese beiden Erweiterungen hauptsächlich von nVidia-Grafikkarten unterstützt. Es ist zu erwarten, dass alle neuen Karten nachziehen werden. Die beiden Varianten unterscheiden sich prinzipiell nicht, lediglich im Setup des Depth-Map-Vergleichs müssen Sie die später erwähnten Einzelheiten beachten. Die beiden Extensions definieren keine neuen OpenGL-Funktionen, sondern nur neue Tokens für die <i>glTexParameter</i>-Befehle. Für das Multitexturing verwenden Sie in dieser Ausgabe den <i>glActiveTextureARB</i>-Befehl, um die jeweils aktive Texturing-Einheit zu wählen. Mit dem <i>glMultiTexCoord2fARB</i>-Befehl geben Sie die Textur&shy;koordinaten an.</p>
+		<p>Beginnen Sie zunächst damit, die benötigten Texturen anzulegen, allen voran die <i>Shadow Depth Map</i>:</p>
+		<pre><code>
+GLuint shadowDepthMap;
+glGenTextures(1, &amp;shadowDepthMap);
+glBindTexture(GL_TEXTURE_2D, shadowDepthMap);
+		</code></pre>
+		<p>Als Format wählen Sie <i>GL_</i> <i>DEPTH_COMPONENT</i>. Damit stellen Sie sicher, dass für die Tiefen&shy;information in der Textur dieselbe Bit-Tiefe wie für den tatsächlichen Z-Buffer verwendet wird (also nicht konvertiert werden muss). Sie könnten die Bit-Tiefe aber auch explizit angeben, wie mit <i>GL_DEPTH_COMPONENT16_SGIX</i> oder <i>GL_DEPTH_COMPONENT16_ARB</i> für 16 Bit. Die Größe der <i>Depth Map</i> berechnet sich nach der Formel <i>SHADOWSIZE x SHADOWSIZE</i>:</p>
+		<pre><code>
+glCopyTexImage2D(GL_TEXTURE_2D, 0,
+	GL_DEPTH_COMPONENT, 0, 0,
+	SHADOWSIZE, SHADOWSIZE, 0);
+		</code></pre>
+		<p>In der Regel genügt eine Größe der Depth Map von 256 x 256 Pixeln. Weitere Textur-Parameter sind das <i>Clamping</i> der Textur, was bedeutet, dass die Textur sich nicht wiederholt. Das ist wichtig, weil die Depth Map nur für den sichtbaren Bereich der Lichtquelle gilt, aber durch die Textur-Koordinaten&shy;generierung auch auf andere Stellen gemappt wird. Außerdem stellen Sie die Vergößerung/Verkleinerung der Textur auf bilineare Interpolation ohne Mipmaps:</p>
+		<pre><code>
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D,
+GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200211_2.jpg" width="256" height="234" alt="MIT DIESEM HELLIGKEITSVERLAUF schinden Ihre Spotlights Eindruck.">
+			<figcaption><span>MIT DIESEM HELLIGKEITSVERLAUF</span> schinden Ihre Spotlights Eindruck.</figcaption>
+		</figure>
+		<p>Jetzt kommt der wichtigste Teil des Textur-Setups: die Vergleichs&shy;operation. Sie vergleicht die <i>r</i>-Komponente der Textur&shy;koordinaten mit dem Tiefenwert in der Depth Map. Als Resultat kann eine <i>0</i> oder eine <i>1</i> vorkommen, die Sie als Luminanz (Helligkeits&shy;wert) der Textur-Stage verwenden. Um die Helligkeit mit anderen Textur-Stages zu kombinieren, verwenden Sie <i>GL_MODULATE</i> für das Textur<i>Combining</i> :</p>
+		<pre><code>
+glTexEnvi(GL_TEXTURE_ENV,
+	GL_TEXTURE_ENV_MODE, GL_MODULATE);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_DEPTH_TEXTURE_MODE_ARB, GL_LUMINANCE);
+		</code></pre>
+		<p>Den Depth-Map-Vergleich aktivieren Sie je nach verwendeter Erweiterung so:</p>
+		<pre><code>
+// ARB Ext
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_COMPARE_MODE_ARB,
+	GL_COMPARE_R_TO_TEXTURE_ARB);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_COMPARE_FUNC_ARB,
+	GL_LEQUAL);
+
+// SGIX Ext
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_COMPARE_SGIX, GL_TRUE);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_COMPARE_OPERATOR_SGIX,
+	GL_TEXTURE_LEQUAL_R_SGIX);
+		</code></pre>
+		<p>Den Helligkeits&shy;verlauf des Spotlights laden Sie als einfache Graustufen-Textur. Dafür aktivieren Sie das Textur-Clamping und <i>GL_MODULATE</i>.</p>
+	</section>
+
+	<aside>
+		<h2>INTELLISENSE FÜR OPENGL-BEFEHLE</h2>
+		<div>
+			<p>Mit IntelliSense bezeichnet Microsoft das Feature der Visual-C++-Entwicklungs&shy;umgebung, mit dem sich automatisch Befehlsnamen vervoll&shy;ständigen (über [Strg-Leertaste]) und Typ- und Parameter-Informationen per [Strg-t] oder [Strg-Shift-Leertaste] abfragen lassen. Diese praktische Option steht zunächst nur für die Standard&shy;befehle wie strdup(...) oder selbst definierte Funktionen zur Verfügung. Bei OpenGL-Befehlen kann dieses Feature nicht eingesetzt werden, es sei denn, Sie gaukeln der Entwicklungs&shy;umgebung vor, Sie hätten jeden Befehl selbst definiert. Adam Medveczky hat dies getan und seine Header-Datei der OpenGL-Gemeinde zur Verfügung gestellt. Diese Datei müssen Sie in ein Visual-C++-Projekt über den Menüpunkt Project/Add To Project/Files einfügen. In der Header-Datei befinden sich alle Funktionen als leer definiert – mit einer nie erfüllten #ifdef-Anweisung. Dadurch werden die Funktionen für die Entwicklungs&shy;umgebung definiert, der Compiler ignoriert sie aber – was er auch tun muss – auf Grund der #ifdef-Anweisung. Sie finden die Header-Datei auf der Heft-CD.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Depth Map rendern</h2>
+		<p>Nach den Initialisierungen rendern Sie die einzelnen Frames. Im Folgenden gehen wir – der Übersicht&shy;lichkeit halber – davon aus, dass es eine Funktion <i>drawScene()</i> gibt, die die vollständige 3D-Szene an OpenGL übergibt. Für jeden Frame rendern Sie zunächst die Depth Map. Dabei müssen Sie die OpenGL-Kamera passend positionieren und ausrichten und den OpenGL-Viewport einstellen. Den Öffnungswinkel des Spotlights stellen Sie in der Projektions-Matrix, die Position und Richtung mit <i>gluLookAt(...)</i> in der Modelview-Matrix von OpenGL ein:</p>
+		<pre><code>
+glViewport(0, 0, SHADOWSIZE, SHADOWSIZE);
+glClear(GL_COLOR_BUFFER_BIT |
+	GL_DEPTH_BUFFER_BIT);
+
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+
+gluPerspective(SPOT_ANGLE,
+	1.0f, 1.0f, 500.0f);
+
+glMatrixMode(GL_MODELVIEW);
+glPushMatrix();
+
+glLoadIdentity();
+gluLookAt(
+	lightPosition[0],
+	lightPosition[1],
+	lightPosition[2],
+	0, 0, 0,
+	0, 1, 0);
+		</code></pre>
+		<p>Verwenden Sie <i>glPolygonOffset(...)</i>, um die gerenderten Dreiecke in der Depth Map zu verschieben. Somit vermeiden Sie Artefakte (Bildfehler) durch Ungenauig&shy;keiten bei den Schatten. Außerdem können Sie die OpenGL-Beleuchtungs&shy;berechnung und das Beschreiben des Colorbuffers abschalten. Somit ersparen Sie Ihrer Grafikkarte unnötigen Aufwand, denn nur der Z-Buffer ist interessant:</p>
+		<pre><code>
+glDisable(GL_LIGHTING);
+glColorMask(GL_FALSE, GL_FALSE,
+	GL_FALSE, GL_FALSE);
+
+glPolygonOffset(2, 2);
+glEnable(GL_POLYGON_OFFSET_FILL);
+		</code></pre>
+		<p>Jetzt zeichnen Sie die 3D-Szene und kopieren den Z-Buffer in die Depth Map:</p>
+		<pre><code>
+drawScene();
+glBindTexture(GL_TEXTURE_2D,
+	shadowDepthMap);
+
+glCopyTexSubImage2D(GL_TEXTURE_2D,
+	0, 0, 0, 0, 0, SHADOWSIZE, SHADOWSIZE);
+		</code></pre>
+		<p>Um eine Graustufen-Bitmap des Z-Buffers auszuwerten, können Sie die Daten so erhalten:</p>
+		<pre><code>
+unsigned char depthMap[256 * 256];
+glReadPixels(0, 0, 256, 256,
+	GL_DEPTH_COMPONENT,
+	GL_UNSIGNED_BYTE, depthMap);
+		</code></pre>
+		<p>Anschließend stellen Sie die vorherigen Renderstates und OpenGL-Matrizen wieder her und sind fertig mit der Depth Map.</p>
+	</section>
+
+	<section>
+		<h2>Mit der Depth Map rendern</h2>
+ 		<p>Jetzt können Sie die 3D-Szene mit Schatten rendern. Sie müssen lediglich die Textur Stages und die Textur&shy;koordinaten-Generierung einstellen. Dieser Vorgang ist für die ersten beiden Textur Stages gleich. Eine verwendet die Spotlight Textur, die andere die Depth Map. Welche Textur auf welcher Stage liegt, ist egal: Durch das <i>GL_MODULATE</i> ist die Reihenfolge hinfällig. Die jeweils aktive Textur Stage wählen Sie mit <i>glActiveTextureARB(GL_TEXTUREi_ARB)</i>. Dann stellen Sie die Textur-Matrix ein. Diese setzt sich aus drei Schritten zusammen. Die einzelnen Matrixtrans&shy;formationen werden in umgekehrter Reihenfolge zu der im Programm ausgeführt.</p>
+		<p>Als erstes geben Sie an, dass Sie zur Textur&shy;koordinaten-Generierung alle vier Vertex-Komponenten (also homogene Koordinaten) <i>direkt</i> verwenden wollen. Direkt heißt, sie werden nicht weiter transformiert, und deshalb ist in <i>genS, genT, genR</i> und <i>genQ</i> eine <i>4x4</i>-Einheitsmatrix gespeichert. Sie setzen die <i>GL_EYE_LINEAR</i>-Option folgendermaßen ein:</p>
+		<pre><code>
+glActiveTextureARB (GL_TEXTURE0_ARB);
+float genS[] = { 1.0, 0.0, 0.0, 0.0 };
+float genT[] = { 0.0, 1.0, 0.0, 0.0 };
+float genR[] = { 0.0, 0.0, 1.0, 0.0 };
+float genQ[] = { 0.0, 0.0, 0.0, 1.0 };
+
+glEnable(GL_TEXTURE_GEN_S);
+glEnable(GL_TEXTURE_GEN_T);
+glEnable(GL_TEXTURE_GEN_R);
+glEnable(GL_TEXTURE_GEN_Q);
+
+glTexGenfv(GL_S, GL_EYE_PLANE,genS);
+glTexGenfv(GL_S, GL_EYE_PLANE,genR);
+glTexGenfv(GL_S, GL_EYE_PLANE,genT);
+glTexGenfv(GL_S, GL_EYE_PLANE,genQ);
+
+glTexGeni(GL_S, GL_TEXTURE_GEN_MODE,
+	GL_EYE_LINEAR);
+glTexGeni(GL_T, GL_TEXTURE_GEN_MODE,
+	GL_EYE_LINEAR);
+glTexGeni(GL_R, GL_TEXTURE_GEN_MODE,
+	GL_EYE_LINEAR);
+glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE,
+	GL_EYE_LINEAR);
+		</code></pre>
+		<p>Die nur durch&shy;gereichten (durch die Textur&shy;koordinaten-Generierung) Vertex&shy;koordinaten werden mit der Textur-Matrix transformiert. Die erste Transformation in der Ausführungs&shy;reihenfolge positioniert die Lichtquelle und richtet sie aus. Alle Tranformationen werden mit denselben Parametern wie beim Rendering der Depth Map ausgeführt. Als nächstes wird die Projektions&shy;abbildung durchgeführt, mit der Sie den Öffnungswinkel des Spotlights bestimmt haben.</p>
+		<p>Zuletzt müssen Sie die nach der Projektion erhaltenen Koordinaten im Wertebereich <i>[-1;1] x [-1;1]</i> auf einen brauchbaren Bereich für die Texturen mit Clamping transformieren, also auf <i>[0;1] x [0;1]</i>. Zusammen&shy;gefasst sieht das so aus:</p>
+		<pre><code>
+glMatrixMode(GL_TEXTURE);
+glLoadIdentity();
+
+// [-1;1]x[-1;1]-&gt;[0;1]x[0;1]
+glTranslatef(0.5f, 0.5f, 0.5f);
+glScalef(0.5f, 0.5f, 0.5f);
+
+// Projektion
+gluPerspective(SPOT_ANGLE, 1.0f,1.0f,500.0f);
+
+// Position/Richtung
+gluLookAt(
+	lightPosition[0],
+	lightPosition[1],
+	lightPosition[2],
+	0, 0, 0,
+	0, 1, 0);
+		</code></pre>
+		<p>Mit diesen eingestellten Parametern können Sie die Szene mit Schatten rendern, sobald Sie das Texture Mapping angeschaltet und die Spotlight- oder Depth-Map-Textur mit <i>glBind(...)</i> aktiviert haben. Schalten Sie aber vorher noch die OpenGL-Beleuchtungs&shy;berechnung ein und platzieren Sie die Lichtquelle an der richtigen Stelle: an der Position, die Sie auch bei <i>gluLookAt(...)</i> angegeben haben.</p>
+	</section>
+
+	<section>
+		<h2>Texture Mapping und Shadow Depth Maps</h2>
+		<figure class="floatright">
+			<img src="assets/200211_4.jpg" width="144" height="244" alt="SOLCHE TREPPCHENEFFEKTE treten bei zu geringer Auflösung der Depth Map auf.">
+			<figcaption><span>SOLCHE TREPPCHENEFFEKTE</span> treten bei zu geringer Auflösung der Depth Map auf.</figcaption>
+		</figure>
+ 		<p>Durch dieses Verfahren zum Schatten-Rendering sind zwei Texture Stages belegt. Bei modernen Grafikkarten stehen Ihnen mindestens noch zwei weitere Texture Stages für andere Texture Maps zur Verfügung. Wenn Ihnen das nicht reicht, können Sie auf die Spotlight-Textur verzichten. Diese ist nur eine optische Verschönerung, die Sie für die Schatten&shy;berechnung nicht unbedingt brauchen.</p>
+		<p>Wenn Sie die Spotlight Textur beibehalten wollen, gehen Sie wie folgt vor: Zu Beginn eines Frames erzeugen Sie die Depth Map. Beim Rendering der eigentlichen Kameraansicht rendern Sie ohne die Schatten&shy;berechnung, aber mit OpenGL-Beleuchtungs&shy;berechnung und Texturen. Damit haben Sie alle Textur Stages Ihrer Grafikkarte zur Verfügung.</p>
+		<p>In einem zweiten Renderpass der Szene deaktivieren Sie alle Features und verwenden das Schatten-Rendering. Zusätzlich aktivieren Sie das Blending, um die Farben im Colorbuffer mit den Helligkeits&shy;werten aus der Schatten&shy;berechnung zu modulieren. Das erledigen Sie zum Beispiel mit:</p>
+		<pre><code>
+glEnable(GL_BLEND);
+glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+		</code></pre>
+		<p>Wenn Sie mit den verbleibenden Textur Stages auskommen, müssen Sie darauf achten, dass als erste Stage <i>GL_TEXTURE2_ARB</i> frei ist. Die Ausgabe der beiden darunter liegenden Stages ist, wenn Sie sie wie im Beispiel&shy;programm konfigurieren, die mit der Helligkeit modulierte Grundfarbe des OpenGL-Materials. Das bedeutet, Sie selektieren für die Textur auf der Stage 2 (Zählung beginnt bei Null) wieder <i>Env Mode GL_MODULATE</i>:</p>
+		<pre><code>
+glActiveTextureARB(GL_TEXTURE2_ARB);
+glEnable(GL_TEXTURE_2D);
+glBindTexture(GL_TEXTURE_2D, tex);
+glTexEnvi(GL_TEXTURE_ENV,
+	GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		</code></pre>
+		<p>Die Textur&shy;koordinaten müssen Sie dann mit den <i>glMultiTexCoord2fARB(...)</i>-Befehlen angeben, deren Funktions-Pointer Sie über die <i>wglGetProcAddress(...)</i>-Methode erhalten.</p>
+		<p>Achten Sie beim Einsatz von Multitexturing immer darauf, dass die Grafik-Hardware genügend Textur Stages zur Verfügung stellt. Die unterstützte Anzahl erfragen Sie von OpenGL:</p>
+		<pre><code>
+GLint maxTexelUnits;
+glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB,
+	&amp;maxTexelUnits);
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200211_3.jpg" width="634" height="461" alt="UNSER BEISPIELPROGRAMM in Aktion">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> in Aktion</figcaption>
+		</figure>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200210.html">10/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200212.html">12/2002</a>
+	</nav>
+</body>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Gravitation im Spiel (PC Underground, PC Magazin 7/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;7/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199906.html">6/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199908.html">8/1999</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Spiele-Programmierung unter Windows 95/98/NT</h2>
+		<h1><span class="highlight">Gravitation</span> im Spiel</h1>
+		<p class="summary">Diesmal schreiben Sie ein komplettes Weltraum-Ballerspiel. Sie erkennen Kollisionen, <span class="highlight">programmieren einen Computergegner</span> und spielen MIDI-Musik im Hintergrund.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>In den letzten beiden Ausgaben haben Sie die Grundlagen für ein anspruchs&shy;volles Spiel unter Windows kennengelernt. Nun ist es an der Zeit, dieses Wissen zu einem funktions&shy;fähigen und unterhaltsamen Shoot’em-Up-Spiel zusammen&shy;zufügen.</p>
+		<p>Doch keine Angst, wenn Sie die letzten beiden Ausgaben der Rubrik PC Underground nicht verfolgt haben: Alle benötigten Routinen finden Sie auf der Heft-CD, Sie können sie ohne weitere Vorkenntnisse einsetzen.</p>
+		<p>Die Spielidee von <i>Gravity Wars</i>, so heißt unser Weltraum-Ballerspiel, sieht folgendermaßen aus: Zwei Spieler steuern je einen Raumgleiter und versuchen sich gegenseitig abzuschießen. Dabei verfügen sie über eine begrenzte Energiemenge. Ein optional in der Mitte des Spielfelds plazierter Planet zieht dabei alle Objekte wie Raumgleiter und Raketen an.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Grafik und Logik</h2>
+		<p>An Grafikdaten brauchen Sie das Titelbild und die Hintergrund&shy;bilder sowie die Vorlagen der einzelnen Sprites. Aus diesen Vorlagen erzeugen Sie mit dem Sprite-Generator <i>SpriteGenerierung.exe</i> aus dem <i>SPRITE</i>-Verzeichnis die Sprite-Daten für das Spiel. Diese Sprite-Daten erwartet das Spiel im Unter&shy;verzeichnis <i>data</i>.</p>
+		<p>Der Sprite-Generator verwendet die Routine  <i>CreateRotationAnimation(...)</i> aus der Sprite-Bibliothek und speichert alle Daten der Sprite-Struktur sowie die mit der RLE-Methode (Runtime Length Encoding) komprimierten Bilddaten. Von jedem Sprite werden dabei 64 Einzelbilder – eines für jeden möglichen Drehwinkel – erzeugt. Sie können natürlich auch eigene Sprites zeichnen und einbinden. Eine Auflistung der verwendeten Dateien finden Sie in der Textbox „Individuelle Grafiken und Hinter&shy;grundmusik“ auf S. 219.</p>
+		<p>Bevor Sie mit dem Programmieren beginnen, legen Sie das äußere Design des Spiels fest. Auf dem Spielfeld, also dem Hintergrund&shy;bild, sollen sich zwei Raumgleiter bewegen. Als Steuerungs&shy;optionen stehen eine Links- bzw. eine Rechtsdrehung sowie das Beschleunigen der Raumschiffe zur Verfügung.</p>
+		<p>Ziel des Spiels ist es, den Gegner abzuschießen. Dazu können die Raumgleiter eine Rakete abschießen oder sich mit Lasersalven bekämpfen. Jeder Raumgleiter verfügt über eine Energiemenge, die er auf die Antriebs- und Schildsysteme verteilen kann. Wird ein Raumgleiter getroffen, verliert er dadurch Schildenergie. Dabei flackert der Schild kurz auf, was Sie durch ein zusätzliches Sprite realisieren.</p>
+		<figure class="floatright">
+			<img src="assets/199907_1.jpg" width="639" height="497" alt="DIE STARKE EMISSION von Partikeln verrät hier, daß Sie sich in der ersten Zeile des Hauptmenüs befinden.">
+			<figcaption><span>DIE STARKE EMISSION</span> von Partikeln verrät hier, daß Sie sich in der ersten Zeile des Hauptmenüs befinden.</figcaption>
+		</figure>
+		<p>Nach einem Treffer soll der Spieler seinen Raumgleiter für eine kurze Zeit nicht mehr steuern können. Bei schweren Treffern bekommt das Raumschiff außerdem einen Schwung um die eigenen Achse ab. Hat ein Treffer die Schildenergie vollständig aufgebraucht, wird das Raumschiff zerstört. Es bleibt noch kurz sichtbar, bis die Explosion das Sprite möglichst komplett verdeckt.</p>
+		<p>Wie Sie sehen, benötigen Sie eine ganze Reihe von Variablen, die die zeitliche Abfolge der Ereignisse steuern: Sie brauchen zum Beispiel Informationen darüber, wie lange ein Sprite noch sichtbar ist oder wann ein Raumschiff wieder schießen kann – ganz zu schweigen von den Status&shy;variablen für den Energie&shy;haushalt, die Richtung der einzelnen Schüsse, Position, Richtung und Geschwindig&shy;keit der Raumschiffe usw.</p>
+		<p>All diese Daten fassen Sie am besten in einem C++-Objekt zusammen, um sie vernünftig zu gliedern und den Code eleganter zu gestalten. Schauen Sie sich hierzu den Quelltext der <i>PLAYER</i>-Klasse genauer an. Nach der Definition dieser Klasse gilt es nun, Schritt für Schritt die gewünschten Funktionen zu implementieren.</p>
+	</section>
+
+	<aside>
+		<h2>ENTWICKLUNGSSTUFEN DES SPIELEPROJEKTS</h2>
+		<div>
+			<p><b>PC Magazin 5/99:</b><br>
+			• Entwicklung des Basissystems<br>
+			• DirectSound-Programmierung<br>
+			• Soundeffekt-Programmierung/Klangsynthese<br></p>
+			 <p><br><b>PC Magazin 6/99:</b><br>
+			• Sprite-Programmierung<br>
+			• Partikel- und Effektsystem<br></p>
+			<p><br><b>PC Magazin 7/99 (diese Ausgabe):</b><br>
+			• Algorithmen zur Kollisions&shy;abfrage von Sprites<br>
+			• Spielelogik und Computergegner<br>
+			• MIDI-Hintergrund&shy;musik<br>
+			• Spielegrafik und Highscore-Routinen</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Steuerbefehle</h2>
+		<p>Die Methode <i>Action()</i> enthält alle Aktionen zur Steuerung der Raumschiffe, die der Spieler durch Tastendrücke auslösen kann. Die Aktionen sind durchnumeriert und tragen symbolische Namen wie  <i>KUP, KLEFT</i> und <i>KRIGHT</i>, die für <i>Key up, Key left</i> und <i>Key right</i> stehen. Auch ein vom PC simulierter Gegenspieler sollte für die Lenkung der Raumgleiter auf die <i>Action</i>-Methode zurückgreifen. Dies spart doppelte Arbeit und vermeidet Fehler.</p>
+		<p>Die Methode <i>MoveAndDrawPlayer()</i> fragt die einzelnen Tasten ab. In dem Array  <i>keys[]</i> stehen dazu die Tastencodes für die Steuerung. Mit Hilfe definierter Indizes für dieses Array wie <i>KUP,KLEFT</i> und <i>KRIGHT</i> befragen Sie das vom Basissystem zur Verfügung gestellte Array <i>KeyStatus[]</i>, ob die entsprechende Taste gedrückt ist. Ist dies der Fall, wird die Arbeit einfach an die Routine <i>Action</i> weitergegeben.</p>
+		<p>Wie Sie die Raumschiffe mit der Tastatur steuern, zeigt Ihnen die Tabelle „Tastatur&shy;befehle zur Steuerung“ oben. Die Zuordnung der Tasten ändern Sie nach Belieben im Initialisierungs&shy;teil der Datei <i>gameplay.cpp</i>.</p>
+		<p>Die Drehung eines Raumschiffs um die eigenes Achse initiieren Sie beim Drücken der linken bzw. rechten Cursortaste, indem Sie die Richtungs&shy;variable <i>r</i> erhöhen oder erniedrigen:</p>
+		<pre><code>
+case KLEFT:
+	r++;
+	break;
+case KRIGHT:
+	r--;
+	break;
+		</code></pre>
+		<p>Mit der Blickrichtung aus <i>r</i> können Sie sowohl die Nummer des Sprites berechnen, das Sie zeichnen müssen, als auch – falls nötig – den Beschleuni&shy;gungsvektor ausrechnen. Die Division durch 32 kommt dadurch zustande, daß es für ein Raumschiff 64 Flugrichtungen gibt:</p>
+		<pre><code>
+bx = + cos(r / 32.0f * PI);
+by = - sin(r / 32.0f * PI);
+		</code></pre>
+		<p>Nun fehlt noch die Bewegung des Raumschiffs:</p>
+		<pre><code>
+// Richtungsvektor
+dx *= VERZOEGERUNG;
+dy *= VERZOEGERUNG;
+
+// Bewegung
+x += dx;
+y += dy;
+		</code></pre>
+		<p>Natürlich plazieren Sie beim Beschleunigen eines Raumschiffs auch Partikel auf dem Bildschirm und spielen einen Soundeffekt ab – aus Gründen der Übersicht&shy;lichkeit fehlt all dies in den abgedruckten Beispielen. Die fertige <i>Action</i> Methode in den Quellcodes auf der Heft-CD führt Ihnen auch diese zusätzlichen Spielereien vor.</p>
+	</section>
+
+	<section>
+		<h2>Waffensysteme</h2>
+		<p>Da Sie die Raumgleiter nun vollständig manövrieren können, bringen Sie ihnen als nächstes das Schießen bei. Wie bereits erwähnt, unterscheiden Sie dabei Laserschüsse und Raketen. Pro Raumgleiter soll immer nur maximal eine Rakete über den Bildschirm fliegen, um das Spiel übersichtlich zu halten. Diese Rakete fliegt dem gegnerischen Raumschiff hinterher, bis Sie es entweder getroffen haben oder der Treibstoff der Rakete verbraucht ist.</p>
+		<p>Für die Rakete bietet sich eine eigene Klasse an, wir haben sie  <i>Missile</i> genannt. Der interessante Abschnitt der Raketenklasse ist der Steuerungsteil <i>HandleMissile()</i>, der die Rakete zum gegnerischen Raumschiff steuert.</p>
+		<p>Prinzipiell erfährt die Rakete immer eine Beschleunigung in Richtung des Gegners:</p>
+		<pre><code>
+// Richtungsvektor zum Zielraumgleiter
+zx = player[ziel]->x - x;
+zy = player[ziel]->y - y;
+
+// Vektor normalisieren
+laenge=sqrt(zx * zx + zy * zy);
+
+if (laenge &gt; 0)
+{
+	zx /= laenge;
+	zy /= laenge;
+}
+
+dx *= VERZOEGERUNG;
+dy *= VERZOEGERUNG;
+dx += zx;
+dy += zy;
+x += dx;
+y += dy;
+		</code></pre>
+		<p>Die Richtungs&shy;nummer und damit die Nummer des Sprites berechnen Sie mit Hilfe des Arcustangens:</p>
+		<pre><code>
+r = 64 - 31 * atan2(dy,dx) / PI;
+		</code></pre>
+		<p>Die Laserschüsse, von denen eine ganze Menge auf dem Bildschirm herumschwirren können, verwalten Sie innerhalb des <i>PLAYER</i>-Objekts. Ihre Bewegung und das Verwalten der freien Einträge in der <i>lasershot</i>-Liste programmieren Sie genauso, wie Sie es von den Partikel&shy;routinen der letzten Ausgabe her kennen. Der einzige Unterschied ist, daß Sie ein Sprite abhängig von der Nummer der Flugrichtung zeichnen, die sich dann aber im späteren Verlauf nicht mehr ändert.</p>
+	</section>
+
+	<aside>
+		<h2>TASTATURBEFEHLE ZUR STEUERUNG</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Aktion</th><th>Spieler 1</th><th>Spieler 2</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>Linksdrehung</td><td><i>[Cursor links]</i></td><td><i>D</i></td></tr>
+					<tr><td>Rechtsdrehung</td><td><i>[Cursor rechts]</i></td><td><i>G</i></td></tr>
+					<tr><td>Beschleunigen</td><td><i>[Cursor auf]</i></td><td><i>R</i></td></tr>
+					<tr><td>Laserschuß</td><td><i>[Leertaste]</i></td><td><i>W</i></td></tr>
+					<tr><td>Raketenabschuß</td><td><i>[Enter]</i></td><td><i>S</i></td></tr>
+					<tr><td>Energieverteilung</td><td><i>[Bild auf]/[Bild ab]</i></td><td><i>Q/A</i></td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Spielablauf</h2>
+		<p>Um die einzelnen Objekte wie Raumschiffe und Raketen leicht zu handhaben, schreiben Sie dafür eigene Verwaltungs&shy;routinen in der Datei <i>gameplay.cpp</i>. Zuerst initialisieren Sie in <i>void InitGame(...)</i> das Soundsystem, laden die Sounds und Sprites und legen Instanzen der Objekte an.</p>
+		<figure class="floatright">
+			<img src="assets/199907_2.png" width="640" height="480" alt="DIE BESTENLISTE ERSCHEINT nach zehn ereignislosen Sekunden automatisch und besitzt eine eingebaute Demofunktion.">
+			<figcaption><span>DIE BESTENLISTE ERSCHEINT</span> nach zehn ereignislosen Sekunden automatisch und besitzt eine eingebaute Demofunktion.</figcaption>
+		</figure>
+		<p>Das Herzstück dieser Datei ist die Funktion <i>HandleAndDrawGame()</i>, in der Sie den Spielablauf festlegen. Bevor nun eine genaue Beschreibung dieser Routine folgt, sollten Sie sich noch eines kleinen Problems bewußt werden: Aufgrund verschiedener Einflüsse läuft ein Programm nicht immer gleichmäßig schnell ab. Deswegen ist die Zeitspanne, die von der Berechnung eines Bilds zur Berechnung des nächsten vergeht, nicht immer konstant.</p>
+		<p>Diese Unregel&shy;mäßigkeit sollten Sie natürlich bei der Berechnung der Beschleuni&shy;gungen, Bewegungen und dem Ablauf von zeitlichen Werten wie der Lebensdauer einer Rakete berück&shy;sichtigen. Darum berechnen Sie für die Zeitkorrektur einen Faktor aus der aktuellen Zeit, dem Zeitpunkt des letzten Durchlaufs der Routinen und einer bestimmten Bildrate:</p>
+		<pre><code>
+neue_zeit = GetDemoTime();
+faktor = (neue_zeit - alte_zeit) / 20.0f;
+alte_zeit = neue_zeit;
+		</code></pre>
+		<p>Dann rufen Sie für jedes Raumschiff die Methode  <i>MoveAndDrawPlayer()</i> auf, die die Tastatur&shy;steuerung, die Bewegung und das Zeichnen der Sprites enthält. Anschließend berechnet diese Routine die neuen Positionen der Laserschüsse und zeichnet sie auf das Spielfeld.</p>
+		<p>Für jeden Laserschuß überprüft die Routine außerdem, ob eine Kollision mit einem der Raumschiffe vorliegt. Ist dies der Fall, teilt sie es dem <i>Raumschiff(PLAYER)</i>-Objekt über den Aufruf <i>HitMe(int damage)</i> mit. Diese Routine verringert die Schildenergie des Raumgleiters und veranlaßt bei Bedarf eine Explosion des Raumschiffs. Bei einem Zusammenstoß der beiden Raumschiffe prallen diese voneinander ab, indem sie einfach die jeweiligen Richtungs&shy;vektoren <i>dx</i> und <i>dy</i> der Schiffe ändern.</p>
+		<p>Die Kollisions&shy;abfragen in diesem Spiel verlassen sich auf eine reine Abstands&shy;berechnung – das reicht für die verwendeten Objekte völlig aus und ist leicht zu implementieren. Alle Kollisionen halten Sie in einer Liste fest, um dann am Ende der <i>HandleAndDrawGame()</i>-Routine die entsprechenden Klänge abzuspielen. Hier ein Auszug:</p>
+		<pre><code>
+int NumCollision = 0;
+int Collision[MAXCOLLISION];
+
+// Lasertreffer
+Collision[++NumCollision] = CLASER;
+// Crash der Raumschiffe
+Collision[++NumCollision] = CPLAYER1 | CPLAYER2;
+...
+// Abspielen der Sounds
+while(NumCollision >= 0)
+{
+	int c = Collision[NumCollision--];
+	if(c == (CPLAYER1 | CPLAYER2))
+	{
+		SoundSys->PlaySound(sCrash);
+	}
+	if(c & CLASER)
+	{
+		SoundSys->PlaySound(sHit);
+	}
+}
+		</code></pre>
+		<p>Für die grafischen Explosions- und Raucheffekte setzen Sie das Partikelsystem ein, das Sie in der letzten Ausgabe entwickelt haben – Sie finden es auch im Quelltext auf dieser Heft-CD. Immer wenn ein Laserstrahl auf den Schutzschild eines Raumschiffs trifft, eine Rakete detoniert – sei es durch einen Treffer oder durch den Ablauf ihrer Lebensdauer – oder ein Raumschiff anderweitig Schaden nimmt, setzen Sie an der entsprechenden Stelle Explosions&shy;partikel frei. Beim Bewegen einer Rakete oder dem Zünden eines Raum&shy;gleiter&shy;triebwerks stoßen Sie Rauchpartikel aus.</p>
+		<p>Bevor Sie die Methode <i>HandleAndDrawGame()</i> beenden, stellen Sie noch die verschiedenen Energie&shy;vorräte der Raumgleiter als Balkengrafiken dar. Danach übernimmt wieder das Hauptprogramm die Kontrolle und kann seinerseits das Partikel&shy;system und andere Routinen aufrufen.</p>
+	</section>
+
+	<section>
+		<h2>Gravitationskräfte</h2>
+		<figure class="floatright">
+			<img src="assets/199907_3.png" width="360" height="300" alt="KOMMT EIN RAUMSCHIFF dem Planeten zu nahe, zerschellt es in einem großen Feuerball an der Oberfläche.">
+			<figcaption><span>KOMMT EIN RAUMSCHIFF</span> dem Planeten zu nahe, zerschellt es in einem großen Feuerball an der Oberfläche.</figcaption>
+		</figure>
+		<p>Da unser Spiel <i>Gravity Wars</i> heißt, sollte auch die Anziehungs&shy;kraft eine wichtige Rolle darin spielen. Deshalb plazieren Sie einen großen Planeten in der Mitte des Spielfelds, der sowohl Raumschiffe als auch Raketen anzieht. Sie sollten mit seiner Oberfläche nicht in Berührung kommen, da das Raumschiff sonst daran zerschellt.</p>
+		<p>Die Berück&shy;sichtigung dieser Anziehungs&shy;kraft im Spiel ist denkbar einfach: Die Gravitation ist nichts anderes als eine zusätzliche Beschleunigung des Raumgleiters bzw. der Rakete in Richtung der Bildschirm&shy;mitte, wo sich der Planet befindet:</p>
+		<pre><code>
+// Richtungsvektor zur Bildschirmmitte
+gx = (SCREEN_X / 2) - px;
+gy = (SCREEN_Y / 2) - py;
+
+distanz = sqrt(gx * gx + gy * gy);
+
+if(distanz > 0) {
+	gx /= distanz;
+	gy /= distanz;
+}
+dx += gx * ANZIEHUNGSKRAFT;
+dy += gy * ANZIEHUNGSKRAFT;
+		</code></pre>
+		<p>Das ist schon alles, was Sie für diese Spielvariante, die Sie im Hauptmenü des Spiels auswählen können, hinzufügen müssen. Die Gravitation wirkt natürlich nur auf die Raumschiffe und die Rakete. Wären auch die Laserstrahlen betroffen, hätten Sie es mit einem sogenannten „Schwarzen Loch“ zu tun, und dem sollten Sie bekanntermaßen möglichst fernbleiben.</p>
+	</section>
+
+	<section>
+		<h2>Computergegner</h2>
+		<p>Jetzt haben Sie ein nettes Ballerspiel für zwei Personen geschrieben. Aber was, wenn gerade niemand gegen Sie antreten möchte? Als Ersatz erschaffen Sie deshalb einen Computergegner.</p>
+		<p>Nun gibt es 1001 Möglichkeiten, einen Computergegner zu programmieren. Zum leichten Einstieg sollten Sie die Anforderungen jedoch nicht allzu hoch ansetzen. Gute Computergegner verlangen sehr viel theoretisches Wissen und Programmier&shy;kenntnis.</p>
+		<p>Wenn Sie das Spiel im Zweispieler-Modus ausprobieren, werden Sie einen gewaltigen Unterschied zwischen dem Spiel mit und ohne Gravitation feststellen. Die Anforderungen an den Computergegner sind für beide Spielarten sehr unter&shy;schiedlich: Beim Spiel ohne Gravitations&shy;feld reicht es aus, wenn sich der Gegner ständig bewegt und auf Sie – den Spieler – schießt.</p>
+		<p>Für das Spiel mit Gravitation ist es zwar auch entscheidend, den Gegner zu treffen – viel wichtiger ist es aber, sich von dem Planeten fernzuhalten. Die nötigen Daten des künstlichen Spielers definieren Sie als Struktur in der <i>PLAYER</i> Klasse:</p>
+		<pre><code>
+typedef struct {
+	// Ziel des CPU-Players
+	float x;
+	float y;
+	float r; // Ruhe-Radius
+	int Angriff; // Angriff?
+	int isCpuPlayer; // Pointer auf den Gegner
+	PLAYER * enemy;
+} CpuPlayerData;
+		</code></pre>
+		<p>Zunächst zum Spiel ohne Gravitation. Eine sehr einfache, aber effektive Strategie für den Computer ist es, seine Aktionen in zwei Phasen aufzuteilen:<br>
+		• In der Bewegungsphase manövriert er sein Raumschiff und ist daher eher defensiv.<br>
+		• Benutzt er hingegen seine Laserkanone, befindet er sich in der Angriffsphase.<br>
+		In diesem Fall ist das Status-Flag <i>Angriff</i> gesetzt. Die Variable <i>IsCpuPlayer</i> zeigt an, ob die betreffende Instanz eines Raumschiffs überhaupt vom Computer gelenkt werden soll.</p>
+	</section>
+
+	<section>
+		<h2>Bewegungsphase</h2>
+		<p>In der Bewegungsphase soll der Computergegner eine Position im Raum anfliegen. Da die Steuerung auch für den Computer schwer zu kontrollieren ist, definieren Sie einen Kreis als „sichere Position“ für den Computer. Dafür geben Sie mit <i>x</i> und <i>y</i> den Mittelpunkt eines Kreises an, <i>r</i> definiert dessen Radius. Solange der Computergegner nicht im Radius war, versucht er, durch Lenkbewegungen in diesen Kreis zu gelangen.</p>
+		<p>Die Methode</p>
+		<pre><code>
+float CpuPlayerTargetTo(float xx, float yy, int steer)
+		</code></pre>
+		<p>enthält die Hauptlogik zum Zielen und Lenken. In den Parametern <i>xx</i> und <i>yy</i> teilen Sie dieser Routine eine beliebige Position im Raum mit. Ist der Parameter <i>steer</i> gesetzt ( <i>steer = 1</i> ), probiert der Computergegner durch Auslösen der Düsen links und rechts, sich auf diese Position auszurichten.</p>
+		<p>Möchten Sie dagegen nur den Winkel zur Zielposition berechnen, rufen Sie die Routine mit ungesetztem <i>steer</i>-Flag auf ( <i>steer = 0</i> ). Diese Zusatzfunktion nutzen Sie später, um zu entscheiden, ob ein Schuß mit dem Laser sinnvoll ist oder nicht.</p>
+		<p>Die Implementierung der Methode selbst ist wenig spektakulär. Sie berechnet mit der trigono&shy;metrischen Funktion <i>atan2</i> den Winkel und ruft je nach Ausrichtung zum Ziel die <i>Action</i>-Methode auf. Hierbei zahlt sich ein etwas erhöhter Aufwand aus, um die schnellste Lenkbewegung zu ermitteln.</p>
+		<p>Sorgen Sie auch für einen fließenden Übergang zwischen 0° und 360°. Den sogenannten Wrap Around an dieser Stelle fangen Sie ab und behandeln ihn gesondert. Dann können Sie endlich Gas geben:</p>
+		<pre><code>
+// Winkel messen und
+// Ausrichten:
+float d = CpuPlayerTargetTo(cpu.x, cpu.y, 1);
+
+// Falls nicht zu schnell und Winkel ungefähr stimmt,
+// etwas Schubkraft geben
+if((d &lt; 10) &amp;&amp; (speed &lt; 3.0))
+	Action(KUP);
+		</code></pre>
+		<p>Einfach, aber effektiv. Diese beiden Zeilen bringen den Gegner sicher an sein Ziel. Sobald der Computer&shy;spieler sein Ziel erreicht hat, geht er in die nächste Phase, den Angriff, über.</p>
+	</section>
+
+	<section>
+		<h2>Angriffsphase</h2>
+		<p>In dieser Phase gilt es, sich auf den Gegner zu konzentrieren und ihn mit Laserschüssen zu beschäftigen. Dazu dient die bereits entwickelte Routine <i>CpuPlayerTargetTo</i>. Damit der Computer&shy;spieler ein nicht allzu leichtes Ziel abgibt, achten Sie zusätzlich darauf, daß er nicht immer an einer Stelle steht.</p>
+		<p>Wird sein Raumschiff zu langsam, gibt der Computer einfach etwas Schubkraft. Der Code hierzu ist dem der ersten Phase sehr ähnlich:</p>
+		<pre><code>
+CpuPlayerTargetTo(cpu.enemy->x, cpu.enemy->y,1);
+if(speed &lt; 0.4) Action (KUP);
+		</code></pre>
+		<p>Sobald der Gegner seinen Bereich verläßt, sucht er sich per Zufall eine neue Position, und das Spiel beginnt von vorne. Dies kann zum Beispiel nach einer Kollision mit dem Gegner oder einer Rakete nötig sein.</p>
+	</section>
+
+	<aside>
+		<h2>INDIVIDUELLE GRAFIKEN UND HINTERGRUNDMUSIK</h2>
+		<div>
+			<p>Wollen Sie eigene Grafiken in das Spiel einbauen, sollten Sie diese in Größe und Proportion an den vorhandenen orientieren. Die Dateien für die Sprites liegen im Verzeichnis des Sprite-Generators:</p>
+			<table>
+				<tbody>
+					<tr><td><i>laser.bmp</i></td><td>Laserschuß</td></tr>
+					<tr><td><i>rocket.bmp</i></td><td>Rakete</td></tr>
+					<tr><td><i>shipx00.bmp</i></td><td>Raumschiff x (x = 1 oder 2)</td></tr>
+					<tr><td><i>shipx01.bmp</i></td><td>Raumschiff x mit Laserkanonen</td></tr>
+					<tr><td><i>shipx10.bmp</i></td><td>Raumschiff x mit aktivem Triebwerk</td></tr>
+					<tr><td><i>shipx11.bmp</i></td><td>Raumschiff x mit aktivem Triebwerk und Laserkanonen</td></tr>
+					<tr><td><i>shipxs1.bmp</i></td><td>Raumschiff x mit sichtbarem Schutzschild</td></tr>
+				</tbody>
+			</table>
+			<p>Die Dateien, auf die das Spiel letztendlich zugreift, befinden sich im Unter&shy;verzeichnis <i>data</i>:</p>
+			<table>
+				<tbody>
+					<tr><td><i>back1.bmp</i></td><td>Hintergrundbild mit Planet</td></tr>
+					<tr><td><i>back2.bmp</i></td><td>Hintergrundbild ohne Planet</td></tr>
+					<tr><td><i>titelbild.bmp</i></td><td>Bild des Hauptmenüs</td></tr>
+					<tr><td><i>*.dat</i></td><td>aus den Sprites generierte Daten</td></tr>
+				</tbody>
+			</table>
+			<p>Auch die MIDI-Datei für die Hintergrund&shy;musik können Sie ganz einfach austauschen. Es handelt sich hierbei um eine ganz normale Standard-MIDI-Datei. Das Internet ist eine gute Quelle für solche Musikstücke. Die MIDI-Datei <i>gravity.mid</i> hat der Demomusiker DOJ exklusiv für dieses Spiel komponiert. DOJ heißt eigentlich Dirk (derartige Fantasienamen, auch Handles genannt, sind in der Demoszene üblich) und ist Mitglied der Demogruppe Cubic&amp;Seen, der auch die beiden Autoren dieses Beitrags angehören.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Allgemeine Aktionen</h2>
+		<figure class="floatright">
+			<img src="assets/199907_4.jpg" width="360" height="300" alt="DIE RAKETEN RICHTEN ihre Flugbahn immer wieder neu auf das gegnerische Raumschiff aus.">
+			<figcaption><span>DIE RAKETEN RICHTEN</span> ihre Flugbahn immer wieder neu auf das gegnerische Raumschiff aus.</figcaption>
+		</figure>
+		<p>Unabhängig von den Bewegungs- und Angriffsphasen des Computers behandeln Sie den Abschuß einer Rakete und das Verteilen der Energie auf Lenkung und Schildsysteme. Diese beiden Aktionen werden immer ausgeführt. Bei der Verteilung des Energie&shy;haushalts legt der virtuelle Gegner Priorität auf seine Schildenergie. Die Lenkenergie soll immer nur gerade dazu ausreichen, das Schiff zu bewegen:</p>
+		<pre><code>
+if(thrustenergy > 20)
+	Action(KPOW1);
+else
+	Action(KPOW2);
+		</code></pre>
+		<p>Die Logik für den Raketenabschuß ist auch nicht viel komplizierter. Hierzu messen Sie erneut den Winkel zum Gegner. Ist dieser klein genug, schießen Sie eine Rakete ab. Da das Spielfeld quasi unendlich ist, kann eine Rakete den Gegner auch über die Bande des Spielfelds treffen.</p>
+		<p>Bedenken Sie, daß die Richtungs&shy;angaben der <i>PLAYER</i>-Klasse von 0 bis 64 definiert sind. Im Vergleich <span class="code">(fabs(d-32)&lt;2.0)</span> subtrahieren Sie vom Ausrichtungs&shy;winkel <i>d</i> den Wert 32 (entspricht 180°) und bilden den Absolutwert. Ist dieser klein genug, besteht die Chance auf einen Treffer. Die Methode <i>Action</i> löst dann den Schuß aus. Dies geschieht allerdings ganz willkürlich. Sobald die Geschwindig&shy;keit den willkürlich festgelegten Wert von 4.0 überschreitet, wird geschossen. Dies passiert in der Regel dann, wenn das Gefecht im vollen Gange ist und das Spielfeld so chaotisch aussieht, daß die Rakete unentdeckt ihren Weg zum Ziel findet.</p>
+		<pre><code>
+// Winkel zum Feind messen
+float d=CpuPlayerTargetTo(cpu.enemy->x, cpu.enemy->y, 0);
+
+// Lohnt Laser-Schuß?
+// eventuell über Bande?
+if((d &lt; 6.0) ||
+	(fabs(d - 32) &lt; 2.0))
+	Action(KFIRE1);
+
+// Rakete abschießen
+if(speed > 4.0)
+	Action(KFIRE2);
+		</code></pre>
+		<p>Für das Spiel mit Gravitation ist, wie bereits erwähnt, eine etwas andere Strategie sinnvoll. Der Gegner versucht hierbei immer, einen Sicherheits&shy;abstand zum Planeten zu erreichen. Dazu ermitteln Sie ständig den Abstand und die Ausrichtung zum Planeten und berechnen in jedem Aufruf eine neue Position. Die neue Zielposition ist dabei immer etwas weiter vom Planeten entfernt. Damit der Gegner seine Position dennoch wechselt, addieren Sie einen kleinen Zufallswert.</p>
+		<p>Ist der Abstand zum Planeten groß genug, wechseln Sie in den Angriffsmodus. Den Quellcode der gesamten Computer&shy;steuerung finden Sie in der Methode <i>CpuKeyControl()</i> der Klasse <i>PLAYER</i>.</p>
+		<p>Auch wenn die Strategie des Computer&shy;spielers sehr einfach wirkt, ist sie dennoch äußerst effektiv. Ein Spiel gegen den computer&shy;generierten Astronauten macht wirklich Spaß.</p>
+		<p>Sie können auch eigene Ideen in den Code einfügen, um einen anspruchs&shy;volleren Gegner zu programmieren. Senden Sie uns ruhig Ihre Verbesserungen an: <span class="code">praxis@pc-magazin.de</span> Wir sind gespannt auf Ihre Einfälle.</p>
+	</section>
+
+	<section>
+		<h2>Bestenliste</h2>
+		<p>Was wäre ein Ballerspiel ohne eine Bestenliste (englisch Highscore)? Auch bei <i>Gravity Wars</i> darf diese nicht fehlen. Einen Spieler bewerten Sie einfach daran, wie schnell er seinen Gegner bezwingt. Das hängt natürlich auch von der Stärke des Gegenübers ab, erspart aber eine aufwendigere Punkterechnung.</p>
+		<p>Bei jedem Spiel messen Sie die Zeit. Wer das Spiel überlebt, darf sich – falls er schnell genug war – in die Highscore-Liste eintragen. Die Implementierung einer solchen Bestenliste ist relativ leicht. Sie finden den gesamten Code in der Datei <i>main.cpp</i>. Interessant ist es jedoch, die Anzeige der Highscore-Tabelle mit einem Demomodus zu kombinieren.</p>
+		<p>Wenn Sie im Hauptmenü des Spiels für etwa zehn Sekunden keine Taste drücken, beginnen zwei Computergegner ein Duell gegeneinander. Auf diesem bewegten Hintergrund stellen Sie die Highscore-Tabelle dar. Dazu benutzen Sie am besten die in den voran&shy;gegangenen Artikeln entwickelte Font-Klasse. Sie eignet sich hervorragend, um schnell und einfach Ausgaben auf den Bildschirm zu bringen.</p>
+		<p>Im übrigen steuern Sie das gesamte Programm per Tastatur. Im Hauptmenü gehen Sie mit den Tasten <i>[Cursor auf]</i> und  <i>[Cursor ab]</i> zum gewünschten Menüpunkt. Die aktuelle Position erkennen Sie dabei nicht etwa an einem Rollbalken, sondern an starker Flammen&shy;aktivität. Die Auswahl erfolgt dann mit der <i>[Enter]</i>-Taste.</p>
+	</section>
+
+	<section>
+		<h2>Musik liegt in der Luft</h2>
+		<p>Musik ist ein häufig unterschätzter Bestandteil guter Computerspiele. Viele Spiele sind gerade wegen ihrer guten Musik noch heute bekannt. Computer&shy;veteranen erinnern sich vielleicht noch an den Spiele&shy;klassiker <i>Turrican</i> vom C64 und Amiga.</p>
+		<p>Die Bibliotheken, mit denen Sie bisher in PC Underground Moduldateien ( <i>*.mod</i> und <i>*.xm</i> ) abgespielt haben, vertragen sich leider nicht mit dem Spiele-Soundsystem. Daher beschreiten Sie einen anderen Weg, und zwar mit den leider etwas aus der Mode gekommenen MIDI-Dateien.</p>
+		<p>Die Multimedia-API von Windows bietet einen erstaunlichen Komfort beim Abspielen solcher Musikstücke. Zunächst öffnen Sie eine MIDI-Datei über die Multimedia-API:</p>
+		<pre><code>
+MCI_OPEN_PARMS mciOpenParms;
+DWORD dwReturn;
+
+mciOpenParms.lpstrDeviceType = “sequencer“;
+mciOpenParms.lpstrElementName = “gravity.mid“
+
+if(dwReturn=mciSendCommand(
+	NULL,MCI_OPEN,
+	MCI_OPEN_TYPE |
+	MCI_OPEN_ELEMENT,
+	(DWORD)(LPVOID)
+	&amp;mciOpenParms)) return(0);
+		</code></pre>
+		<p>Sequencer ist der Name für den Windows-eigenen MIDI-Mapper. Beim Aufruf des obigen Codes liest Windows die MIDI-Datei <i>gravity.mid</i> ein und analysiert, welches der installierten MIDI-Geräte zum Abspielen am besten geeignet ist. In der Regel ist das der Synthesizer-Chip auf Ihrer Soundkarte.</p>
+		<p>Die MIDI-Datei ist nun geladen und muß nur noch gestartet werden. Sie verzichten darauf, sich Nachrichten über den aktuellen Zustand des Playbacks schicken zu lassen. Diese belasten das System zwar nur gering, sind jedoch für den Spielfluß uninteressant.</p>
+		<pre><code>
+MCI_PLAY_PARMS mciPlayParms;
+DWORD dwReturn;
+
+mciPlayParms.dwCallback = NULL;
+if(dwReturn = mciSendCommand(
+	mciOpenParms.wDeviceID,
+	MCI_PLAY,MCI_NOTIFY,
+	(DWORD)(LPVOID)
+	&amp;mciPlayParms))
+{
+	mciSendCommand(
+		mciOpenParms.wDeviceID,
+		MCI_CLOSE, 0, NULL);
+	return(0);
+}
+		</code></pre>
+		<p>Wenn alles geklappt hat, sollte jetzt Musik aus Ihrer Soundkarte tönen. Die Musik&shy;wiedergabe endet automatisch, sobald Sie das Programm verlassen.</p>
+		<p>Soviel zunächst zur Spiele&shy;programmierung. In der nächsten Ausgabe berichten wir unter anderem über ein elektronisches Magazin aus der Demo-Szene und stellen Ihnen verschiedene Effekte in Logos vor.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein / Burkhard Müller</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199906.html">6/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199908.html">8/1999</a>
+	</nav>
+</body>

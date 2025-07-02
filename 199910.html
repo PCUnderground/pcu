@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Welten aus Lichststrahlen (PC Underground, PC Magazin 10/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;10/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199909.html">9/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199912.html">12/1999</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/98</h2>
+		<h1><span class="highlight">Welten</span> aus Lichtstrahlen</h1>
+		<p class="summary">Praktisch alle Rendering-Pakete arbeiten mit Raytracing, also mit Lichtstrahlen&shy;verfolgung. Mit etwas Mathematik folgen Sie einem Lichtstrahl bis zur 20. Spiegelung.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Raytracing berechnet eindrucksvolle Bilder einer mathematischen Welt. Diese künstliche Welt basiert auf der Idee, einen Lichtstrahl zurückzu&shy;verfolgen, der eine imaginäre Kamera erreicht.</p>
+		<p>Die Lichtstrahlen können zum Beispiel auf Objekte treffen, deren Material Licht absorbiert, reflektiert bzw. teilweise oder ganz hindurchläßt. Andere Materialien wiederum kombinieren beliebige dieser Eigenschaften.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Prinzip des rekursiven Raytracing</h2>
+		<p>Stellen Sie sich vor, daß ein Strahl, den Sie zurück&shy;verfolgen, sich eventuell an einer Oberfläche teilt. Da ein Teil seines Lichts absorbiert, ein anderer Teil reflektiert wird, liegt es nahe, Raytracing rekursiv zu berechnen, also eine Berechnung zu wählen, die sich selbst wieder aufruft. Das Problem, festzustellen, an welcher Oberfläche der Lichtstrahl auftrifft, hört sich unbedeutend an, ist aber der rechen&shy;intensivste Teil der Raytracing-Methode.</p>
+		<figure class="floatleft">
+			<img src="assets/199910_1.jpg" width="319" height="238" alt="DAS LICHT, das Sie durch einen Pixel Ihres Monitors sehen, stellen Sie sich als Primärstrahl vor.">
+			<figcaption><span>DAS LICHT</span>, das Sie durch einen Pixel Ihres Monitors sehen, stellen Sie sich als Primärstrahl vor.</figcaption>
+		</figure>
+		<p>Wie sich Strahlen aufteilen können, sehen Sie in einer Aufsicht auf drei Kugeln. Der graue Primärstrahl fällt auf die Szene, blau reflektieren die Sekundär&shy;strahlen. Rot symbolisierte Strahlen entstehen durch Lichtbrechung und Transparenz.</p>
+		<p>Die grün einge&shy;zeichneten Vektoren sind die Oberflächen&shy;normalen: Diese kennzeichnen jeweils den Vektor, der senkrecht auf einem Punkt der Oberfläche steht. Mit den Normalen berechnen Sie später die Beleuchtung. Die gepunkteten Linien heißen Schatten&shy;strahlen.</p>
+		<p>Da die Berechnung rekursiv erfolgt, sich also selbst wieder aufruft, unterscheiden Sie verschiedene Rekursions&shy;tiefen. Diese verwenden Sie hauptsächlich, um die Berechnungen an einer bestimmten Tiefe abzubrechen. Stellen Sie sich vor, Sie verfolgen einen Lichtstrahl, der zwischen zwei perfekten Spiegeln hin- und herreflektiert wird. Die Berechnungs&shy;routine würde sich immer wieder selbst aufrufen und nie stoppen.</p>
+		<p>Darum legen Sie bei Raytracing eine maximale Rekursions&shy;tiefe fest: Sie verfolgen einen Lichtstrahl nur bis zu einer bestimmten, festgelegten Spiegelung. Die Berechnungs&shy;routine veran&shy;schaulicht der Pseudocode <i>raytrace.rechne</i> (Listing 1).</p>
+	</section>
+
+	<section>
+		<h2>Mathematische Grundlagen</h2>
+		<p>Mathematische Grundlagen führen tiefer in das Thema hinein. Punkte im drei&shy;dimensionalen Raum geben Sie durch Ihre <i>x-, y-</i> und <i>z</i>-Komponenten an. Den Vektor <i>x⃗</i> beschreiben Sie also mit <span class="code">x⃗ = (x1, x2, x3)</span> Mit einem Vektor bestimmen Sie einen Ort (Ortsvektor) oder legen eine Richtung fest. Aus einem Startpunkt <i>s⃗</i> und einer Richtung <i>r⃗</i> definieren Sie mit <i>t</i> als reeller Zahl eine Gerade eindeutig im Raum: <span class="code">x⃗ = s⃗ + r * r⃗</span> Wenn zusätzlich <span class="code">t > 0</span> gilt, handelt es sich um eine Halbgerade, also um den Teil der Geraden, der vom Antragspunkt aus dem Richtungs&shy;vektor folgt. Diese Rechnungen operieren mit Vektoraddition und Subtraktion:
+		<span class="code">x⃗ + y⃗ = (x1 + y1, x2 + y2, x3 + y3)</span>
+		<span class="code">x⃗ - y⃗ = (x1 - y1, x2 - y2, x3 - y3)</span>
+		Für weitere Berechnungen benötigen Sie den Betrag eines Vektors, also seine Länge. Diese berechnen Sie mit der drei&shy;dimensionalen Variante nach Pythagoras:
+		<span class="code">|x⃗| = sqrt(x1 * x1 + x2 * x2 + x3 * x3)</span>
+		Zusätzlich benötigen Sie das Skalarprodukt, wofür Sie das Zeichen <i>*</i> definieren:
+		<span class="code">x⃗ * y⃗ = x1 * y1 + x2 * y2 + x3 * y3</span>
+		Sie erhalten also aus zwei Vektoren eine reelle Zahl. Das Skalarprodukt bringt noch weitere Eigenschaften mit:
+		<span class="code">x⃗ * y⃗ = |x⃗| * |y⃗| * cos(phi)</span>
+		<i>phi</i> stellt dabei den Winkel zwischen den beiden Vektoren dar. Mit dem Skalarprodukt berechnen Sie auch die Beleuchtung.</p>
+		<p>Die letzte Vektor&shy;operation ist das Vektor- oder Kreuzprodukt. Wenn Sie zwei Vektoren mit dem Vektorprodukt verknüpfen, erhalten Sie einen dritten Vektor, der senkrecht auf der von den zwei Vektoren aufgespannten Ebene steht. Es gilt:
+		<span class="code">x⃗ X y⃗ = (x2*y3-x3*y2, x3*y1-x1*y3, x1*y2-x2*y1)</span></p>
+		<p>Eine weitere Grundlage für dieses Raytracer-Projekt ist die Matrizen&shy;rechnung. Stark vereinfacht können Sie eine Matrix als einen Kasten voller Zahlen bezeichnen, der verknüpft mit einem Vektor eine geometrische Transformation darstellt. Solche Transform&shy;ationen können zum Beispiel Drehungen, Verschiebungen oder Skalierungen sein.</p>
+		<p>Durch Multiplikation zweier Matrizen erhalten Sie eine neue Matrix, die die beiden Transforma&shy;tionen der Ausgangs&shy;matrizen enthält. Dabei ist die Reihenfolge natürlich entscheidend, denn es macht einen Unterschied, ob Sie einen Vektor zuerst drehen und dann verschieben – oder umgekehrt.</p>
+		<p>An dieser Stelle konzentrieren Sie sich lediglich auf die Anwendung von Matrizen. Im Sourcecode des Raytracers finden Sie alle entsprechenden Routinen, die Sie zur Matrizen&shy;rechnung benötigen. Wenn Sie eine Matrix einfach als Transformation ansehen, können Sie diese Routinen verwenden, ohne sich länger mit der Theorie beschäftigen zu müssen.</p>
+	</section>
+
+	<section>
+		<h2>Das Kameramodell</h2>
+		<p>Die virtuelle Kamera ist eine erste Anwendung der Matrizen&shy;rechnung. Für die einfachere Berechnung der Primärstrahlen soll die Kamera immer auf der negativen <i>z</i> -Achse des Koordinaten&shy;systems liegen. Da sie aber frei positionierbar sein soll, müssen sich die anderen Objekte in der mathematischen Welt entsprechend bewegen.</p>
+		<p>Sie bewegen und drehen die mathematische Welt also so, daß die Kamera auf der <i>z</i> -Achse steht. Die Berechnungs&shy;schritte dazu finden Sie in der Routine <i>rtcamera.cpp</i> auf der Heft-CD in der Funktion ab Zeile 314:</p>
+		<pre><code>
+RTCamera :: BuildMatrix()
+		</code></pre>
+		<p>Wenn Sie eine Kamera durch eine Position und einen Punkt, auf den Sie zeigt, festgelegt haben, arbeiten Sie drei Schritte ab:<br>
+		• Sie berechnen die Verschiebungs&shy;matrix, damit der Zielpunkt in den Ursprung „rutscht“.<br>
+		• Sie berechnen die Drehungsmatrix, um den Startpunkt auf die <i>z</i>-Achse zu rotieren, wobei Sie um den Zielpunkt drehen.<br>
+		• Sie multiplizieren die Matrizen.</p>
+		<p>Das Resultat transformiert alle in der mathematischen Welt vorhandenen Ortsangaben, also die Ortsvektoren.</p>
+		<p>Alle Ortsangaben beziehen sich nun auf die neue mathematische Kameraposition. Diese befindet sich auf einem beliebigen Punkt wie <i>(0,0,-z)</i> und blickt in Richtung des Ursprungs <i>(0,0,0)</i>.</p>
+		<p>Mit diesem Wissen und einem gegebenen Öffnungswinkel der Sichtpyramide berechnen Sie die Primärstrahlen:</p>
+		<pre><code>
+float Breite = tan(OeffnungswinkelHorizontal);
+float Hoehe = tan(OeffnungswinkelVertikal);
+for(y = 0; y &lt; Zeilen; y++)
+	for(x = 0; x &lt; Spalten; x++)
+	{
+		PixPos.x = ( 2 * x /
+			Bildschirmbreite - 1) * Breite * (-z)
+		PixPos.y = (2 * y /
+			Bildschirmhoehe - 1) * Hoehe * (-z)
+		PixPos.z = 0;
+		Ray = PixPos - (0, 0, -z)
+		Pixel(x, y) = Raytrace(Ray, 1)
+	}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Schnittpunkt&shy;berechnung</h2>
+		<p>Die Schnittpunkt&shy;berechnungen sind der wichtigste und rechenzeit&shy;aufwendigste Teil eines Raytracers. Es gilt also, diese möglichst effizient zu berechnen und ihre Zahl klein zu halten.</p>
+		<p>Bei den folgenden Herleitungen gehen Sie immer davon aus, daß Sie eine Halbgerade durch ihren Startpunkt <i>g⃗</i> und ihren Richtungs&shy;vektor <i>dg⃗</i> → bestimmen. Sie können also die Geraden&shy;gleichung mit <i>t</i> als beliebiger Zahl aufstellen:
+		<span class="code">x⃗ = g⃗ + t * dg⃗</span>
+		Für die Halbgeraden gilt wieder <span class="code">t > 0</span></p>
+	</section>
+
+	<section>
+		<h2>Die Ebene</h2>
+		<p>Das einfachste geometrische Primitiv für einen Raytracer ist die Ebene: Sie stellen also fest, ob ein Strahl eine Ebene schneidet. Eine Ebene im Raum legen Sie eindeutig durch drei (Antrags-) Punkte fest. Diese Darstellung haben wir zur Eingabe in der Skriptsprache gewählt.</p>
+		<p>Für das Raytracing-Programm überführen Sie diese Darstellung in die sogenannte Hessesche Normalform (HNF). Diese verwendet die Normale auf einer Ebene und ihren Abstand zum Koordinaten&shy;ursprung. Ist die Ebene durch die Punkte <i>x1⃗</i>, <i>x2⃗</i> und <i>x3⃗</i> gegeben, so erhalten Sie die Normale mit folgender Formel:</p>
+		<pre><code>
+a⃗ = x2⃗ - x1⃗
+b⃗ = x3⃗ - x1⃗
+n⃗ = a⃗ X b⃗
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199910_2.png" width="250" height="209" alt="RAYTRACING RECHNET mit Primär- und Sekundär&shy;strahlen, Lichtbrechung, Transparenz und Oberflächen&shy;normalen.">
+			<figcaption><span>RAYTRACING RECHNET</span> mit Primär- und Sekundär&shy;strahlen, Lichtbrechung, Transparenz und Oberflächen&shy;normalen.</figcaption>
+		</figure>
+		<p>Nach dem Kreuzprodukt <i>X</i> müssen Sie die Normale noch normalisieren, das heißt sie auf die Länge <i>1</i> bringen. Dazu teilen Sie jede Komponente von <i>n⃗</i> durch ihren Betrag.</p>
+		<p>Den Abstand der Ebene vom Ursprung erhalten Sie, indem Sie einen beliebigen Antragspunkt auf die Normale projizieren. Diesen Vorgang erledigen Sie mit dem Skalarprodukt:
+		<span class="code">abstand = n⃗ * x1⃗</span>
+		Das Resultat dieser Vorberech&shy;nungen verdeutlicht eine Formel, in der alle Punkte <i>x⃗</i>, die sich auf dieser Ebene befinden, folgende Gleichung erfüllen:
+		<span class="code">n⃗ * x⃗ = abstand (HNF)</span>
+		Der mathematische Trick ist nur, das <i>x⃗</i> in der HNF durch die Geraden&shy;gleichung zu ersetzen. Sie erhalten dann
+		<span class="code">n⃗ * (g⃗ + t * dg⃗) = abstand</span>
+		Alle Parameter außer <i>t</i> sind Ihnen in dieser Gleichung bekannt. Durch das <i>t</i> können Sie den Schnittpunkt bestimmen. Also lösen Sie die Gleichung nach <i>t</i> auf:</p>
+		<pre><code>
+n⃗ * g⃗ + n⃗ * t * dg⃗ = abstand
+t * n⃗ * dg⃗ = abstand - n⃗ * g⃗
+t = (abstand - n⃗ * g⃗) / (n⃗ * dg⃗)
+		</code></pre>
+		<p>Die Gerade hat nur einen Schnittpunkt mit der Ebene, wenn der Term <i>(n⃗ * dg⃗)</i> ungleich Null ist. Andernfalls könnten Sie die Gleichung auch nicht lösen, da eine Division durch Null vorläge.</p>
+		<figure class="floatright">
+			<img src="assets/199910_3.png" width="246" height="158" alt="IN DER REKURSIONSTIEFE 3 verfolgen Sie einen Lichtstrahl bis zur dritten Spiegelung.">
+			<figcaption><span>IN DER REKURSIONSTIEFE 3</span> verfolgen Sie einen Lichtstrahl bis zur dritten Spiegelung.</figcaption>
+		</figure>
+		<p>Setzen Sie das soeben berechnete <i>t</i> wieder in die Gleichung ein, erhalten Sie den Schnittpunkt:
+		<span class="code">s⃗ = g⃗ + t * dg⃗</span>
+		Dieser ist nur interessant, wenn <span class="code">t > 0</span> ist, da er sich sonst auf der „falschen“ Seite der Halbgeraden befindet, also zum Beispiel hinter dem Betrachter.</p>
+	</section>
+
+	<section>
+		<h2>Die Kugel</h2>
+		<p>Das zweite Primitiv, das wir Ihnen in diesem ersten Teil des Raytracers vorstellen, ist die Kugel. Eine Kugel legen Sie durch Mittelpunkt und Radius fest. Der Radius ist der Abstand vom Mittelpunkt. Also müssen alle Punkte auf der Kugel&shy;oberfläche, welche für uns von Interesse sind, diesen Abstand vom Kugel&shy;mittelpunkt haben. Den Abstand zweier Punkte im Raum berechnen Sie mit</p>
+		<pre><code>
+a⃗ = (ax, ay, az)
+b⃗ = (bx, by, bz)
+abstand = sqrt(ax * bx + ay * by + az * bz)
+	= sqrt(a⃗ * b⃗)
+		</code></pre>
+		<p>Wenn Sie also die Kugel durch ihren Mittelpunkt <i>m⃗</i> und ihren Radius <i>r</i> definiert haben, erfüllen alle Punkte <i>x⃗</i> auf ihrer Oberfläche die Gleichung
+		<span class="code">sqrt(d⃗ * d⃗) = radius</span>
+		Der Vektor <i>d⃗</i> geht vom Mittelpunkt zum variablen Punkt <i>x⃗</i>:
+		<span class="code">d⃗ = (m⃗ - x⃗)</span>
+		Daraus ergibt sich:
+		<span class="code">sqrt((m⃗ - x⃗) * (m⃗ - x⃗)) = radius</span>
+		Bei dieser Gleichung können Sie nicht einfach die Wurzel mit dem vermeintlich quadratischen Term darunter auflösen.Denn <i>(m⃗ - x⃗)</i> stellt einen Vektor dar, während <i>(m⃗ - x⃗) * (m⃗ - x⃗)</i> eine reelle Zahl ist.</p>
+		<p>Auch in dieser Gleichung müssen Sie <i>x⃗</i> ersetzen, um den Schnittpunkt zu erhalten, aber vorher quadrieren Sie sie:</p>
+		<pre><code>
+(m⃗ - x⃗) * (m⃗ - x⃗) =
+	(m⃗ - x⃗)<sup>2</sup>=radius<sup>2</sup>
+	(m⃗ - (g⃗ + t * dg⃗))<sup>2</sup>
+	= radius<sup>2</sup>
+	((m⃗ - g⃗) - t * dg⃗)<sup>2</sup>
+	= radius<sup>2</sup>
+	(m⃗ - g⃗)<sup>2</sup> - 2 * (m⃗ - g⃗)
+* (t * dg⃗) + (t * dg⃗)<sup>2</sup>
+= radius<sup>2</sup>
+		</code></pre>
+		<p>Diesen Term formen Sie nun in eine quadratische Gleichung um, zu der es eine Lösungsformel gibt:</p>
+		<pre><code>
+t<sup>2</sup> * dg⃗<sup>2</sup> -
+t * (m⃗ - g⃗) * dg⃗ +
+(m⃗ - g⃗)<sup>2</sup> - radius<sup>2</sup> = 0
+		</code></pre>
+		<p>oder <span class="code">a*t<sup>2</sup> + b*t + c = 0</span> mit</p>
+		<pre><code>
+a = dg⃗<sup>2</sup>
+b = -(m⃗ - g⃗) * dg⃗
+c = (m⃗ - g⃗)<sup>2</sup> - radius<sup>2</sup>
+		</code></pre>
+		<p><i>a, b</i> und <i>c</i> sind reelle Zahlen. Die möglichen Lösungen sind dann</p>
+		<pre><code>
+t1 = (-b + sqrt(b<sup>2</sup> - 4 * a *c)) / (2 * a);
+t2 = (-b - sqrt(b<sup>2</sup> - 4 * a *c)) / (2 * a);
+		</code></pre>
+		<p>Die Zahl der Lösungen läßt sich durch die Diskriminante <span class="code">D = b<sup>2</sup> - 4 * a * c</span> bestimmen.
+		<span class="code">D < 0</span> bedeutet keine Lösung, <span class="code">D = 0</span> eine Lösung und <span class="code">D > 0</span> zwei Lösungen.</p>
+		<p>Diese <i>t1</i> und <i>t2</i> , eingesetzt in die Gleichung der Halbgeraden, ergeben dann wieder einen oder mehrere Schnittpunkte.</p>
+		<p>Wie Sie im folgenden sehen, benötigen Sie beim Raytracing auch immer die Oberflächen&shy;normale an einem Schnittpunkt. Bei der Ebene steht diese immer fest. Bei der Kugel erhalten Sie sie, indem Sie die Differenz des Ortsvektors eines Schnittpunkts und des Kugelmittel&shy;punkts normalisieren, also: der normalisierte Vektor zu (<i>s⃗ - m⃗</i>).</p>
+		<p>Natürlich benötigen Sie im Raytracing-Programm nur die endgültigen Formeln, die aber ohne ihre Herleitung kaum nachvoll&shy;ziehbar sind. Wie Sie sehen, sind einige geschickte Umformungen notwendig, die zudem Rechenzeit sparen. Deshalb speichert jedes Raytracing-Programm zum Beispiel zu einem Kugelobjekt nicht nur den Radius, sondern auch gleich dessen Quadrat. Denn nur damit rechnet das Programm.</p>
+	</section>
+
+	<section>
+		<h2>Beleuchtung berechnen</h2>
+		<p>Nachdem Sie nun Schnittpunkte berechnen können, bleibt noch der zweite wichtige Punkt des Raytracing: die Berechnung der Beleuchtung. Diese Rechen&shy;verfahren klären, wie sich das einfallende Licht und die Oberflächen&shy;eigenschaften auf den visuellen Eindruck auswirken.</p>
+		<figure class="floatright">
+			<img src="assets/199910_4.jpg" width="319" height="239" alt="DAS AMBIENTE LICHT läßt die Oberfläche der Körper in der Eigenfarbe erscheinen.">
+			<figcaption><span>DAS AMBIENTE LICHT</span> läßt die Oberfläche der Körper in der Eigenfarbe erscheinen.</figcaption>
+		</figure>
+		<p>Der erste Einfluß&shy;parameter ist das sogenannte ambiente Licht, ein überall in der mathematischen Welt gleichstarkes Licht. Dieses läßt die Oberfläche der Körper überall in ihrer Eigenfarbe erscheinen.</p>
+		<p>Bei den folgenden Berechnungen für die Beleuchtung müssen Sie vorher für jeden Schnittpunkt feststellen, ob und wie stark er von den Lichtquellen bestrahlt wird. Der einfachste Fall einer Lichtquelle – und der vorerst hier verwendete – ist eine punktförmige Lichtquelle ohne räumliche Ausdehnung.</p>
+		<p>Um festzustellen, ob eine Lichtquelle einen Punkt beleuchtet, berechnen Sie einen sogenannten Schattenstrahl. Dieser stellt eine Halbgerade vom Schnittpunkt in Richtung der Lichtquelle dar.</p>
+		<p>Nun berechnen Sie die Schnittpunkte der Objekte mit dem Schattenstrahl. Wenn es Schnittpunkte mit undurch&shy;sichtigen Objekten gibt, liegt der Schnittpunkt im Schatten, bei teilweise durchsichtigen Objekten vermindern deren Transparenz und Farbe das Licht der Quelle.</p>
+		<p>Wenn nun eine Lichtquelle einen Punkt beleuchtet, kommen noch zwei weitere Eigenschaften hinzu, die von der Stärke des einfallenden Lichts und von der Oberfläche des bleuchtetenden Körpers abhängen.</p>
+		<figure class="floatright">
+			<img src="assets/199910_5.jpg" width="319" height="239" alt="DIE STREUREFLEXION läßt die Objekte viel lebendiger im dreidimensionialen Raum erscheinen.">
+			<figcaption><span>DIE STREUREFLEXION</span> läßt die Objekte viel lebendiger im drei&shy;dimensionialen Raum erscheinen.</figcaption>
+		</figure>
+		<p>Die wichtigste der Beleuchtungs&shy;berechnungen ist die Streureflexion. Diese entsteht durch eine gleichmäßige Reflexion von Licht an kleinsten Partikeln und Inhomo&shy;genitäten der Objekt&shy;oberflächen. Das mathematischen Modell berechnet diesen Sachverhalt mit dem Lambertschen Kosinussatz:</p>
+		<p><i>Die Intensität des reflektierten Lichts an einer Stelle ist durch die Oberflächen&shy;normale dieses Punkts und der Einfalls&shy;richtung des einfallenden Lichts bestimmt</i>.</p>
+		<p>Die Einfalls&shy;richtung des Lichts erhalten Sie durch die vektorielle Substraktion der Lichtquellen&shy;position und des Schnittpunkts. Wenn Sie diesen Vektor normalisieren, berechnen Sie die Intensität der Streureflexion mit <span class="code">Ls = n⃗ * r⃗</span>
+		<i>r⃗</i> stellt die Normale und <i>r⃗</i> die Einfalls&shy;richtung dar.</p>
+		<p>Weiterhin berück&shy;sichtigen Sie die sogenannte spiegelnde Reflexion. Sie entsteht dadurch, daß sich die Lichtquellen selbst, die in der Realität eine endliche Ausdehnung besitzen, auf der Kugel&shy;oberfläche spiegeln. Sie können die spiegelnde Reflexion, auch Glanzlichter genannt, zum Beispiel als helle Punkte auf Billardkugeln beobachten. Jeder Arbeitschritt schafft realistischere Welten im drei&shy;dimensionalen Raum.</p>
+		<figure class="floatright">
+			<img src="assets/199910_6.jpg" width="319" height="239" alt="DIE SPIEGELNDE REFLEXION sehen Sie wie Glanzlichter als helle Punkte auf Billardkugeln.">
+			<figcaption><span>DIE SPIEGELNDE REFLEXION</span> sehen Sie wie Glanzlichter als helle Punkte auf Billardkugeln.</figcaption>
+		</figure>
+		<p>Da Sie keine Lichtquellen endlicher Ausdehnung vorliegen haben, erschaffen Sie dieses Phänomen anderweitig. Hierzu spiegeln Sie den Lichtstrahl des einfallenden Lichts an der Oberfläche der Körper: Sie berechnen den Kosinus des Winkels zwischen dem gespiegelten Vektor und dem, den Sie gerade verfolgt haben und mit dem Sie auch den gerade zu behandelnden Schnittpunkt berechnet haben. Sind dieser Kosinus – und somit auch der Winkel – in einer gewissen Toleranz wie zum Beispiel <i>+-10</i> Grad, dann haben Sie an dieser Stelle ein Glanzlicht.</p>
+		<p>Die Intensität errechnen Sie, indem Sie den Kosinus mit einer relativ großen ganzen Zahl potenzieren. Meistens liegen diese Zahlen im Bereich von <i>10</i> bis <i>100</i> . Die Farbe des Glanzlichts ist, da es sich um das Spiegelbild der Lichtquelle handelt, unabhängig von der Farbe des Körpers. Die Berechnung der Glanzlichter weicht von der physikalischen Realität ab, liefert aber trotzdem realistische Ergebnisse.</p>
+	</section>
+
+	<section>
+		<h2>Reflexion und Lichtbrechung</h2>
+		<p>Wenn ein Lichtstrahl den Körper anschneidet und Licht dabei reflektiert, spiegeln Sie den Lichtstrahl an seiner Oberfläche und berechnen für die resultierende Halbgerade die Farbe rekursiv.</p>
+		<p>Die Spiegelung eines Richtungs&shy;vektors an einer Oberfläche erhalten Sie mit relativ einfachen Mitteln: Wenn <i>e⃗</i> der einfallende Strahl ist, <i>n⃗</i> die Oberflächen&shy;normale, so gilt für den reflektierten Strahl <span class="code">r⃗ = e⃗ / (e⃗ * n⃗) + 2 * n⃗</span></p>
+		<div class="center"><img src="assets/199910_7.png" width="216" height="162" alt=""></div>
+		<p>Bei der Transmission, der Lichtbrechung, ist außer dem Anteil des Lichts, das durch das Material dringen kann, noch das Verhältnis der sogenannten Brechzahlen von Interesse. Die Brechzahl ist ein Maß, wie stark Licht abgelenkt werden kann. Wasser hat zum Beispiel eine höhere Brechzahl als Luft.</p>
+		<p>Dringt ein Strahl von einem Medium <i>A</i> in das Medium <i>B</i> ein</p>
+		<div class="center"><img src="assets/199910_8.jpg" width="318" height="239" alt=""></div>
+		<p>berechnet sich die Richtung des gebrochenen Strahls wie folgt:</p>
+		<pre><code>
+b = Brechzahl Medium A / Brechzahl Medium B
+s = - e⃗ * n⃗
+		</code></pre>
+		<p>Ist der Term <span class="code">(1 - b<sup>2</sup> * (1 - s<sup>2</sup>))</span> kleiner Null, tritt der Fall der sogenannten Totalreflexion auf. In diesem Fall existiert kein gebrochener Strahl, sondern das Licht wird an der Oberfläche reflektiert und der Strahl auch dement&shy;sprechend behandelt. Dieses Phänomen ist zum Beispiel an den Rändern von Luftblasen unter Wasser zu beobachten.</p>
+		<p>Ist dieser Term aber größer oder gleich Null, dann berechnen Sie den resultierenden Vektor mit</p>
+		<pre><code>
+g⃗ = b * e⃗ + (b * s - sqrt(1 - b<sup>2</sup> * (1 - s<sup>2</sup>))) * n⃗
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Die Beleuchtungs&shy;gleichung</h2>
+		<p>Diese Erkenntnisse lassen sich in einer großen, auf den ersten Blick schwer überschaubaren Gleichung zusammenfassen. Beim zweiten Hinsehen wird aber schnell klar, woher die Terme stammen: Für die Intensität <i>I</i> eines Farbkanals, die es hier in Rot, Grün und Blau gibt, gilt jeweils: <span class="code">I = Ia * Ka * Of +</span>
+		Für jede beleuchtende Lichtquelle gilt:</p>
+		<pre><code>
+[-Kd * Of * (n⃗ * l⃗) + Ks *
+((h⃗ * l⃗) ^ p] + Kr * Ir + Kt * It
+		</code></pre>
+		<p><i>Ia, Ir</i> und <i>It</i> kennzeichnen die Intensitäten des ambienten Lichts und der reflektierten bzw. trans&shy;mittierten Strahlen. Die Koeffizienten <i>Kd, Ks, Kr</i> und <i>Kt</i> (sprich der Prozentsatz) bestimmen Streureflexion, Glanzlichter, Reflexion und Transmission.</p>
+		<p><i>l⃗</i> bezeichnet den Strahl vom Schnittpunkt zur Lichtquelle und <i>h⃗</i> den gespiegelten Vektor des zu verfolgenden Strahls. <i>Of</i> gibt als Teil der Material&shy;eigenschaften eines Körpers an, wieviel Licht des entsprechenden Kanals absorbiert wird. Prinzipiell müßten Sie für jeden Farbkanal im RGB-Farbsystem, mit dem Sie arbeiten wollen, diese Gleichung lösen. Das ist aber kein Problem, da die Koeffizienten alle gleich sind.</p>
+		<p>Im Sourcecode des Raytracers erkennen Sie genau die einzelnen Terme der Beleuchtungs&shy;gleichung. Den Teil <i>Für jede beleuchtende Lichtquelle</i> finden Sie als <i>for</i>-Schleife und Schattentest zusammen mit den weiteren Implemen&shy;tationen in</p>
+		<pre><code>
+void RTCamera :: RecursiveRaytracing(...)
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Die Implementation</h2>
+		<p>Bei der Implementation eines Raytracers, den Sie in den nächsten zwei Ausgaben noch erweitern werden, planen Sie genau, wie die Code-Teile zusammenhängen und wirken sollen. Es bietet sich auf jeden Fall eine objekt&shy;orientierte Variante an, da Sie Vererbungs&shy;hierarchien bei Primitiven nutzen, denen Sie später noch neue hinzufügen. Damit bleibt die Gliederung über&shy;sichtlicher.</p>
+		<p>Als Grundbaustein nutzen Sie die Objekt&shy;basisklasse <i>RTObject:</i> mit Methoden, um Material&shy;information zu setzen, Transforma&shy;tionen anzuwenden und Schnittpunkte zu erfragen. <i>RTPlane</i> ist die Ebenenklasse, die die Methoden für das Primitiv implementiert. <i>RTSphere</i> implementiert die Klasse des Kugelprimitivs.</p>
+		<p>Eine zweite Objekt&shy;hierarchie stellen die Lichtquellen dar, von denen es zwar bisher nur eine Klasse gibt, aber weitere geplant sind: <i>RTLightSource</i> mit Methoden für die Transformations&shy;anwendung und den Schattentest. <i>RTPointLight</i> implementiert die punktförmigen Lichtquellen.</p>
+		<p>Zusätzlich nutzen Sie die Kameraklasse <i>RTCamera</i> mit kamera&shy;spezifischen Operationen und der rekursiven Raytracing-Prozedur.</p>
+		<p>Die letzte Klasse <i>RTScene</i> umfaßt die mathematische Welt mit ihren Informationen wie Kamera, Objekte und Lichtquellen.</p>
+	</section>
+
+	<section>
+		<h2>Mathematische Welten</h2>
+		<p>Im letzten Teil legen Sie eigene 3D-Welten an. Denkbar ist zum Beispiel, Objekte fest im Programmcode zu verankern, was aber schwierig ist. Darum verwenden Sie am besten eine Skriptsprache wie eine eigene Programmier&shy;syntax, die auf die Beschreibung von Raytracing-Szenen zugeschnitten ist.</p>
+		<p>Dazu benötigen Sie einen Programmteil, der diese Skriptsprache interpretiert und die Objekte erzeugt. Diesen Teil finden Sie im Sourcecode in der Datei <i>parser.cpp</i>.</p>
+		<p>Szenen&shy;beschreibungen in diese Skriptsprache bilden Blöcke mit einem Block&shy;bezeichner und Daten. Manche dieser Blöcke sind Bestandteil anderer Blöcke. Kommentare in Blöcken begrenzen Sie wie in C durch <i>/*</i> und <i>*/</i> oder bringen sie in <i>//</i> -Zeilen unter. Vektoren geben Sie in eckigen Klammern an wie &lt;x1, x2, x3&gt;, Zahlen ohne Klammern. Der erste Block definiert die Kameraoptionen:</p>
+		<pre><code>
+camera
+	{position &lt;5.0,-20.0,18.0&gt;
+look_at &lt; 0.0,0.0,0.0&gt; //K.ziel
+up &lt; 0,0,-1&gt; //Kamera oben?
+fov 25.0 //Öffnungswinkel
+aspectratio 1.333333
+//Breite/Höhe des Bildschirms }
+		</code></pre>
+		<p>Lichtquellen definiert diese mathematische Welt im Block</p>
+		<pre><code>
+light
+	{
+	position <-5.0,0.0,10.0> //Ort
+	color < 0.5,0.5,0.5> //L.Farbe
+	}
+		</code></pre>
+		<p>Ein weiterer Block ist das Material. Die Skriptsprache kennt zuerst das <i>defaultmaterial</i>. Dieses definieren Sie an einer beliebigen Stelle im Skript und weisen es jedem neuen Primitiv zu, wenn Sie dafür keine expliziten Material&shy;informationen angeben.</p>
+		<p>Die einzelnen Parameter eines Materialblocks sind:</p>
+		<pre><code>
+defaultmaterial
+{
+rgb &lt; 0.5, 0.5, 0.5&gt; //RGB-Farbe
+reflection 0.5 // Reflexkoef.
+refraction 0.0 // Transparenz
+diffuse 0.5 // Reflex.Koeffiz.
+ambient 0.0 // Reflex.Koeffiz.
+specular 1.0 // Koeffiz.für
+// spiegelnde Reflexion
+pow 50.0 // Potenz dafür
+ior 1.0 // Brechzahl-Material
+}
+		</code></pre>
+		<p>Ein Kugelprimitiv erzeugen Sie mit folgenden Zeilen:</p>
+		<pre><code>
+sphere
+{ &lt; x1,x2,x3&gt;, Radius (Zahl) }
+		</code></pre>
+		<p>Wollen Sie für ein Primitiv nicht das <i>defaultmaterial</i> verwenden, fügen Sie einen eigenen Materialblock ein:</p>
+		<pre><code>
+sphere
+{ &lt; x1,x2,x3&gt;, Radius (Zahl)
+	material
+	{ ... // Daten wie oben }
+}
+		</code></pre>
+		<p>Eine Ebene erzeugen Sie mit folgendem Block, wobei die drei Vektoren die Antragspunkte sind:</p>
+		<pre><code>
+plane
+{	&lt; 0.0, 0.0, 0.0 &gt;,
+	&lt; 1.0, 0.0, 0.0 &gt;,
+	&lt; 0.0, 1.0, 0.0 &gt; }
+		</code></pre>
+		<p>Weitere Blöcke, die Sie einem Primitiv noch zuordnen können, enthalten Angaben über zusätzliche Transforma&shy;tionen. So können Sie ein Primitiv nachträglich skalieren, drehen oder verschieben. Die Befehle, die Sie wie das <i>material</i> in den Primitivblock einbauen, lauten:</p>
+		<pre><code>
+rotate &lt; Vektor&gt; // Drehung
+translate &lt; Vektor&gt; //Schiebung
+scale float // Skalierung
+		</code></pre>
+		<p>Mit dieser Skriptsprache können Sie experi&shy;mentieren. Alle Bilder für diesen Artikel berechnen Sie mit dem Raytracing&shy;programm. Skriptdateien dazu finden Sie in den Sourcecodes.</p>
+		<p>Wenn Sie den Raytracer starten, kann es Stunden dauern, bis das Programm komplexe mathematische Welten berechnet und am Bildschirm dargestellt hat. Diese Arbeit wollen Sie nicht dadurch verwerfen, daß das Programm zu Ihrem Desktop schaltet.</p>
+		<p>Deshalb haben wir das Basissystem, aufbauend auf vorhergehenden Ausgaben von PC Underground, um eine <i>bmp</i>-Speicher-Routine erweitert. Lassen Sie sich überraschen, welche weiteren Features die beiden folgenden Ausgaben vorstellen werden.</p>
+	</section>
+
+	<aside>
+		<h2>raytrace.rechne</h2>
+		<div class="whitebox framedbox">
+			<pre><code>for(jeder Pixel des Bildes)
+{
+	Ermittle "ray" durch Pixel
+	pixelfarbe=Raytrace(ray, 1);
+}
+
+Farbe Raytrace(Vektor ray, int Rekursionstiefe)
+{
+	if(Objekt getroffen)
+	{
+		Rechne Schnittpunkt+Normale,
+		hole Materialinformation
+
+		Aktuelle Farbe = ambientes Licht
+
+		for(jede Lichtquelle)
+		{
+			Prüfe, ob+wie die Lichtquelle die
+			Oberfläche im Schnittpkt. beleuchtet
+
+			Akt. Farbe += diffuse+spiegel Reflex
+		}
+
+		if(Rekurs.tiefe &lt; max.Rekurs.tiefe)
+		{
+			if(Objekt reflektiert)
+			{
+				rRay = reflektierten Strahl
+				// rekurs. Aufruf:
+				SpiegelFarbe = Raytrace(rRay, Rekurs.stiefe + 1)
+				Aktuelle Farbe += SpiegelFarbe
+					mit Spiegelungskoeffizient skaliert
+			}
+
+			if(Objekt ist transparent)
+			{
+				tRay = gebrochener Strahl
+				// rekurs. Aufruf:
+				TransparenzFarbe = Raytrace(tRay,
+					Rekurs.stiefe + 1)
+				Aktuelle Farbe += TransparenzFarbe mit
+					Spiegelungskoeffizient skaliert
+			}
+		}
+	}
+	else return Hintergrundfarbe;
+}
+			</code></pre>
+			<p class="note"> Die Berechnungsroutine veranschaulicht der Pseudocode <i>raytrace.rechne.</i></p>
+		</div>
+	</aside>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur:</b> J. D. Foley, Andries van Dam, S. K. Feiner, J. F. Hughes, R. L. Philips: Grundlagen der Computergrafik, Addison-Wesley-Verlag 1994, 600 Seiten, 99 Mark, ISBN 3-893-19-647-1</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199909.html">9/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199912.html">12/1999</a>
+	</nav>
+</body>

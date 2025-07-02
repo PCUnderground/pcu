@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Begnadete Körper (PC Underground, PC Magazin 8/98)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;8/1998. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199807.html">7/1998</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199809.html">9/1998</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Demo-Programmierung unter Windows 95/NT</h2>
+		<h1><span class="highlight">Begnadete</span> Körper</h1>
+		<p class="summary">Mit <span class="highlight">Drehungen und Streckübungen</span> bringen Sie nicht Ihren, sondern drei&shy;dimensionale Körper in Bewegung. Statt Muskeln trainieren Sie dabei die mathe&shy;matischen Grundlagen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher/Nils Pipenbrinck</h3>
+		<p>Ein komplexer drei&shy;dimensionaler Körper läßt sich nur sehr schwer im zwei&shy;dimensionalen Speicher&shy;bereich Ihres Rechners nachbilden – so scheint es auf den ersten Blick. Doch im Prinzip bestehen 3D-Objekte lediglich aus Punkten (Vertices, Singularform: Vertex) und Polygonen (Faces).</p>
+		<p>Zur Vereinfachung beschränkt sich die 3D-Engine auf die Darstellung von Dreiecken dieser Ausgabe. Am einfachsten ist es, eine Struktur oder ein Objekt zu erzeugen, das Vertices und Faces voneinander getrennt in zwei Arrays speichert.</p>
+		<p>Ein Vertex ist ein Ortsvektor, der die Position des Punktes im Raum angibt. Ein Vektor und ein Vertex sind also von der Struktur her identisch. Heißt es im Text <i>Vertices</i>, sind damit Eckpunkte des 3D-Objekts gemeint. Finden Sie den Ausdruck <i>Vektor</i>, handelt es sich um einen Wert, mit dem gerechnet wird.</p>
+		<p>Für ein Face brauchen Sie mehr Informationen: Neben den Indizes der Vertices, die das Dreieck aufspannen, sind noch dessen Farbe und ein paar andere Daten interessant.</p>
+		<p>3D-Engines sind einfach aufgebaut: Alle auf Polygonen basierenden Engines verwenden eine nahezu identische Hauptschleife – im Fachjargon „Pipeline“ genannt. Die Standard-Pipeline arbeitet in fünf Schritten.<br>
+		• Sie trans&shy;formiert die Objekt-Geometrie vom Objekt- in das Welt-Koordinaten&shy;system,<br>
+		• entfernt nicht sichtbare Polygone (Backface Culling),<br>
+		• berechnet die Beleuchtung (Shading),<br>
+		• schneidet den nicht sichtbaren Bereich ab (Clipping)<br>
+		• und zeichnet die Polygone (Rendering).</p>
+		<p>Anfangs ist etwas Grundwissen in linearer Algebra und Matrizen-Rechnung nötig. In den Formeln beschreibt ⨯ das Kreuzprodukt (zwei&shy;dimensionales Vektor&shy;projekt) und O das Skalar&shy;produkt (drei&shy;dimensionales Vektor&shy;produkt) zweier Vektoren.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199808.zip">💾 199808.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Transformationen</h2>
+		<p>Da Sie im Moment noch keine frei bewegliche Kamera für die Engine benötigen, sind Trans&shy;formationen wie Drehungen, Größen&shy;änderungen und Ver&shy;schiebungen relativ einfach zu realisieren. Stellen Sie diese Operationen in der Matrix-Schreib&shy;weise dar. Das ist sehr über&shy;sichtlich und spart viel Zeit bei der Berechnung. Die Rotation eines Vektors um die z-Achse mit dem Rotations&shy;winkel ϕ beschreibt die Matrix
+		<img class="math" src="assets/199808_7.png" alt="Rotationsmatrix">
+		Möchten Sie einen Punkt a um die z-Achse rotieren lassen, multi&shy;plizieren Sie ihn mit dieser Matrix. Die Ko&shy;ordinaten des Ziel&shy;punktes b erhalten Sie über die einzelnen Rechen&shy;schritte:<br>
+		<span class="indent">b.x=a.x*cos(ϕ)-a.y*sin(ϕ)+a.z*0</span><br>
+		<span class="indent">b.y=a.x*sin(ϕ)+a.y*cos(ϕ)+a.z*0</span><br>
+		<span class="indent">b.z=a.x*0+a.y*0+a.z*1</span><br>
+		Die Rotations&shy;matrizen für die y- und x-Achse sehen ähnlich aus:
+		<img class="math" src="assets/199808_8.png" alt="Rotationsmatrizen">
+		Sie brauchen nicht jeden Punkt nacheinander mit allen drei Matrizen multi&shy;plizieren. Wenn Sie zunächst das Produkt aus den Matrizen bilden, erhalten Sie eine Matrix für alle drei Trans&shy;formationen.</p>
+		<p>Für wenige Punkte lohnt sich dieser Aufwand sicher&shy;lich nicht, da eine Matrizen-Multi&shy;plikation sehr viel Rechen&shy;aufwand benötigt. Bereits einfache Objekte besitzen aber meist schon über 200 Vertices. Daher beschleunigt die Kombi&shy;nation der Matrizen die Berechnung erheblich.</p>
+		<p>Die Darstellung der ausmulti&shy;plizierten Rotations&shy;matrix sei Ihnen an dieser Stelle erspart. Im Code der 3D-Engine finden Sie eine Routine, die diese Matrix direkt berechnet.</p>
+		<p>Die zweite, auf Objekte gerichtete Operation ist die Skalierung. Mit der Matrix
+		<img class="math" src="assets/199808_9.png" alt="Skalierungsmatrix">
+		ver&shy;größern und ver&shy;kleinern Sie Objekte um den Skalierungs&shy;faktor <i>s</i>.</p>
+		<p>Die Translation (Verschiebung) stellt Sie zunächst vor das Problem, die geeignete Matrix dafür zu finden. Der Trick besteht darin, die 3x3-Matrix auf eine 4x4-Matrix zu erweitern und jeden Vektor um eine vierte (nicht benutzte) Komponente zu vergrößern.
+		<img class="math" src="assets/199808_10.png" alt="Homogene Translationsmatrix"></p>
+		<p>Natürlich können Sie keinen 3D-Vektor mit einer 4x4-Matrix multi&shy;plizieren. Deshalb fügen Sie dem Vektor eine vierte Kom&shy;ponente hinu, die immer den Wert <i>1</i> besitzt.</p>
+		<p>Auch die alten 3x3-Matrizen schreiben Sie einfach in 4x4-Matrizen um:
+		<img class="math" src="assets/199808_11.png" alt="4x4 Matrix"></p>
+		<p>Im Quell&shy;text von <i>3dengine.cpp</i> bildet <i>tobject::build_ltm (void)</i> die lokale Trans&shy;formations&shy;matrix.</p>
+	</section>
+
+	<section>
+		<h2>Backface Culling</h2>
+		<p>In der 3D-Grafik geht man davon aus, daß Polygone einseitig sind. Sie besitzen also nur eine Vorder- und eine Rück&shy;seite. Dieser kleine Trick spart bereits bis zu 50 Prozent Rechen&shy;zeit ein.</p>
+		<p>Nehmen Sie als Beispiel einen Würfel. Von außen betrachtet, sehen Sie nur seine Außen&shy;seiten. Bei der Darstellung als 3D-Objekt wäre es daher sinnlos, die immer durch eine andere Vorder&shy;seite verdeckten Polygone an der Rück&shy;seite des Würfels zu zeichnen.</p>
+		<p>Ob ein Polygon sichtbar ist oder nicht, finden Sie mit einfacher Vektor&shy;arithmetik heraus. Zunächst ermitteln Sie den sogenannten Normalen&shy;vektor des Polygons: Er steht im rechten Winkel auf dem Polygon. Sind <i>A</i>, <i>B</i> und <i>C</i> die Vertices der Polygon&shy;ebene, errechnen Sie ihn einfach aus dem Kreuz&shy;produkt</p>
+		<p><i>Normalenvektor = [C-A] ⨯ [C-B]</i><br>
+			Das Ergebnis normieren Sie auf die Länge 1, indem Sie jede Kom&shy;ponente durch die Länge des Vektors dividieren. Da die Blick&shy;richtung der Kamera der z-Achse entspricht, finden Sie recht einfach heraus, ob das Polygon sichtbar ist oder nicht: Sobald der z-Anteil des Normalenvektors positiv ist, kann der Betrachter es nicht mehr sehen. Ein kleines Problem gibt es bei diesem Verfahren: Das Objekt wird trans&shy;formiert. Um Drehung, Skalierung und Ver&shy;schiebung auszugleichen, müßte man die Trans&shy;formation auf die Normalen&shy;vektoren anwenden oder diese für jedes Bild neu ermitteln. Beides kostet sehr viel Rechen&shy;zeit.
+		</p>
+		<p>Berechnen Sie die Sicht&shy;barkeit der Faces deshalb vor der Drehung der Punkte. Dazu benötigen Sie zunächst die Inverse der Trans&shy;formations&shy;matrix, die deren Aktionen wieder rückgängig macht. Als Beispiel nehmen wir die Matrix M, die zunächst einen Punkt 30 Grad um die z-Achse dreht und dann um den Vektor <i>&lt;1,2,3&gt;</i> verschiebt. Die Inverse dieser Matrix verschiebt zunächst den Punkt um <i>&lt;-1,-2,-3&gt;</i> und rotiert dann mit -30 Grad um die z-Achse. Wichtig: Die Inverse kehrt nicht nur die Vor&shy;zeichen der Werte um, sondern auch die Reihen&shy;folge der Operationen.</p>
+		<p>Mit der inversen Matrix multi&shy;plizieren Sie jetzt die Position der Kamera, die bei festem Kamera&shy;stand&shy;punkt im Ursprung &lt;0,0,0&gt; liegt:</p>
+		<p><i>Lokale Kamera := ( &lt;0,0,0&gt; * Inverse Matrix )</i><br>
+			So erhalten Sie die vom Objekt aus gesehene Position der Kamera.
+		</p>
+		<p>Diese recht aufwendige Matrix-Inversion berechnet die Funktion <i>angle_perserving_matrix_inverse</i> in <i>3dmath.cpp</i>. Die dort benutzte Imple&shy;mentation von Kevin Wu<a href="#note1"><sup>1</sup></a> ist für die in der 3D-Grafik vorkommenden Matrizen optimiert und sehr schnell. Sie funktioniert jedoch ausschließlich mit aus Rotationen, Skalierungen und Trans&shy;lation berechneten 4x4-Matrizen.</p>
+		<p>Da Sie die Kamera&shy;position rückwärts transformiert haben, brauchen Sie für den Sicht&shy;barkeits&shy;test die Trans&shy;formation des Objekts nicht mehr zu beachten. Das Polygon zeigt mit seiner Vorder&shy;seite dann zum Betrachter, wenn gilt:</p>
+		<p><i>(Normalenvektor O Lokale Kamera) &gt;= (Normalenvektor O a)</i><br>
+			Dabei ist <i>a</i> ein beliebiger, nicht&shy;trans&shy;formierter Vertex des Face.
+		</p>
+		<p>Der Normalen&shy;vektor und somit auch der Normalen&shy;vektor O a ist für jedes Polygon konstant. Daher berechnet die Routine <i>tobject::calc_ facenormals()</i> diese Werte vor dem ersten Zeichnen des Objekts und speichert sie in der Polygon&shy;struktur.</p>
+	</section>
+
+	<section>
+		<h2>Es werde Licht</h2>
+		<p>Die 3D-Engine dieser Ausgabe beherrscht vorläufig lediglich Flat-Shading: die einfachste Art der Be&shy;leuchtung. Den Anteil des einfallenden Lichts berechnen Sie direkt aus dem Normalen&shy;vektor des Polygons und dem Vektor der Einfalls&shy;richtung des Lichts (Licht&shy;vektor).</p>
+		<p>Um sich die Arbeit zu erleichtern, gehen Sie davon aus, daß die Licht&shy;quelle unendlich weit vom Objekt entfernt ist. Dann können Sie das Licht als Einfalls&shy;vektor definieren und brauchen ihn nicht für jede Fläche neu zu berechnen. Den Beleuchtungs&shy;wert ermitteln Sie mit der Formel
+		<img class="math" src="assets/199808_12.png" alt="Beleuchtungsformel">
+		Die Normalen&shy;vektoren sind schon während der Objekt&shy;initialisierung auf die Länge <i>1</i> eingestellt. Ist auch der Licht&shy;vektor normalisiert, können Sie die Beleuchtungs&shy;formel vereinfachen, indem Sie den Nenner entfernen:</p>
+		<p><i>Licht = Normalenvektor O Lichtvektor.</i><br>
+		Bleibt noch ein Problem: Sie müssen wieder die Trans&shy;formation des Objekts in Betracht ziehen, sonst rotiert die Licht&shy;quelle mit dem Objekt. Wie bei der Entfernung der unsichtbaren Faces kürzen Sie den Prozeß ab und trans&shy;formieren den Licht&shy;vektor einmal mit der inversen Rotations&shy;matrix. Mit der so berechneten Licht&shy;intensität schattieren Sie – wie bereits in PC Underground der letzten Ausgabe (ab S. 228) beschrieben – den Farbwert des Polygons. Dieses einfache Beleuchtungs&shy;modell ist schon sehr effektiv und bringt eine Menge Leben in die 3D-Szene.</p>
+	</section>
+
+	<section>
+		<h2>Clipping</h2>
+		<p>Nun haben Sie zwar eine Menge Be&shy;rechnungen durchgeführt, aber noch immer ist der Bild&shy;schirm leer. Haben Sie noch etwas Geduld, eine Hürde ist noch zu überwinden: das Clipping. Gerade in diesem Bereich gibt es viele verschiedene Lösungs&shy;ansätze. Wir stellen Ihnen das elegante 3D-Clipping-Verfahren vor.</p>
+		<p>Was bedeutet Clipping? Stellen Sie sich vor, Sie haben ein Polygon trans&shy;formiert und möchten es jetzt zeichnen. Die z-Koordinate eines Punkts könnte den Wert <i>0</i> bekommen. Da aber die Position des Betrachters genau auf der Ebene mit dem z-Anteil <i>0</i> liegt, wären erhebliche Dar&shy;stellungs&shy;fehler die Folge.</p>
+		<p>„Schneiden“ Sie deshalb zunächst einmal alle Teile des Polygons ab, die vor der Z-Near-Clipping-Grenze liegen. Diese frei wählbare (positive) Grenze gibt die Ent&shy;fernung an, bis zu der Poly&shy;gone sichtbar sind. Teile, die näher am Betrachter liegen, werden „geclipped“. Um die berechneten 3D-Welten auf den zwei&shy;dimensionalen Monitor zu projizieren, verwenden Sie die beiden Gleichungen</p>
+		<pre><code>
+Bild.x = (Vektor.x * Projektionsfaktor) / Vektor.z + Bildbreite / 2
+Bild.y = (Vektor.y * Projektionsfaktor) / Vektor.z + Bildhöhe / 2
+		</code></pre>
+		<p>Diese Formeln zeigen, daß z-Werte nicht gleich <i>0</i> sein dürfen. Eine Division durch <i>0</i> würde unweigerlich zum Programm&shy;absturz führen.</p>
+		<p>Diese Gleichungen erzeugen auch Ko&shy;ordinaten, die außerhalb des Bild&shy;bereichs liegen. Sie könnten jetzt eine Polygon&shy;routine zum Zeichnen benutzen, die mit nicht geclippten Poly&shy;gonen umgehen kann. Das wäre jedoch nicht sehr effi&shy;zient. Sinn&shy;voll und sauberer ist es, die Polygone schon vor dem Zeichnen auf den sicht&shy;baren Bildschirm&shy;bereich zurecht&shy;zustutzen.</p>
+		<p>Der für den Betrachter sichtbare Bereich ist eine viereckige Pyramide, die vom Kamera&shy;stand&shy;punkt aus aufgespannt wird. Aus der Projektions&shy;formel berechnen Sie direkt die Ebenen, die diese Pyramide bilden. Das erledigt die Funktion <i>Setup_Fustrum()</i> in der Datei <i>3dclip.cpp</i>.</p>
+		<p>Für das Clipping an einer Ebene benötigen Sie den zugehörigen Normalen&shy;vektor und den Abstand der Ebene Z-Near vom Ursprung – alle anderen Ebenen gehen durch den Ur&shy;sprung und haben daher den Abstand <i>0</i>.</p>
+		<figure class="floatright">
+			<img src="assets/199808_3.png" width="285" height="323" alt="CLIPPING-EBENE mit Normalenvektor">
+			<figcaption><span>CLIPPING-EBENE</span> mit Normalen&shy;vektor</figcaption>
+		</figure>
+		<p>Berechnen Sie zunächst für jeden Punkt des Face den Abstand zur Ebene:</p>
+		<p><i>Abstand = (Ebenennormale O Vertex) - (Ebenenabstand zum Ursprung)</i></p>
+		<p>Anschließend können Sie in einer Schleife alle Punkte und die Linie vom aktuellen zum nächsten Punkt betrachten Punkt A in der Beispiels&shy;kizze liegt innerhalb des Sicht&shy;bereichs – Clipping ist nicht erforderlich. Mit Punkt C sieht das anders aus. Berechnen Sie die Schnitt&shy;punkte der Verbindungs&shy;strecke von A nach C sowie von B nach C mit der Ebene, und fügen Sie diese zusätzlichen Punkte anstelle von C in Ihr Polygon ein.
+		</p>
+		<p>Wie Sie sehen, hat das fertige Polygon jetzt vier Eck&shy;punkte. Das stellt jedoch kein Problem dar, da Sie das Polygon vor dem Zeichnen wieder in Drei&shy;ecke zerlegen können. Nachdem Sie das Polygon mit der ersten Ebene geschnitten haben, fahren Sie an der nächsten Ebene fort.</p>
+		<p>Wieder&shy;holen Sie diesen Vorgang für alle Ebenen. Taucht dabei ein „de&shy;generiertes“ Polygon mit weniger als drei Eck&shy;punkten auf, brechen Sie den Vorgang für dieses Polygon ab und ignorieren es einfach. Dieser Fall tritt dann ein, wenn ein Polygon komplett auf der un&shy;sichtbaren Seite einer Ebene liegt, aber einer oder zwei der Eck&shy;punkte auf einer Clipping-Ebene.</p>
+	</section>
+
+	<section>
+		<h2>Rendering</h2>
+		<p>Zeichnen Sie ein Polygon zeilen&shy;weise. Für jede Bildschirm&shy;zeile berechnen Sie den linken und den rechten Rand des Polygons und setzen die Pixel dazwischen (Scanline) mit den ein&shy;gestellten Parametern. Diese Parameter sagen zum Beispiel aus, ob das Polygon einfarbig, mit Helligkeits&shy;werten oder mit einer Textur belegt sein soll. Momentan beschränken wir uns auf das Grund&shy;gerüst einer einfachen 3D-Engine und zeichnen nur Polygone mit einer einheitlichen Farbe.</p>
+		<p>Der erste Schritt besteht darin, den obersten und den untersten Eck&shy;punkt herauszufinden. Dazu suchen Sie einfach nach den Punkten mit minimalem und maximalem y-Wert. Als Beispiel soll folgendes Polygon dienen, dessen Eck&shy;punkte zum Zeichnen gegen den Uhrzeiger&shy;sinn angeordnet sein müssen:</p>
+		<div class="center"><img class="halfscale illustration" src="assets/199808_4.png" alt="Polygon"></div>
+		<p>Hier ist e<sub>1</sub> der oberste Eck&shy;punkt und e<sub>2</sub> der unterste. Nach dem Setzen von e<sub>1</sub> suchen Sie an der linken Kante des Polygons den nächsten Start&shy;punkt der Scan&shy;line. Dazu betrachten Sie die Eck&shy;punkte mit steigendem Index (hier e<sub>2</sub>). Auf der rechten Seite gilt es, den Punkt mit dem nächst&shy;niedrigeren Index zu finden (hier zuerst e<sub>0</sub>, dann e<sub>2</sub>). Beachten Sie, daß der nächst&shy;höhere Punkt zu e<sub>2</sub> wieder e<sub>0</sub> ist und analog dazu e<sub>2</sub> der nächst&shy;niedrigere zu e<sub>0</sub>.</p>
+		<p>Für das Beispiel&shy;polygon ergeben sich zwei Kanten&shy;züge:</p>
+		<div class="center"><img class="halfscale illustration" src="assets/199808_5.png" alt="Linke und rechte Kante"></div>
+		<p>Beginnend beim obersten Eck berechnen Sie die Steigung der x-Komponente für den rechten Kanten&shy;zug (von e<sub>1</sub> nach e<sub>0</sub>) – also die Zahl der Pixel, um die sich die x-Koordinate der Kante pro Zeile verschiebt. Kanten&shy;abschnitte der Höhe <i>0</i> ignorieren Sie einfach. Die Steigung für den ersten rechten Kanten&shy;zug ist also<br>
+		<span class="code">dx = (x0 - x1) / (y0 - y1)</span>
+		Diese Steigung addieren Sie bei jedem Sprung in eine neue Scanline zum aktuellen x-Wert. Dadurch erreichen Sie eine enorme Geschwindig&shy;keits&shy;steigerung gegenüber der direkten Berechnung der Kanten anhand der Eckpunkt&shy;koordinaten.</p>
+		<p>Berechnen Sie dann die Steigung für den ersten Teil der linken Kante. Besitzen alle Kanten&shy;abschnitte die Höhe 0, ist die Gesamt&shy;höhe ebenfalls gleich 0 und das Polygon somit unsichtbar. Beginnen Sie damit, die x-Werte entlang der Kanten zu inter&shy;polieren und die Scan&shy;lines zu zeichnen.</p>
+		<div class="center"><img class="halfscale illustration" src="assets/199808_6.png" alt="Scanline-Algorithmus"></div>
+		<p>Ist das Ende eines Abschnitts erreicht, suchen Sie den nächsten mit einer Höhe größer als 0, berechnen die Steig&shy;ungen und zeichnen die ver&shy;bleibenden Scan&shy;lines. Sind Sie beim untersten Punkt an&shy;gelangt, ist das Polygon voll&shy;ständig gezeichnet.</p>
+	</section>
+
+	<section>
+		<h2>Der Z-Buffer</h2>
+		<p>Bei der Anzeige am Bild&shy;schirm darf kein Polygon ein zuvor ge&shy;zeichnetes über&shy;decken, das dem Betrachter näher steht. Am ein&shy;fachsten stellt dies der sogenannte Maler-Algorithmus sicher. Er sortiert alle Polygone nach der Entfernung zum Betrachter und zeichnet dann die weiter entfernten zuerst. Körper, die sich überschneiden oder räumlich gesehen sowohl vor als auch hinter anderen liegen, verursachen bei diesem Verfahren allerdings grobe Dar&shy;stellungs&shy;fehler.</p>
+		<p>3D-Grafik&shy;karten greifen deshalb auf den Z-Buffer-Algorithmus zurück. Er berechnet für jedes zu zeichnende Pixel die Entfernung des aktuellen Polygons zu eventuell vorher gezeichneten Polygonen an dieser Stelle. Ein neuer Pixel erscheint nur, wenn er näher am Betrachter liegt.</p>
+		<p>Wenn Sie die Polygon&shy;routine mit einer Z-Buffer-Implementierung programmieren, belegen Sie einen Speicher&shy;bereich (Z-Buffer), der für jeden Bildpunkt eine 16 Bit große Ent&shy;fernungs&shy;variable reserviert.</p>
+		<p>Wie aber bestimmen Sie die Entfernung eines Polygons zum Betrachter aneinem bestimmten Punkt innerhalb des Polygons? Ganz einfach: Diesen Wert interpolieren Sie genauso wie die x-Koordinate der Polygon&shy;kante entlang einer Kante. Dann benötigen Sie nur noch ein Inkrement, das die Änderung der Entfernung entlang einer Scanline bestimmt.</p>
+		<p>Aus zwei Gründen ist es sinnvoll, nicht die Ent&shy;fernung direkt zu inter&shy;polieren, sondern mit ihrem Kehr&shy;wert zu arbeiten:<br>
+			• Zum einen ist der Kehr&shy;wert per&shy;pektivisch korrekt (anderenfalls können bei sich schneidenden Polygonen Dar&shy;stellungs&shy;fehler auftreten).<br>
+			• Zum anderen liegt dieser Wert immer im Bereich zwischen <i>0</i> und <i>1</i>, was die Verwendung von Fix&shy;punkt-Arithmetik nahelegt (siehe Textbox unten).
+		</p>
+		<p>Die Inter&shy;polations&shy;differenzen (Deltas) ermitteln Sie entlang der Polygon&shy;kanten wie die x-Steigung. Die Horizontal&shy;schritte bleiben für das ganze Polygon konstant, Sie brauchen sie also nur einmal vor dem Zeichnen zu berechnen:</p>
+		<pre><code>
+d = ((double)(x0-x2) / 65536.0 *
+	(double)(y1-y2) / 65536.0 -
+	(double)(x1-x2) / 65536.0 *
+	(double)(y0-y2) / 65536.0);
+if (d==0.0) return;
+
+id = 1.0 / d;
+double y12 = (double)(y1-y2) / 65536.0;
+double y02 = (double)(y0-y2) / 65536.0;
+dz = ((double)(z0-z2) * y12 - (double)(z1-z2) * y02)*id;
+		</code></pre>
+		<p>Diese Vor&shy;gehens&shy;weise setzt voraus, daß alle Werte als Fix&shy;punkt&shy;zahlen 16:16 vorliegen. Die übrigen Deltas berechnen Sie analog zu <i>dz</i>.</p>
+	</section>
+
+	<aside>
+		<h2>FIXPUNKT-ARITHMETIK</h2>
+		<div>
+			<p>Berechnungen mit Gleit&shy;komma&shy;zahlen laufen auf den meisten Pro&shy;zessoren sehr langsam. Alternativ verwenden Sie bei festem (fixem) Zahlen&shy;bereich die sogenannte Fixpunkt-Arithmetik.<br>
+			Dabei reservieren Sie inner&shy;halb eines Integer-Werts (hier 32 Bit) eine bestimmte Anzahl von Bits für die Vor- und Nach&shy;komma&shy;stellen (hier jeweils 16 Bit, also 16:16). So können Sie den Zahlen&shy;bereich von -32768 bis 32767 mit einer Genauigkeit von 1/65536 darstellen. Eine Gleit&shy;komma&shy;zahl wandeln Sie durch Multi&shy;plikation mit dem Faktor 65536.0 in eine Fix&shy;punkt&shy;zahl um.</p>
+			<p>Bei der Polygon&shy;routine erzielen Sie damit eine große Leistungs&shy;steigerung, weil Sie Fix&shy;punkt&shy;zahlen so schnell wie Integer-Zahlen addieren und subtrahieren. Multi&shy;plikation und Division verlangen aller&shy;dings eine Sonder&shy;behandlung, die Zeit&shy;ersparnis ist dennoch enorm.</p>
+			<p>Die Multi&shy;plikation zweier 32-Bit-Zahlen kann den Werte&shy;bereich sprengen und eine 64-Bit-Zahl als Ergebnis liefern. Weichen Sie deshalb kurz&shy;fristig auf Integer-Zahlen mit größerem Zahlen&shy;bereich aus. In Assembler-Routinen umgehen Sie dieses Problem elegant, indem Sie register&shy;übergreifend programmieren.</p>
+			<p>Multi&shy;plizieren Sie vor einer Division zunächst die zu teilende Zahl mit 65536. Andern&shy;falls findet ein Unter&shy;lauf statt und das Ergebnis ist 0. Weichen Sie auch hier auf größere Integer-Werte aus. Zudem darf der Teiler nicht kleiner als 1 sein (Fix&shy;punktwert: 65536), da sonst ein Über&shy;lauf auftritt. Statt dessen multi&shy;plizieren Sie einfach mit dem Kehr&shy;wert mit 14 Bit Nach&shy;komma&shy;genauigkeit.</p>
+		</div>
+	</aside>
+
+	<section>
+		<p>Zum Zeichnen einer Scan&shy;line arbeiten Sie so viele Pixel ab, wie die Linie breit ist. Dabei ändern sich ständig die Werte im Z-Buffer. Ist der aktuelle Pixel drei&shy;dimensional gesehen näher am Betrachter als bisher gezeichnete, oder fehlt an dieser Stelle ein Pixel, setzen Sie ihn mit der angegebenen Farbe.</p>
+		<p>Abschließend eine einfache Schleife für Polygone mit einheitlicher Farbe:</p>
+		<pre><code>
+for (i=0; i&lt;breite ; i++)
+{
+	if ((z&gt;&gt;16)&gt;zbuffer[i+x1])
+	{
+		vbuffer[i+x1]=farbe;
+		zbuffer[i+x1]=(z&gt;&gt;16);
+	}
+	// horizontale Werte
+	// aktualisieren
+	z+=zbuffer_d;
+}
+	</code></pre>
+	</section>
+	<footer>
+		<p>Rüdiger Pein / Wolfhard Rinke</p>
+		<p>© 1998 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><a name="note1"><sup>1</sup>Details lesen Sie nach in Kevin Wu: Fast Inversion of Length- and Angle-Preserving Matrices, erschienen in: Graphic Gems IV, Academic Press, ISBN 0-12-33-6155-0</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199807.html">7/1998</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199809.html">9/1998</a>
+	</nav>
+</body>

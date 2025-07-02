@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Grafikzauber in 3D (PC Underground, PC Magazin 7/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;7/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200006.html">6/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200008.html">8/2000</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Texturen mit Alphakanal</h2>
+		<h1><span class="highlight">Grafikzauber</span> in 3D</h1>
+		<p class="summary">Profis programmieren mit Direct3D, um grafisch anspruchsvolle Aufgaben zu lösen. Wer <span class="highlight">3D-Beschleuniger</span> einsetzt, kann sein Publikum mit grafischen Spielereien verwöhnen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Um effektvolle Routinen zu programmieren, brauchen Sie neben der Idee die richtigen Daten. Wichtig für eine ansprechende Darstellung sind die Texturen, die Sie den 3D-Objekten zuweisen.</p>
+		<p>Texturen sind Bilder oder Bitmaps, die Sie auf Polygone kleben. Texturen können neben Farb&shy;informationen einen Alphakanal enthalten. Dieser speichert für jeden Pixel der Textur (auch Texel genannt) einen Alphawert. Alphawerte verwenden Sie für Transparenz&shy;effekte.</p>
+		<p>Beim hier gewählten Texturformat verfügen Sie für den Alpha-, Rot-, Grün- und Blauwert über je acht Bits. Die Farbwerte setzen sich durch additive Farbmischung zusammen. Ein Alphawert von <i>255</i> bedeutet, dass ein Pixel <i>opak</i> (undurchsichtig) ist, ein Wert von <i>0</i> zeigt Transparenz an.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200007.zip">💾 200007.zip</a>.</div>
+	</aside>
+
+	<section>
+		<p>Aus Heft 6/00, (ab S. 246) wissen Sie, wie man Texturen direkt aus <i>bmp</i>-Dateien liest. Um einen Alphakanal für die Textur anzulegen, laden Sie die Textur in ein vorgebenes Texturformat. Die Konstante, die dieses Texturformat, bezeichnet, lautet:</p>
+		<pre><code>D3DX_SF_A8R8G8B8</code></pre>
+		<p>Kürzen Sie dieses Format mit <i>A8R8G8B8</i> oder <i>ARGB</i> ab. Es sollen je acht Bits für alle Kanäle und einen Alphakanal reserviert werden. Mit folgenden Zeilen laden Sie eine <i>ARGB</i>-Textur:</p>
+		<pre><code>
+D3DX_SURFACEFORMAT sf = D3DX_SF_A8R8G8B8;
+DWORD flags = D3DX_TEXTURE_NOMIPMAP;
+LPDIRECTDRAWSURFACE7 pTex;
+D3DXCreateTextureFromFile(D3DDevice,&amp;flags,0,0,&amp;sf,NULL,
+	&amp;pTex,NULL,file,D3DX_FT_POINT);
+		</code></pre>
+		<p>In der Textur steht außer dem Wert <i>255</i> für jeden Texel die Bitmap. Diese Texturen (Surfaces) bleiben im Speicher. Sie greifen darauf zu, um Inhalte zu ändern.</p>
+		<p>Dazu fordern Sie die Surface an und sperren sie für andere Prozesse. Die folgenden Routinen behandeln eine <i>A8R8G8B8</i>-Textur:</p>
+		<pre><code>
+surface = ptex;
+// Textur von oben ändern
+DDSURFACEDESC2 ddsd;
+ddsd.dwSize = sizeof(ddsd);
+while(surface-&gt;Lock(NULL, &amp;ddsd, 0, NULL ) == DDERR_WASSTILLDRAWING);
+		</code></pre>
+		<p>Die <i>Lock</i>-Funktion füllt beim Aufruf die <i>DDSURFACEDE</i> <i>SC2</i>-Struktur mit den Informationen über die Surfaces wie Breite, Höhe, Pitch und setzt einen Zeiger auf die Texturdaten. Die Anzahl der Bytes variiert von der Zahl der Pixel. Hier interessieren folgende Daten:</p>
+		<pre><code>
+DWORD lPitch = ddsd.lPitch;
+BYTE* pBytes = (BYTE*)ddsd.lpSurface;
+// feste Werte für A8R8G8B8
+DWORD dwAShiftR = 24;
+DWORD dwAMask = 0xff000000;
+		</code></pre>
+		<p>Nun können Sie Texel für Texel das Bild durchgehen und die Alphawerte ändern:</p>
+		<pre><code>
+// enthält neue Alphawerte
+unsigned char *pdata;
+...
+
+for(DWORD y = 0; y &lt; ddsd.dwHeight; y++ )
+{
+	DWORD* pDstData32 = (DWORD*)pBytes;
+	for(DWORD x = 0; x &lt; ddsd.dwWidth; x++)
+	{
+		DWORD da = (pdata[y * ddsd.dwWidth + x] &lt;&lt; dwAShiftR) &amp; dwAMask;
+		pDstData32[x] &amp;= (DWORD)(-1 ^ dwAMask);
+		pDstData32[x] |= (DWORD)(da);
+	}
+	pBytes += ddsd.lPitch;
+}
+		</code></pre>
+		<p>Nach allen Änderungen müssen Sie die Surface wieder freigeben, um damit weiter arbeiten zu können:</p>
+		<pre><code>surface-&gt;Unlock(NULL);</code></pre>
+	</section>
+
+	<section>
+		<h2>Alpha-Blending</h2>
+		<figure class="floatright">
+			<img src="assets/200007_1.jpg" width="800" height="600" alt="DIE TEXTUR LIEGT transparent über der Kugel.">
+			<figcaption><span>DIE TEXTUR LIEGT</span> transparent über der Kugel.</figcaption>
+		</figure>
+		<p>Nun liegt Ihnen eine Textur mit Alphawerten vor. Den Alphakanal verwenden Sie hauptsächlich dazu, Objekte transparent erscheinen zu lassen.</p>
+		<p>Hier ist die Textur der Kugel transparent über dem Hintergrund gezeichnet. Eine schwebende durchsichtige Kugeln über Wasser fasziniert den Betrachter. Dazu müssen Sie die Direct3D Renderstates mit folgenden Schritten anpassen:</p>
+		<pre><code>
+// Textur wählen
+D3DDevice-&gt;SetTexture(0, pTex);
+// Alpha Blending aktivieren
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, TRUE);
+		</code></pre>
+		<p>Mit folgender Zeile erscheinen die Farbwerte der Kugeln in voller Intensität:</p>
+		<pre><code>
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE);
+		</code></pre>
+		<p>Dazu addieren Sie die Farbwerte des Hintergrunds, die Sie zuvor mit dem umgekehrten Alphawert der Textur (255 minus Alphawert) multiplizieren:</p>
+		<pre><code>
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA);
+		</code></pre>
+		<p>Stellen Sie das Beispiel wie im Bild auf Seite 256 transparent dar:<br>
+		• Für das additive Shading genügt es, die Farb&shy;intensitäten zu addieren:</p>
+		<pre><code>
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_ONE);
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
+		</code></pre>
+		<p>• Für herkömmliche transparente Objekte wie buntes Glas geben Sie ein:</p>
+		<pre><code>
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA);
+		</code></pre>
+		<p>Es gibt noch viele andere Kombinationen, doch nicht jede Grafikkarte unterstützt alle. Werfen Sie deshalb einen Blick in die Hilfefunktion des DX7-SDK. Zusätzlich fragen Sie beim Programmstart ab, welche der Device Caps (vgl. PC Underground 6/00, S. 246) die Hardware bedienen kann.</p>
+	</section>
+
+	<section>
+		<h2>Alphatesting</h2>
+		<figure class="floatright">
+			<img src="assets/200007_2.jpg" width="318" height="307" alt="IN ZWEI ÜBEREINANDER gezeichneten Texturen erhalten Sie mit Alphawerten das Graustufenbild.">
+			<figcaption><span>IN ZWEI ÜBEREINANDER</span> gezeichneten Texturen erhalten Sie mit Alphawerten das Graustufenbild.</figcaption>
+		</figure>
+		<p>Eine weitere Anwendung für den Alphakanal ist das Alphatesting. Dabei machen Sie vom Alphawert eines Texels abhängig, ob dieser gezeichnet werden soll: Entweder soll der Texel vollständig opak oder transparent erscheinen.</p>
+		<p>Dazu legen Sie einen Referenzwert fest, der bestimmt, ob die zu zeichnenden Texel einen kleineren, größeren oder gleichen Alphawert aufweisen müssen. Normalerweise verwenden Sie die Alphatest-Funktionalität dazu, um Ränder von 3D-Objekten über der Textur feiner zu zeichnen, als dies mit einer erträglichen Anzahl von Polygonen machbar wäre. Wir wollen zwei Bitmaps ineinander überblenden.</p>
+		<p>Im Bild unten links sehen Sie zwei Texturen, die übereinander gezeichnet werden. Der zweiten Textur weisen Sie die Alphawerte zu, die Sie in der Mitte als Graustufenbild sehen. Dann schalten Sie den Alphatest ein, um den Alpha-Referenzwert zwischen <i>0</i> und <i>255</i> zu variieren. Dadurch erhalten Sie den Effekt, dass sich die zweite Textur Stück für Stück nach einem nicht gleich erkennbaren Muster über die erste ergießt. Der Code dazu lautet:</p>
+		<pre><code>
+D3DTLVERTEX vQuad[4];
+// vQuad: Rechteck-Koordinaten für FullScreen füllen
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, FALSE);
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_ ALPHATESTENABLE, FALSE);
+
+// erstes Mal zeichnen
+D3DDevice-&gt;SetTexture(0, textur1);
+D3DDevice-&gt;DrawPrimitive(D3DPT_TRIANGLEFAN, D3DFVF_TLVERTEX, vQuad, 4, 0);
+
+// Alpha Test anschalten
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_ALPHATESTENABLE, TRUE);
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_ALPHAFUNC, D3DCMP_GREATER);
+D3DDevice-&gt;SetRenderState(D3DRENDERSTATE_ALPHAREF, AlphaRef);
+
+//mit zweiter Textur zeichnen
+D3DDevice-&gt;SetTexture(0, textur2);
+D3DDevice-&gt;DrawPrimitive(D3DPT_TRIANGLEFAN, D3DFVF_TLVERTEX, vQuad, 4, 0);
+		</code></pre>
+		<p>Damit sind die wichtigsten Prinzipien des Alpha-Blending umrissen. Um interessante Effekte zu erzielen, verändern Sie Parameter und Texturen. Die Mittel dazu gibt Ihnen das Programm an die Hand.</p>
+	</section>
+
+	<section>
+		<h2>Multitexturing</h2>
+		<figure class="floatright">
+			<img src="assets/200007_3.jpg" width="640" height="350" alt="MIT DEM PROGRAMM MFCTEX kombinieren Sie mehrere Texturen gleichzeitig.">
+			<figcaption><span>MIT DEM PROGRAMM MFCTEX</span> kombinieren Sie mehrere Texturen gleichzeitig.</figcaption>
+		</figure>
+		<p>Weitere schöne Effekte erzielen Sie dadurch, dass Sie nicht nur eine einzige Textur verwenden, sondern einem Objekt mehrere zuordnen. Das ließe sich zwar alles auf einer Textur darstellen, doch verwenden Sie lieber mehrere Texturen.</p>
+		<p>Keine 3D-Beschleuniger&shy;karte verfügt über unbegrenzten Texturspeicher. Wenn Sie Texturen im Hauptspeicher halten, bremst das Verfahren trotz relativ schnellem Datentransport über den PCI- oder AGP-Bus immer noch den Bildaufbau aus.</p>
+		<p>Stellen Sie sich ein Objekt vor, das eine Textur wie eine Steinmauer mitbringen soll. Nun wollen Sie Lichteffekte auf diese Mauer fallen lassen, wozu Sie eine sogenannte Lightmap verwenden. Die Lightmap ist eine viel kleinere Textur, die sich aber auch über die gesamte Mauer erstreckt und nur Helligkeits&shy;infomationen enthält. Diese Textur ist kleiner, weil sie dynamisch berechnet werden soll. Erst beide Texturen zusammen ergeben den erwünschten Effekt. Das Programm <i>MFCTEX</i> lässt Sie mehrere Texturen gleichzeitig kombinieren. Sie können sich sogar den Quellcode für die entsprechende Einstellung ausgeben lassen. Wenn Sie mehrere Texturen verwenden, heißt dieses Verfahren Multitexturing. Spiegeln Sie Effekte: Wenn Sie ein Objekt schon mit eigener Textur versehen haben, brauchen Sie dazu eine zweite Textur. Wenn Sie Texturen spiegeln wollen, nennt sich dieser Vorgang Environment Mapping, weil die Umgebung auf der Texture-Map zu sehen ist.</p>
+		<p>Für diese Effekte müssen Sie Ihrem 3D-Objekt zwei Sätze von Textur&shy;koordinaten zuweisen. Zuerst legen Sie einen Vertex-Buffer wie folgt an:</p>
+		<pre><code>
+D3DVERTEXBUFFERDESC vbdesc;
+vbdesc.dwSize = sizeof(vbdesc);
+vbdesc.dwCaps = 0;
+vbdesc.dwFVF = D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX2;
+vbdesc.dwNumVertices = 20000;
+D3D7-&gt;CreateVertexBuffer(&amp;vbdesc, (IDirect3DVertexBuffer7**)&amp;pVertexBuffer, 0);
+		</code></pre>
+		<p>Dabei verwenden Sie ein Format für die Vertices (Eckpunkte), das Sie noch definieren müssen.</p>
+		<pre><code>
+typedef struct
+{
+// Koordinaten
+D3DVALUE dvX, dvY, dvZ;
+// Normale
+D3DVALUE dvNX, dvNY, dvNZ;
+// Texturkoordinaten
+D3DVALUE
+	dvTU, dvTV, dvTU2, dvTV2;
+} D3DVERTEX2;
+		</code></pre>
+		<figure class="floatleft">
+			<img src="assets/200007_4.jpg" width="256" height="256" alt="DER BLICKWINKEL GEHT vom spiegelnden Objekt aus, wobei Sie ein recht verzerrtes Bild erhalten.">
+			<figcaption><span>DER BLICKWINKEL GEHT</span> vom spiegelnden Objekt aus, wobei Sie ein recht verzerrtes Bild erhalten.</figcaption>
+		</figure>
+		<p>Folgendermaßen spiegeln Sie Effekte über eine Environment Map: Sie berechnen eine Textur mit einem zweiten Satz von Textur&shy;koordinaten abhängig von der Position des Betrachters und der Objektrotation für jedes Bild neu. Den Vertex-Buffer können Sie nicht von Direct3D per <i>Optimize(...)</i> optimieren, da Sie sonst nicht mehr auf dessen Inhalt zugreifen dürfen.</p>
+		<p>Im Gegensatz zur Bewegung der Kamera (vgl. Heft 6/00, S. 246) kehren Sie jetzt die Trans&shy;formationen um, um die Textur&shy;koordinaten zu berechnen. Sie können eine Hälfte des drei&shy;dimensionalen Raums in einer Textur halten. Der Blickwinkel geht hierbei vom spiegelnden Objekt aus, wobei Sie ein recht verzerrtes Bild erhalten. Die dazugehörigen Textur&shy;koordinaten berechnen Sie wie folgt.</p>
+		<pre><code>
+//Kamera- und Objektbewegung
+D3DXMATRIX amatWorld, amatView, matWV;
+D3DDevice-&gt;GetTransform(D3DTRANSFORMSTATE_VIEW, amatView);
+D3DDevice-&gt;GetTransform(D3DTRANSFORMSTATE_WORLD, amatWorld);
+D3DXMatrixMultiply (&amp;matWV, &amp;amatWorld, &amp;amatView );
+//Normalen drehen und Texturkoordinaten
+// für jede Normale (nx,ny,nz)
+dvTU2 = 0.5f * (1.0f + (nx * matWV.m[0][0] + ny *
+	matWV.m[1][0] + nz*matWV.m[2][0]));
+dvTV2 =0.5f * (1.0f - (nx * matWV.m[0][1] + ny *
+	matWV.m[1][1] + nz * matWV.m[2][1]));
+		</code></pre>
+		<p>Im Bild unten sehen Sie einen verschlungenen Knoten (Torusknoten) mit einer Environment Map. Das Bild enthält nur eine Lichtquelle. Mit zwei Texturen erzielen Sie schon einfache Beleuchtungs&shy;effekte. Die Beleuchtung ist eine Nachahmung der Phong-Beleuchtung, die über Environment Maps nur von den neuesten 3D-Beschleunigern unterstützt wird.</p>
+		<figure class="large">
+			<img src="assets/200007_5.jpg" width="800" height="600" alt="DIESER TORUSKNOTEN mit nur einer Lichtquelle ahmt die Phong-Beleuchtung nach.">
+			<figcaption><span>DIESER TORUSKNOTEN</span> mit nur einer Lichtquelle ahmt die Phong-Beleuchtung nach.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Marching-Cubes Algorithmus</h2>
+		<figure class="floatright">
+			<img src="assets/200007_8.jpg" width="336" height="590" alt="DIESE 15 BASISFÄLLE zeigen den Marching-Cubes-Algorithmus.">
+			<figcaption><span>DIESE 15 BASISFÄLLE</span> zeigen den Marching-Cubes-Algorithmus.</figcaption>
+		</figure>
+		<p>Jetzt starten Sie unser Beispiel&shy;programm und beobachten, wie sich die sichtbaren Kugeln bewegen und miteinander verschmelzen. Diese 3D-Objekte berechnet der Marching-Cubes-Algorithmus. Ihn haben William E. Lorensen und Harvey E. Cline entwickelt, um Flächen&shy;informationen aus einem drei&shy;dimensionalem Feld zu berechnen. Die Fläche (Isofläche genannt) taucht überall dort auf, wo innerhalb des Felds ein Wert vorliegt. Marching-Cubes-Algorithmus wird vorwiegend bei der medizinischen Daten&shy;verarbeitung, geologischen Scans und zur Visualisierung von Äquipotential&shy;flächen elektrischer Felder und Ladungen verwendet.</p>
+		<p>Die Eingabedaten enthalten einen Referenz<i>float</i>-Wert, auf dem die Isofläche liegen soll. Es wird untersucht, ob ein Punkt im Eingabefeld innerhalb oder außerhalb der Isofläche liegt, also sein Wert kleiner oder größer als der Referenzwert ist.</p>
+		<p>Der Marching-Cubes-Algorithmus unterteilt den betrachteten Raum in kleine Würfel. Überprüfen Sie für die Eckpunkte jedes Würfels, ob sie innerhalb oder außerhalb der Isofläche liegen. Dann ersetzen Sie den Würfel durch eine Reihe von Polygonen.< Alle so generierten Polygone stellen angenähert die Isofläche dar.</p>
+		<figure class="floatleft">
+			<img src="assets/200007_9.png" width="258" height="258" alt="BEI LINEAR ANGENOMMENEM Verlauf der float-Werte zwischen zwei Gitterpunkten lassen sich Eckpunkte leichter berechnen.">
+			<figcaption><span>BEI LINEAR ANGENOMMENEM</span> Verlauf der float-Werte zwischen zwei Gitterpunkten lassen sich Eckpunkte leichter berechnen.</figcaption>
+		</figure>
+		<p>Im Bild oben sehen Sie ein Gitter mit einem einge&shy;zeichneten Kreis, den Linien annähernd darstellen sollen. Berechnen Sie für alle Eckpunkte die Gitterquadrate, welche grüne Punkte symbolisieren. Diese liegen innerhalb oder außerhalb des Kreises. Fügen Sie Start- und Eckpunkte für die Linien ein, die dem Schema entsprechen.</p>
+		<p>Wenn Sie die Punkte zu einem Linienzug verbinden, sehen Sie ungefähr den Kreisrand. Diese Vorgehensweise übertragen Sie auf die dritte Dimension. Da ein Würfel acht Ecken hat, und jede der Ecken entweder innerhalb oder außerhalb liegen kann, müssen Sie maximal <i>2<sup>8</sup> = 256</i> Fallunter&shy;scheidungen berechnen. Gehen Sie zunächst von 15 Basisfällen aus, die das folgende Bild verdeutlicht. Alle anderen Kombinationen erhalten Sie durch Drehung, Spiegelung und Vertauschen von inneren und äußeren Perspektiven.</p>
+		<figure class="floatright">
+			<img src="assets/200007_6.jpg" width="319" height="101" alt="IM ZWEIDIMENSIONALEN Raum lässt sich die Isofläche besser verdeutlichen.">
+			<figcaption><span>IM ZWEIDIMENSIONALEN</span> Raum lässt sich die Isofläche besser verdeutlichen.</figcaption>
+		</figure>
+		<p>Um die Isofläche einfacher berechnen zu können, speichern Sie alle Fälle in Tabellen. Sie finden die Tabelle im Quellcode unseres Beispiel&shy;programms auf der Heft-CD.</p>
+		<p>Die Tabelle in unserem Beispiel&shy;programm liefert für jeden der 256 Fälle eine Liste mit Polygonkanten. Die Darstellung kann zwischen null und vier Dreiecke für einen Würfel erfordern. Eine zweite Tabelle dient dazu, die Eckpunkte für die Kanten zu finden. Die Qualität der Darstellung verbessern Sie, indem Sie die Eckpunkte der Polygone verschieben. Im zwei&shy;dimensionalen Beispiel verändern Sie Start-/Endpunkte der Linien.</p>
+		<figure class="floatright">
+			<img src="assets/200007_7.png" width="300" height="75" alt="DIE ZUERST BERECHNETEN Eckpunkte der Gitterquadrate symbolisieren grüne Punkte.">
+			<figcaption><span>DIE ZUERST BERECHNETEN</span> Eckpunkte der Gitterquadrate symbolisieren grüne Punkte.</figcaption>
+		</figure>
+		<p>Sie legen fest, ob Eckpunkte innerhalb oder außerhalb der Körper oder Flächen liegen. Es ist damit nicht gewährleistet, dass der Referenzwert genau zwischen den Gitterpunkten liegt. Setzen Sie den Eckpunkt also nicht ganz genau in der Mitte an.</p>
+		<p>Einfacher, aber dennoch gut ist es, den Verlauf der <i>float</i>-Werte zwischen zwei Gitterpunkten als linear anzunehmen. Dann können Sie durch eine einfache Quotienten&shy;bildung eine bessere Position für den Eckpunkt berechnen.</p>
+		<p>Abschließend stellen Sie dem Programm die Eingabedaten zur Verfügung. Dabei handelt es sich um ein drei&shy;dimensionales Array von <i>float</i>-Werten. Anfangs setzen Sie jeden Eintrag auf den Wert 0. Übergeben Sie alle Einträge mit den Koordinaten <i>x, y, z</i>, deren Werte Sie nach weiteren Vorlagen ändern. Für eine punktförmige elektrische Ladung verwenden Sie folgende Formel:</p>
+		<pre><code>
+// Position der Ladung: tx1, ty1, tz1
+Feld[z][y][x] = 1.0f / ((x - tx1) * (x - tx1) +
+	(y + ty1) * (y + ty1) + (z - tz1) * (z - tz1));
+		</code></pre>
+		<p>Das Beispiel&shy;programm stellt vier dieser Ladungen dar. Sie können nicht nur Kugeln darstellen, sondern alle mathematischen impliziten Flächen wie einen Torus oder Kegel (implizit beschreibt Formen, welche mathematische Funktionen darstellen können). Experimentieren Sie mit den Einstellungen und Renderstates.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur:</b></p>
+		<p class="footnote">William E. Lorensen and Harvey E. Cline: Marching Cubes — A High Resolution 3D Surface Construction Algorithm, Computer Graphics (Proceedings of SIGGRAPH ‘87), Vol. 21, No. 4, pp. 163-169. <a href="https://www.exaflop.org" rel="external nofollow noreferrer">www.exaflop.org</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200006.html">6/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200008.html">8/2000</a>
+	</nav>
+</body>

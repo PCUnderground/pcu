@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Tanz der Pixel (PC Underground, PC Magazin 6/1999)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;6/1999. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199905.html">5/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199907.html">7/1999</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Spiele-Programmierung unter Windows 95/98/NT</h2>
+		<h1><span class="highlight">Tanz</span> der Pixel</h1>
+		<p class="summary">Im zweiten Teil unseres Spieleprojekts animieren Sie <span class="highlight">Raumgleiter</span> mit Hilfe von Sprites und Partikeleffeken.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Nachdem Sie in der letzten Ausgabe von PC Underground einiges über Sounds gelernt haben, dreht sich diesmal alles um die Grafik. Für unser Projekt eines Weltraum-Ballerspiels spielt dabei die Animation der fliegenden Raumgleiter eine wichtige Rolle. Diese Aufgabe bewältigen Sie am besten mit sogenannten Sprites.</p>
+		<p>Sprites sind kleine, auf dem Bildschirm frei bewegliche Grafiken, die auch durchsichtige Stellen aufweisen können. Sie tauchen nicht nur in vielen Spielen auf – das wohl bekannteste Beispiel eines Sprite ist sicherlich Ihr Mauszeiger. Sogar auf Web-Seiten kommen heute Sprites zum Einsatz: Dank der Layer-Technik können Sie Grafiken schrittweise an immer neuer Stelle plazieren.</p>
+		<p>Bereits so betagte Heimcomputer wie der Commodore 64, der Amiga sowie der Atari haben eine Hardware-Unterstützung für Sprites zur Verfügung gestellt. Auch die meisten Spielekonsolen bieten diese heute an. Dies spart Rechenzeit und vereinfacht den Umgang mit bewegten Objekten. Auf dem PC allerdings mußten sich Programmierer schon immer selbst um alles kümmern. Dabei will die Darstellung, Bewegung und eventuell das Wieder&shy;herstellen des Bildschirm&shy;inhalts beim Weiter&shy;bewegen eines Sprite geschickt implementiert sein.</p>
+	</section>
+
+	<aside>
+		<h2>ENTWICKLUNGSSTUFEN DES SPIELEPROJEKTS</h2>
+		<div>
+			<p><b>Teil 1 (Ausgabe 5/99):</b><br>
+			• Entwicklung des Basissystems<br>
+			• DirectSound-Programmierung<br>
+			• Soundeffekt-Programmierung/Klangsynthese<br></p>
+			<p><br><b>Teil 2 (diese Ausgabe):</b><br>
+			• Sprite-Programmierung<br>
+			• Partikel- und Effektsystem<br></p>
+			<p><br><b>Teil 3 (Ausgabe 7/99):</b><br>
+			• Algorithmen zur Kollisionsabfrage<br>
+			• Spielelogik<br>
+			• Spielegrafik und Highscore-Routinen<br>
+			• Musik</p>
+			<br>
+			<p>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="199906.zip">💾 199906.zip</a>.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Sprites verwalten</h2>
+		<figure class="floatright">
+			<img src="assets/199906_1.jpg" width="640" height="498" alt="SPRITE-ROUTINEN und Partikelsystem im Einsatz">
+			<figcaption><span>SPRITE-ROUTINEN</span> und Partikelsystem im Einsatz</figcaption>
+		</figure>
+		<p>Um ein Sprite zu speichern und anzuzeigen, gibt es eine einfache Methode: Sie merken sich dessen Breite und Höhe und reservieren einen entsprechend großen Speicher&shy;bereich für die Bilddaten. Das sieht dann folgendermaßen aus:</p>
+		<pre><code>
+typedef struct
+{
+	int size_x, size_y; // Größe
+	// Zeiger auf Daten
+	short *data;
+}
+		</code></pre>
+		<p>Die Größe des Speicher&shy;bereichs beträgt Breite mal Höhe mal Speicher&shy;verbrauch eines Pixels (in unserem Fall 2 Byte).</p>
+		<p>Für durchsichtige Stellen des Sprite legen Sie einen gewöhnlichen Farbcode fest, den Sie entbehren können. Der Code mit dem Wert <i>0</i> eignet sich dafür hervorragend, weil Sie ihn in Assemblercode besonders schnell abfragen können. Zwei verschachtelte Schleifen, je eine für die Höhe und die Breite, zeichnen das Sprite auf den Monitor:</p>
+		<pre><code>
+for(int y = 0; y &lt; size_y; y++)
+	for(int x = 0; x &lt; size_x; x++)
+	{
+		short farbcode = data[x + y * size_x];
+		if(farbcode!=0)
+		 Bildschirm[x + pos_x + (y + pos_y) * SCREEN_X] = farbcode;
+	}
+		</code></pre>
+		<p>Wie Sie sehen, müssen Sie mit dieser Methode immer alle Pixel des Sprite auslesen und auf Gleichheit mit Null prüfen, egal wie viele Pixel gesetzt sind. An dieser Stelle ahnen Sie sicher schon, daß es ein eleganteres Verfahren gibt.</p>
+		<p>Die folgende Vorgehensweise nutzt eine Idee aus der Daten&shy;komprimierung, die sogenannte Lauflängen&shy;codierung (Runlength Encoding, RLE). In der einfachsten Version, wie sie zum Beispiel Bestandteil mancher Grafikformate ist, ersetzt der Algorithmus aufeinander&shy;folgende, gleichfarbige Pixel durch die Anzahl und deren Farbwert. Bei einem einfachen Testszenario erhalten Sie aus <span class="code">1,1,1,1,2,2,3,3,3,4,5,5</span> folgende Ausgabe: <span class="code">4,1,2,2,3,3,1,4,2,5</span> Wie Sie der Ausgabe entnehmen, bestand die Eingabe aus vier Einsern, ge folgt von zwei Zweiern, drei Dreiern, einem Vierer und zwei Fünfern. Bei einem häufigen Wechsel der Eingabewerte nimmt die Datenmenge jedoch nicht sehr ab. In diesem Beispiel spart das Verfahren gerade mal zwei Werte ein.</p>
+		<p>Beim Entpacken gehen Sie umgekehrt vor: Zuerst lesen Sie die Anzahl aus, dann den Wert, den Sie entsprechend oft kopieren.</p>
+		<p>Eben das nutzen Sie für Ihre Sprites. Dazu unterscheiden Sie zwischen durchsichtigen (Farbwert gleich <i>0</i>) und undurch&shy;sichtigen (Farbwert ungleich <i>0</i>) Pixeln des Sprite. Beim Codieren des Sprite zählen Sie dann innerhalb einer Zeile die Anzahl der zusammen&shy;hängenden Pixel. Diese Anzahl speichern Sie und lassen bei undurch&shy;sichtigen Bereichen die Pixeldaten folgen.</p>
+		<p>Nun fehlt Ihnen noch der Hinweis, ob sich die Mengenangabe auf einen durchoder undurch&shy;sichtigen Teil bezieht. Da Sie die Sprite-Daten als 16-Bit-Werte vorliegen haben, können Sie zur Charakter&shy;isierung das höchstwertige Bit (Most Significant Bit, MSB), verwenden. Sie setzen das MSB in einem 16-Bit-Wert durch eine bitweise <i>Oder</i> -Verknüpfung mit dem Wert <i>32768</i>.</p>
+		<p>Als Beispiel hier die Codierung einer Sprite-Zeile. Eine Datenreihe wie: <span class="code">0,0,0,0,1,2,3,4,0,5,6</span> ergibt codiert:
+		<span class="code">4 or MSB,4,1,2,3,4,1 or MSB,2,5,6</span> Der Vorteil dieser Methode ist, daß das Decodieren praktisch keine Zeit kostet und Sie nur die Sprite-Daten lesen müssen, die undurch&shy;sichtige Pixel enthalten. Ein Vergleich mit dem Wert <i>0</i> entfällt komplett. Am Ende einer Sprite-Zeile signalisieren Sie noch mit einem festgelegten Code, daß die Zeichenroutine in die nächste Bildschirm&shy;zeile springen muß.</p>
+		<p>Natürlich könnten Sie am Ende einen durchsichtigen Bereich ins Sprite einfügen, der so groß ist, daß der Zeiger auf die Bildschirm&shy;daten danach an der richtigen Stelle steht. Dieser Bereich wäre so groß wie die Breite des Monitors minus der Breite des Sprite.</p>
+		<p>Dieser Ansatz bringt aber zwei entscheidende Nachteile mit sich: Zum einen sind die so generierten Sprite-Daten dann nicht mehr unabhängig von der Auflösung des Bildschirms. Zum anderen erfordert es zusätzlichen Aufwand beim Clipping (Abschneiden) der Sprites am Bildschirmrand.</p>
+		<p>Daher empfiehlt sich eine spezielle Zeilenende-Markierung. Als Escape-Code für den Zeilensprung eignet sich zum Beispiel der Wert <i>65535</i>. Diesen Code bräuchten Sie nur bei <i>65535</i> minus <i>32768</i> durchsichtigen Pixeln in einer Sprite-Zeile – doch dieser Fall dürfte kaum jemals eintreten.</p>
+		<p>Als zusätzliche Information speichern Sie noch die Größe <i>sprite.size</i> des codierten Sprite. Die genaue Codierungs&shy;routine entnehmen Sie dem Quellcode zu diesem Artikel, den Sie wie immer auf der Heft-CD sowie im Internet-Angebot des <i>PC Magazin</i> finden.</p>
+	</section>
+
+	<section>
+		<h2>Sprites zeichnen</h2>
+		<p>Ein solchermaßen codiertes Sprite zeichnen Sie nun relativ schnell:</p>
+		<pre><code>
+int spriteoffset=0;
+short* adresse = x_pos + y_pos * SCREEN_X;
+while(spriteoffset &lt; sprite.size)
+{
+	// Wert auslesen
+	data = sprite.data[spriteoffset++];
+	if(data == NEWLINE)
+	{
+		// Code für neue Zeile
+		adresse += SCREEN_X - sprite.size_x;
+	} else
+	if(data &amp; MSB)
+	{
+		// MSB gesetzt => Transparente Stelle
+		adresse += data - (unsigned int)MSB;
+	} else
+	{
+		// Undurchsichtige Stelle => „data“ Pixel kopieren
+		for(unsigned int i = 0; i &lt; data; i++)
+			*adresse++ = sprite.data[spriteoffset++];
+	}
+}
+		</code></pre>
+		<p>Zu dieser Routine finden Sie im Source-Code auch eine optimierte Assembler-Version, die noch etwas schneller arbeitet.</p>
+		<p>Jetzt bleibt Ihnen noch die Aufgabe, das Clipping zu lösen, also das Abschneiden der Teile eines Sprite, die nicht auf den Bildschirm passen. Das Clipping an der oberen und unteren Kante gestaltet sich relativ leicht: Ragt ein Sprite oben über den Anzeigebereich hinaus, lassen Sie entsprechend viele Sprite-Zeilen aus.</p>
+		<p>In der Praxis lesen Sie die Sprite-Daten aus und zählen die Anzahl der Codes, die einen Zeilenwechsel anzeigen. Achten Sie bei dieser Routine nur darauf, daß Sie dabei die Pixel-Daten überspringen und nicht als Steuercodes interpretieren.</p>
+		<p>Eine sehr elegante und etwas schnellere Methode bedient sich einer Sprungtabelle zu jedem Sprite, in der für jede Zeile der Index auf die Sprite-Daten vermerkt ist. Wenn Sie etwa drei Zeilen überspringen möchten (Zeile <i>0</i> bis <i>2</i>), und Zeile <i>3</i> bei Index <i>100</i> beginnt, stünde in der Tabelle der Eintrag <i>100</i>.</p>
+		<p>Das Clipping an der unteren Kante gestaltet sich noch einfacher: Sie verwenden eine Variable, die Sie mit der <i>y</i>-Start&shy;koordinaten des Sprite initialisieren. Immer wenn Sie eine neue Sprite-Zeile anspringen, erhöhen Sie diesen Wert. Erreicht die Variable einen Wert größer oder gleich der Anzahl der Bildschirm&shy;zeilen, beenden Sie das Zeichnen.</p>
+		<p>Das Clipping an den Seiten funktioniert prinzipiell genauso wie an den anderen Kanten: Sie fügen jeweils Zähler ein, wie viele Pixel Sie noch auslassen (linke Kante) bzw. nach wie vielen Pixeln Sie zu zeichnen aufhören (rechte Kante). Natürlich müssen Sie dabei auch die unsichtbaren Pixel auslesen.</p>
+	</section>
+
+	<aside>
+		<h2>FIXPUNKT-ARITHMETIK</h2>
+		<div>
+			<p>Die Fixpunkt-Arithmetik erlaubt die Bearbeitung von Kommazahlen mit Integer-Datentypen. Sie erhalten einen Fixpunktwert (Fix Point), indem Sie die entsprechende Fließkommazahl (Floating Point) mit einer Konstanten multiplizieren und runden. Diese Konstante sollte idealerweise ein Vielfaches von 2 sein, also zum Beispiel 2<sup>16</sup> = 65536:</p>
+			<pre><code>Fixpoint = Float * 65536.0f;</code></pre>
+			<p>Der Nachteil der Fixpunktzahlen ist der eingeschränkte Zahlenbereich, da Sie nicht mit Mantisse und Exponent arbeiten. Der Vorteil – daher auch die Verwendung für die Partikel – liegt in der Geschwindig&shy;keit. Sie addieren, subtrahieren und multiplizieren Fixpunktzahlen genauso schnell wie echte Integerzahlen. Durch einfaches Schieben nach rechts – im obigen Beispiel um 16 Bit – erhalten Sie den Vorkommaanteil, den Sie zum Berechnen der Bildschirm&shy;position des Partikels benötigen.</p>
+			<p>Bei der Addition bzw. Subtraktion behandeln Sie die Werte wie normale Integerzahlen. Lediglich bei der Multiplikation tricksen Sie etwas:</p>
+			<pre><code>Fix_Mult_A_B = (Fix_A * Fix_B) &gt;&gt; 16;</code></pre>
+			<p>Die Multiplikation arbeitet temporär mit 64-Bit-Integer-Werten. In Assembler programmieren Sie deshalb register&shy;übergreifend, da das Zwischen&shy;ergebnis vor der Shift-Operation mehr als 32 Bit in Anspruch nehmen kann.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Sprites generieren</h2>
+		<p>Damit haben Sie alle Routinen, um einen Sprite zu zeichnen. Ihnen fehlen nur noch die Sprite-Daten selbst. Raumschiffe, wie Sie sie im Beispiel&shy;programm sehen, fertigen Sie mit jedem beliebigen Zeichen- oder 3D-Modeling-Programm an. Möchten Sie nicht mit Microsoft Paint aus dem Windows-Zubehör arbeiten, können Sie zum Beispiel das Shareware-Programm Paintshop Pro von der Heft-CD benutzen.</p>
+		<p>Um den Arbeitsaufwand zu vermindern, zeichnen Sie jedes Bild des Raumschiffs nur für eine Flugrichtung. Für alle anderen Richtungen lassen Sie sich die entsprechenden Sprites berechnen. Ein gedrehtes Sprite erhalten Sie bereits mit wenigen Zeilen Quelltext.</p>
+		<p>Zuerst berechnen Sie zu jedem Pixel an der Stelle <i>x/y</i> des gedrehten Sprite den zugehörigen Vektor vom Sprite-Mittelpunkt aus:</p>
+		<pre><code>
+for(int y = 0; y &lt; spritehoehe; y++)
+	for(int x = 0; x &lt; spritebreite; x++)
+	{
+		vektor.x = x - spritebreite / 2;
+		vektor.y = y - spritehoehe / 2;
+	}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199906_2.jpg" width="640" height="640" alt="ZIEL- UND NACHBARPIXEL bei der bilinearen Interpolation">
+			<figcaption><span>ZIEL- UND NACHBARPIXEL</span> bei der bilinearen Interpolation</figcaption>
+		</figure>
+		<p>Nach einer Rotation dieses Vektors sehen Sie dann, auf welches Pixel er im ursprünglichen Sprite zeigt. Dieses Originalpixel setzen Sie an die Position <i>x/y</i> des neuen Sprite.</p>
+		<p>Durch solche Drehungen entstehen im berechneten Bild meist unschöne Anomalien. Schuld daran ist das Abschneiden der Nachkomma&shy;stellen bei der Konvertierung der Koordinaten zurück in Ganzzahlwerte. Wenn Sie die entsprechenden Nachkomma&shy;anteile berück&shy;sichtigen, erhalten Sie deutlich schönere Ergebnisse.</p>
+		<p>Dazu bedienen Sie sich der bilinearen Interpolation. Betrachten Sie einmal das Bild auf Seite 227: Die berechnete Position <i>40,8/40,6</i> ergibt ohne Beachtung der Nachkomma&shy;stellen das Pixel <i>0</i> links oben, obwohl sie schon sehr nahe an der der anderen Pixel liegt.</p>
+		<figure class="floatright">
+			<img src="assets/199906_5.png" width="399" height="218" alt="ADDITION der halbierten HiColor-Farbwerte">
+			<figcaption><span>ADDITION</span> der halbierten HiColor-Farbwerte</figcaption>
+		</figure>
+		<p>Bei der bilinearen Interpolation vertuschen Sie diesen Fehler durch eine gewichtete Farbgebung. Dabei berück&shy;sichtigen Sie für jede Position die relative Lage zu den vier umliegenden Pixeln. Den idealen Farbwert erhalten Sie, indem Sie für jede Farbkomponente – hier am Beispiel Rot mit den aktuellen Positions&shy;werten gezeigt – wie folgt vorgehen:</p>
+		<pre><code>
+Rot_oben = (1.0 - 0.8) * Rot_Pixel0 + 0.8 * Rot_Pixel1
+Rot_unten = (1.0 - 0.8) * Rot_Pixel2 + 0.8 * Rot_Pixel3
+Rot_gesamt = (1.0 - 0.6) * Rot_oben + 0.6 * Rot_unten
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/199906_4.png" width="398" height="315" alt="HALBIEREN EINES HiColor-Farbwertes durch einfaches Nachrechts-Schieben der Bits und anschließende Maskierung">
+			<figcaption><span>HALBIEREN EINES</span> HiColor-Farbwertes durch einfaches Nachrechts-Schieben der Bits und anschließende Maskierung</figcaption>
+		</figure>
+		<p>Sie lesen also die umgebenden Pixel und deren Farb&shy;komponenten aus und berechnen mit Hilfe der Nachkomma&shy;stellen die gewichteten Farbanteile. Die so gewonnene neue Farbe verwenden Sie für das Pixel an der Zielposition (in unserem Beispiel Pixel <i>0</i>).</p>
+		<p>Warum Sie damit, zum Beispiel bei einer Vergößerung, einen besseren optischen Effekt erzielen, ist einleuchtend: Statt grober Pixel sehen Sie fein abgestufte Farbnuancen. Bei einer Drehung können Sie sich vorstellen, daß ein Pixel nichts anderes ist als ein kleines Quadrat. Beträgt der Drehwinkel etwa 45 Grad, so liegt dieses Quadrat nicht vollständig deckend auf einem Pixel, sondern bedeckt mehrere davon – diese aber nur teilweise. Im Sourcecode finden Sie eine Routine, die Ihnen die Berechnung der Drehschritte abnimmt:</p>
+		<pre><code>
+CreateRotationAnimation(SPRITE *sprite, int steps, bitmaptype bmp)
+		</code></pre>
+		<p>Dieser Funktion übergeben Sie eine Liste von Sprite-Strukturen, die Anzahl der Drehschritte (<i>steps</i>) sowie eine <i>bitmaptype</i> -Struktur. In letztere laden Sie zuvor mit <i>bmp_load(...)</i> eine quadratische Bitmap. Beachten Sie beim Entwurf der Sprites, daß die Farbe <i>0</i>, also Schwarz, als transparent interpretiert wird.</p>
+	</section>
+
+	<aside>
+		<h2>HALBTRANSPARENZ UND ADDITIVES SHADING IN HICOLOR</h2>
+		<div>
+			<p>Um zwei Farben im Verhältnis 1:1 zu mischen, addieren Sie theoretisch jeweils die Rot-, Grün- und Blau&shy;komponenten separat und teilen sie durch 2. Das ist jedoch sehr aufwendig, es geht auch wesentlich eleganter. Betrachten Sie ein Pixel im HiColor-Format, wie im Bild oben zu sehen: Es besteht aus jeweils 5 Bit für die Rot- und Blaukomponente, 6 Bit sind für den Grünanteil reserviert. Jetzt schieben Sie die Bits um eine Stelle nach rechts. Dies entspricht einer Division durch 2. Maskieren Sie die Bits mit der Maske <span class="code">0111101111101111</span> aus, die durch das Schieben in die falsche Farbkomponente gerutscht sind. Addieren Sie nun zwei so vorbereitete Werte, erhalten Sie wieder einen Farbwert im HiColor-Format wie im Bild auf S. 230. Dieser enthält für jede der RGB-Komponenten die Hälfte des ursprünglichen Werts, ohne daß Sie die Komponenten separat behandelt haben.</p>
+			<p>Um zwei Farben zu mischen, halbieren Sie sie zuerst mit dem beschriebenen Verfahren. Danach addieren Sie sie, ohne einen Überlauf – und somit einen Farbfehler – zu riskieren. So erreichen Sie eine Transparenz von 50 Prozent.</p>
+			<p>Beim additiven Shading möchten Sie aber eine hellere Farbe erhalten und keine Mischfarbe. Hier addieren Sie jede der Farb&shy;komponenten und setzten sie bei einem Überlauf auf den maximalen Wert:</p>
+			<pre><code>
+Rot_neu = Rot_A + Rot_B;
+if(Rot_neu &gt; 255) Rot_neu = 255;
+			</code></pre>
+			<p>An den folgenden Formeln für den Rotanteil erkennen Sie leicht, wie Sie aus der Mischfarbe die additive Farbe ableiten:</p>
+			<pre><code>
+// Transparenz
+Rot_Neu = Rot_A / 2 + Rot_B / 2
+	= 0.5 * (Rot_A + Rot_B)
+// Additiv
+Rot_Neu = Rot_A + Rot_B
+	= 2.0 *0.5 * (Rot_A + Rot_B)
+			</code></pre>
+			<p>Die additive Farbe erhalten Sie direkt aus der Mischfarbe, wenn Sie jede Komponente verdoppeln. Bei dieser Multiplikation mit 2 hilft Ihnen eine Tabelle:</p>
+			<pre><code>
+/ Berechnung der Tabelle
+for(i = 0; i &lt; 65536; i++)
+{
+	// Farbanteile extrahieren und skalieren
+	int r = ((i &amp; ROT_MASKE)
+		&gt;&gt; ROT_POS) * 512 &gt;&gt; ROT_SIZE;
+	int g = ((i &amp; GRUEN_MASKE)
+		&gt;&gt; GRUEN_POS) * 512
+		&gt;&gt; GRUEN_SIZE;
+	int b = ((i &amp; BLAU_MASKE)
+		&gt;&gt; BLAU_POS) * 512 &gt;&gt; BLAU_SIZE;
+	// Farbwert berechnen
+	remappalette[i] = ColorCode(
+		min(255, r), min(255, g), min(255, b));
+}
+			</code></pre>
+			<p>Die Tabelle enthält also für jeden möglichen Farbwert der Mischfarbe den Farbwert, der sich bei Multiplikation jeder Komponente mit 2 (und anschließender Korrektur bei einem Überlauf) ergibt. Additives Shading erhalten Sie also aus der Mischfarbe der zwei Pixel:</p>
+			<pre><code>
+additive_Farbe = remappalette[Mischfarbe];
+			</code></pre>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Partikelsysteme</h2>
+		<p>Für die Darstellung von Explosionen und aufsteigenden Rauch könnten Sie ebenfalls Sprites einsetzen. Eleganter und effizienter programmieren Sie diese Effekte aber mit einem Partikelsystem. Auch wenn Sie PC Underground schon länger verfolgen und die Partikel&shy;effekte aus der 3D-Engine in Ausgabe 2/99 kennen, sollten Sie weiterlesen. Diesmal lernen Sie noch effizientere Methoden zur Partikel&shy;verwaltung und eine elegante Steuerung der Partikel-Emitter kennen.</p>
+		<p>In unserem Fall ist ein Partikel nichts anderes als ein kleiner, 4 x 4 Pixel großer Punkt, dessen Helligkeit auf das aktuelle Bild addiert wird. Wie Sie dies elegant im HiColor-Farbraum erledigen, lesen Sie in der Textbox „Halbt&shy;ransparenz und additives Shading in HiColor“ auf S. 231.</p>
+		<p>Jedes dieser Partikel besitzt eine aktuelle Position, eine Bewegungs&shy;richtung und einen Beschleunigungs&shy;vektor. Für diese Werte genügen natürlich keine ganzzahligen Werte, Sie brauchen Kommazahlen. Eine schnelle Lösung bieten Fixpunktzahlen mit je 16 Bit für die Vorund Nachkomma&shy;stelle (siehe Textbox „Fixpunkt-Arithmetik“ auf S. 229).</p>
+		<p>Zusätzlich erhält jedes Partikel noch eine Lebensdauer, anhand derer Sie zum Beispiel dessen aktuelle Farbe berechnen. Dieser Wert dient außerdem dazu, ein Partikel nach einer bestimmten Zeitdauer wieder verschwinden zu lassen.</p>
+		<p>Ein Partikel besitzt also folgende Eigenschaften:</p>
+		<pre><code>
+typedef struct
+{
+	int life; // Lebensdauer
+	int x, y; // Position
+	int dx, dy; // Bewegung
+	int ddx, ddy; // Beschleunigung
+} PARTICLE;
+		</code></pre>
+		<p>Von dieser Struktur legen Sie eine ganze Reihe an, in unserem Fall 10 000 Partikel. Für eine schöne Raumschiff&shy;explosion brauchen Sie davon ca. 5000:</p>
+		<pre><code>
+#define MAXPARTICLES 10000
+
+PARTICLE particle[MAXPARTICLES];
+		</code></pre>
+		<p>Um eine Explosion darzustellen, initialisieren Sie genügend Partikel&shy;strukturen und erwecken diese zum Leben. Dazu müssen Sie aber erst herausfinden, welche der Einträge in <i>particle</i> noch nicht belegt sind. Eine Methode wäre: Sie suchen alle Einträge durch, bis Sie genügend freie gefunden haben. Bei 10 000 Partikeln kostet das allerdings zu viel Rechenzeit.</p>
+		<p>Deshalb verwalten Sie die freien Partikel in einem Stapel (Stack): Legen Sie dazu eine Liste an, die genauso viele Integer-Werte aufnehmen kann wie die maximale Zahl der Partikel. Auf das obere Ende des Stapels zeigt ein spezieller Zeiger, der sogenannte Stackpointer. Die Initialisierung nehmen Sie wie folgt vor:</p>
+		<pre><code>
+int free_particle[MAXPARTICLES];
+int index_free;
+
+for(i = 0; i &lt; MAXPARTICLES; i++)
+	free_particle[i]=i;
+
+index_free = MAXPARTICLES;
+		</code></pre>
+		<p>In dieser Liste stehen alle Partikel&shy;indizes, deren Struktur frei ist – am Anfang eben alle. Jedesmal, wenn Sie ein Partikel benutzen, holen Sie sich die Nummer eines freien Partikels und entnehmen ihn aus der Liste (ein sogenannter Pop vom Stack):</p>
+		<pre><code>
+// keiner frei
+if(index_free &lt;= 0) return;
+
+nummer = free_particle[–index_free];
+		</code></pre>
+		<p>„Stirbt“ ein Partikel, das heißt, verläßt es den Bildschirm oder ist seine Lebensdauer abgelaufen, schreiben Sie seine Nummer wieder in die Liste (entspricht einem Push auf den Stack):</p>
+		<pre><code>
+free_particle[index_free++] = nummer;
+		</code></pre>
+		<p>Somit erhalten Sie immer Zugriff auf freie Strukturen, ohne nach ihnen suchen zu müssen.</p>
+		<p>Jetzt, da Sie eine freie Struktur gefunden haben, füllen Sie sie aus. Werte für eine Explosion an der Stelle <i>x/y</i> sehen beispielsweise so aus:</p>
+		<pre><code>
+void AddExplosion(int x, int y, int anzahl)
+{
+	for(int d = 0; d &lt; anzahl; d++)
+	{
+		if(index_free &lt;= 0) return;
+		int n = free_particle[–index_free];
+
+		float richtung1 = rand() / 32768.0f * PI_2;
+		float speed1 = rand() / 32768.0f * 0.5f;
+		float richtung2 = rand() / 32768.0f * PI_2;
+		float speed2 = rand() / 32768.0f * 0.01f;
+
+		// Position, durch Zufallswerte leicht verschoben
+		particle[n].x =(x &lt;&lt; 16) + (rand() - 16384) * 32;
+		particle[n].y =(y &lt;&lt; 16) + (rand() - 16384) * 32;
+		// Geschwindigkeit
+		particle[n].dx = sin(richtung1) * speed1 * 65536.0f;
+		particle[n].dy = cos(richtung1) * speed1 * 65536.0f;
+		particle[n].ddx = sin(richtung2) * speed2 * 65536.0f;
+		particle[n].ddy = cos(richtung2) * speed2 * 65536.0f;
+		particle[n].life = (128 + (rand() / 32768.0f * 16.0f)) &lt;&lt; 16;
+	}
+}
+		</code></pre>
+		<p>Nun lassen Sie die Partikel über den Bildschirm fliegen. Dabei sollten Sie eine gleichmäßig schnelle Bewegung der Partikel unabhängig von der Geschwindig&shy;keit des Rechners gewährleisten. Berechnen Sie dazu die Zeitdifferenz zwischen der letzten Bewegung eines Partikels und der aktuellen Zeit, und skalieren Sie die Geschwindig&shy;keit und die Beschleunigung entsprechend:</p>
+		<pre><code>
+// Skalierung
+step = (65536.0f * (zeit - alte_zeit) / 20.0f);
+
+for(i=0; i &lt; MAXPARTICLES; i++)
+	if(particle[i].life &gt; 0)
+	{
+		int dead = 0;
+		particle[i].x += imul16(particle[i].dx, step);
+		particle[i].y += imul16(particle[i].dy, step);
+		particle[i].dx += imul16(particle[i].ddx, step);
+		particle[i].dy += imul16(particle[i].ddy, step);
+		int x = particle[i].x &gt;&gt; 16;
+		int y = particle[i].y &gt;&gt; 16;
+
+		// Bildschirm verlassen?
+		if(x &gt;= SCREEN_X - 6)
+			dead = 1;
+		else if (x &lt; 0)
+			dead = 1;
+		if( y &gt;= SCREEN_Y - 6)
+			dead = 1;
+		else if (y &lt; 0)
+			dead = 1;
+
+		explosion_particle[i].life -= imul16(65536, step);
+
+		// Lebensdauer abgelaufen?
+		if(explosion_particle[i].life &lt;= 0) dead = 1;
+		if(dead)
+			// Partikel freigeben
+		else
+			// Partikel zeichnen
+	}
+		</code></pre>
+		<p>Die Funktion <i>imul16</i> ist hier die Multiplikations&shy;routine für Fixpunktzahlen.</p>
+		<p>Das Partikel zeichnen Sie nun, indem Sie die Farbe aus der Lebensdauer berechnen und additiv einen kleinen Kasten an seiner Position setzen:</p>
+		<pre><code>
+// Farbwert berechnen und gleich Bitmaske anwenden
+life = explosion_particle[i].life &gt;&gt; 17;
+r = g = b = 16;
+
+if(life > 48)
+	b += life - 48
+else
+	b += life / 4;
+
+if(life > 32)
+	g += life - 16
+else
+	g += life / 2;
+
+r += life;
+farbe=ColorCode(r, g, b) &amp; mask;
+
+adress = screen + (x + y * SCREEN_X);
+for(int b=0; b &lt; 4; b++)
+{
+	for(int a = 0; a &lt; 4; a++)
+	{
+		int back = *adress;
+		back &amp;= mask;
+		*adress = remappalette[(farbe + back) &gt; 1];
+		adress++;
+	}
+	adress += SCREEN_X - 4;
+}
+		</code></pre>
+		<p>Die Zeichenroutine, die Sie im Quelltext auf der Heft-CD finden, enthält zusätzlich wieder eine Assembler-Version, die die Pixel an den Partikelecken abdunkelt. Dadurch erhalten Sie runder wirkende Partikel, die etwas schöner aussehen.</p>
+		<p>Nun besitzen Sie das Handwerkszeug, um Partikel&shy;explosionen zu generieren. Es fehlt Ihnen aber noch ein eleganter Weg, größere zusammen&shy;gesetzte Explosionen bequem zu erzeugen. Dazu bedienen Sie sich des Prinzips einer Warteschleife:</p>
+		<pre><code>
+#define MAXQUEUE 32
+typedef struct
+{
+	// Position, Dichte, Typ, Flag
+	int x,y,density,type,used;
+	// Zeitangabe für Explosion
+	int time;
+} EXPLOSION_QUEUE;
+
+EXPLOSION_QUEUE queue[MAXQUEUE];
+		</code></pre>
+		<p>Wenn Sie eine zusammen&shy;gesetzte Explosion starten wollen, suchen Sie sich einen freien Eintrag in der Liste und tragen Ihre Wunschdaten ein. Die Variablen bestimmen die Position der Explosion, die Dichte (also die Anzahl der Partikel) sowie den Typus, falls Sie verschiedene Typen implementiert haben:</p>
+		<figure class="floatright">
+			<img src="assets/199906_3.jpg" width="625" height="125" alt="SEQUENZAUFNAHME der Partikel bei einer Explosion">
+			<figcaption><span>SEQUENZAUFNAHME</span> der Partikel bei einer Explosion</figcaption>
+		</figure>
+		<pre><code>
+int i = 0;
+while((i &lt; MAXQUEUE) &amp;&amp; (explosion_queue[i].used))
+	i++;
+
+// Warteschlange voll
+if(i == MAXQUEUE) return;
+
+queue[i].used = 1;
+queue[i].x = Position x;
+queue[i].y = Position y;
+queue[i].density = 400;
+queue[i].type = 0;
+queue[i].time = GetDemoTime() + 250;
+		</code></pre>
+		<p>Dieses Beispiel initialisiert eine Explosion, die 250 Millisekunden später beginnt. Die Funktion <i>HandleExplosion()</i> arbeitet nun die Warteschlange ab:</p>
+		<pre><code>
+void HandleExplosion()
+{
+	int time = GetDemoTime();
+
+	for(int i = 0; i &lt; MAXQUEUE; i++)
+	if((explosion_queue[i].used)
+		&amp;&amp; (explosion_queue[i].time &lt;= time))
+	{
+		explosion_queue[i].used = 0;
+		AddExplosion(
+			explosion_queue[i].x,
+			explosion_queue[i].y,
+			explosion_queue[i].
+			density);
+	}
+}
+		</code></pre>
+		<p>Die Routine rufen Sie bei jedem Bildschirm&shy;aufbau auf, die Explosionen starten dann wie gewünscht. Den optischen Eindruck einer solchen Explosion sehen Sie im Bild auf S. 230.</p>
+		<p>Den Feuerstrahl am Antrieb des Raumschiffs haben wir übrigens auch mit dem Partikelsystem berechnet und dann dem Sprite des Raumgleiters hinzugefügt. Im Sourcecode finden Sie neben der Explosions&shy;routine noch analoge Funktionen für Rauch- und Flammeneffekte.</p>
+		<p>An dieser Stelle haben Sie schon fast alle Grundlagen geschaffen, die Sie für das Programmieren des Spiels benötigen. In der nächsten Ausgabe lernen Sie noch die Algorithmen zur Abfrage von Sprite-Kollisionen kennen, bevor Sie sich dann ganz dem Hauptteil des Spiels widmen.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein / Burkhard Müller</p>
+		<p>© 1999 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="199905.html">5/1999</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="199907.html">7/1999</a>
+	</nav>
+</body>

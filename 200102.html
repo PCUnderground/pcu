@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Mathematische Reize (PC Underground, PC Magazin 2/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;2/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200012.html">12/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200103.html">03/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Bézier- und Spline-Kurven</h2>
+		<h1>Mathematische <span class="highlight">Reize</span></h1>
+		<p class="summary">Wer als Anwender mit Bézier-Kurven <span class="highlight">harmonische Rundungen</span> von Autoblechen am Rechner gestaltet, braucht keine höhere Mathematik. Programmierern bleibt sie nicht erspart.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Die steigende Rechenleistung moderner CPUs und die Entwicklung hochleist&shy;ungsfähiger 3D-Grafikkarten haben dazu geführt, dass pro&shy;fessionelles Modelling Einzug in Computerspiele gehalten hat. Die Grundlage für Modelling sind parametrische (glatte, gekrümmte) Flächen. Eine parametrische Fläche legen Sie durch Basis&shy;funktionen und Stütz-/Kontrollpunkte fest. Die Grundlagen für die Basis&shy;funktionen und deren Auswertung lesen Sie in diesem Beitrag. Zunächst zeichnen Sie Kurven. Deren Form verändern Sie durch die Position der Stützpunkte. Mit diesem Handwerkszeug meistern Sie auch die Flächen im drei&shy;dimensionalen Raum. Für eine parametrische Kurve geben Sie – wie bei Flächen – eine Reihe von Basis&shy;funktionen und Stützpunkten an. Die Bézier-Kurven sind die bekanntesten parametrischen Kurven. Sie wurden um 1960 entwickelt und in der französischen Automobil&shy;industrie zum Karosserie&shy;design verwendet (Computer Aided Geometric Design, CAGD). Die Basis&shy;funktionen, die Sie bei Bézier-Kurven verwenden, heißen Bernstein-Polynome.
+		<img class="math" src="assets/200102_2.png" width="145" height="66" alt="Bernstein-Polynom"></p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200102.zip">💾 200102.zip</a>.</div>
+	</aside>
+
+	<section>
+		<figure class="floatright">
+			<img src="assets/200102_3.png" width="338" height="586" alt="BERNSTEIN-POLYNOME sind die Basis der Bézier-Kurven.">
+			<figcaption><span>BERNSTEIN-POLYNOME</span> sind die Basis der Bézier-Kurven.</figcaption>
+		</figure>
+		<p>Diese Funktionen besitzen drei Variablen:<br>
+		• <i>u</i> ist der Laufindex und nimmt Werte zwischen <i>0</i> und <i>1</i> an.<br>
+		• <i>n</i> ist eine Ganzzahl und gibt den Grad der Kurve an. Das ist zum einen die höchste Potenz, in der die Laufvariable vorkommt, zum anderen bestimmen Sie dadurch die Zahl der Stützpunkte.<br>
+		• Die Bézier-Kurve hat <i>(n+1)</i> Stützpunkte. Für verschiedene Indizes <i>i</i> erhalten Sie verschiedene Funktionen (abhängig von der Variablen <i>u</i>). Die Funktionswerte liegen im Intervall von [0,1]. Sie stellen die Gewichtung der einzelnen Stützpunkte dar, was auch in der Formel für Bézier-Kurven zu sehen ist.
+		<img class="math" src="assets/200102_1.png" width="125" height="37" alt="Bézier-Kurve"></p>
+		<p>Der Stützpunkt bi wird mit dem Bernstein-Polynom <i>i</i> vom Grad <i>n</i> multipliziert. Alle Punkte, die Sie für <i>u</i> zwischen <i>0</i> und <i>1</i> erhalten, liegen auf der Bézier-Kurve. Nehmen Sie eine direkte Auswertung mit den Bernstein-Polynomen vor. Diese sieht wie folgt aus:</p>
+		<pre><code>
+// Koordinate d des Punkts abhängig von u: d = F(u)
+d.x = d.y = 0;
+for (i = 0; i &lt; grad; i++)
+{
+	d = d + (b[i] * bernstein(u, i));
+}
+
+...
+
+// wertet Bernstein-Polynom aus
+double bernstein(double u,long i)
+{
+	return bin(grad, i) * pow(u, i) * pow(1.0-u, grad-i);
+}
+
+// berechnet Fakultät von n
+double fac(long n) {
+	double r = 1.0;
+	for (i = 2; i &lt;= n; i++)
+		r *= (double)i;
+	return r;
+}
+
+// Binomialkoeffizient
+double bin(long n, long k)
+{
+	return fac(n) / (Fac(n-k) * Fac(k));
+}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200102_4.png" width="392" height="310" alt="EINE BÉZIER-KURVE vom Grad <i>n=3</i> und darüber das Kontrollpolygon als Linienzug zwischen den Kontrollpunkten">
+			<figcaption><span>EINE BÉZIER-KURVE</span> vom Grad <i>n=3</i> und darüber das Kontrollpolygon als Linienzug zwischen den Kontrollpunkten</figcaption>
+		</figure>
+		<p>Der Sourcecode <i>2dvector.c</i> zeigt eine definierte Vektorstruktur und überladene Operatoren-Anwendung. Bevor Sie die Bézier-Kurven genauer betrachten, verall&shy;gemeinern Sie die Formel zu einem beliebigen Intervall <i>[s,t]</i> für die Variable <i>u</i>:
+		<img class="math" src="assets/200102_8.png" width="281" height="90" alt="Bézier-Kurve"></p>
+	</section>
+
+	<section>
+		<h2>Eigenschaften von Bézier-Kurven</h2>
+		<p>Bézier-Kurven für <i>u</i> aus <i>[s,t]</i> liegen in der abge&shy;schlossenen konvexen Hülle. Die konvexe Hülle einer Punktmenge können Sie so veranschau&shy;lichen, dass Sie mit einer gespannten Schnur versuchen, alle Punkte einzuschnüren. Weiterhin können Sie sehen, dass die Bézier-Kurve im ersten Stützpunkt <i>b0</i> beginnt und im letzten <i>b3</i> endet (Endpunkt-Interpolation).</p>
+		<p>Die Kurve endet nicht nur in den Endpunkten des Kontroll&shy;polygons, sie verläuft dort auch tangentiell an den Kanten der Kontroll&shy;polygone. Weiterhin sind Bézier-Kurven <i>affin invariant</i> : Bei einer affinen Transformation (eine Drehung und/oder eine Verschiebung) der Kontrollpunkte wird die Kurve mittrans&shy;formiert, behält aber ihre Form.</p>
+		<p>Die Kurve schwankt nicht stärker als ihr Kontroll&shy;polygon (<i>Variation-Diminishing-Property</i>, variations&shy;reduzierend). Sie zeichnen Bézier-Kurven nicht punktweise, doch Sie werten die Bernstein-Polynome für jeden Punkt aus. Stattdessen approximieren Sie am Bildschirm die Kurve mit vielen Linien. Die Zahl der Linien hängt von der Größe der Kurve auf dem Bildschirm und der Auflösung ab. Die Linien können Sie schneller zeichnen als die einzelnen Pixel, deren Position Sie rechenintensiv auswerten müssten.</p>
+	</section>
+
+	<section>
+		<h2>Der de-Casteljau Algorithmus</h2>
+		<p>Ein schnellerer Auswerte-Algorithmus – nicht für die Bernstein-Polynomen – für die Punkte auf Bézier-Kurven ist der de-Casteljau-Algorithmus. Er bestimmt die Koordinate eines Kurvenpunktes durch schrittweise Unterteilung des Kontroll&shy;polygons.</p>
+		<p>Formal benötigen Sie folgende Definitionen, wobei Sie die Variablen wie folgt deuten können:
+		<img class="math" src="assets/200102_5.png" width="229" height="115" alt="de-Casteljau"></p>
+		<p>Den eigentlichen Clou beim de-Casteljau-Algorithmus mit dem Ziel, die Kurve schnell mit Linien zu approximieren, sehen Sie im rechten Teil des Bildes: Die Punkte, die Sie als Zwischen&shy;ergebnis am Rand der de-Casteljau-Pyramide erhalten, sind die Kontrollpunkte zweier neuer Bézier-Kurven, die zusammen die bisherige Kurve ergeben. Mit einem Unterschied: Die neuen Kontroll&shy;polygone liegen näher an der tatsächlichen Bézier-Kurve. Wenn Sie also den de-Casteljau-Algorithmus rekursiv auf die neuen Bézier-Kurven anwenden, erhalten Sie Kontroll&shy;polygone (Linienzüge), mit denen Sie die Bézier-Kurve zeichnen. Der de-Casteljau-Algorithmus lässt sich effizient implementieren, wie Sie dem Codeausschnitt im Quellcode entnehmen. Dieser zeigt eine Mittelpunkts&shy;unterteilung (alpha=0.5).</p>
+		<figure class="floatright">
+			<img src="assets/200102_6.png" width="751" height="319" alt="DER DE-CASTELJAU-ALGORITHMUS wertet Bézier-Kurven aus und teilt sie in diesem Beispiel.">
+			<figcaption><span>DER DE-CASTELJAU-ALGORITHMUS</span> wertet Bézier-Kurven aus und teilt sie in diesem Beispiel.</figcaption>
+		</figure>
+		<p>Wenn Sie Flächen mit vielen Details modellieren wollen, müssen Sie Bézier-Kurven mit einem hohen Grad <i>n</i> verwenden. Ändern Sie den Ort eines Kontrollpunkts, ändern Sie damit die ganze Kurve. Das umgehen Sie, indem Sie mehrere Bézier-Kurven von niedrigerem Grad (zum Beispiel kubisch, <i>n=3</i>) aneinander&shy;hängen. Die Flächen lassen sich leicht lückenlos aneinander fügen, da die Kurven am Endpunkt interpolierend sind. Entscheidend für die Darstellung ist auch die Steigung und Krümmung der Kurven an den Anschluss&shy;stellen. An einer Anschluss&shy;stelle entscheidet sich, ob Sie einen unerwünschten Knick erhalten. Im Automobilbau gibt es eine weitere Anforderung: Die Kurven müssen am Anschlusspunkt auch in der zweiten Ableitung gleich sein. Sonst ist der Übergang bei Reflexionen, zum Beispiel auf Autolacken, sichtbar. Im unteren Teil des rechten Bildes auf der vorigen Seite sehen Sie die geometrischen Bedingungen, die zwei Bézier-Kurven erfüllen müssen, um den entsprechenden Anforderungen zu genügen. Trotz der etwas umständlichen Beschreibung detailreicher Flächen haben sie aber trotzdem eine Existenz&shy;berechtigung: Rechner werten Bézier-Kurven effizient und in Echtzeit aus. Damit haben Bézier-Flächen die Eigenschaften, die für Echtzeit-Rendering von Vorteil sind.</p>
+		<figure class="large">
+			<img src="assets/200102_7.png" width="999" height="689" alt="VERSCHIEDENE ÜBERGÄNGE zweier Bézier-Kurven und geometrische Übergangsbedingungen perfektionieren die Kurven.">
+			<figcaption><span>VERSCHIEDENE ÜBERGÄNGE</span> zweier Bézier-Kurven und geometrische Übergangsbedingungen perfektionieren die Kurven.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>B-Spline-Kurven</h2>
+		<figure class="floatright">
+			<img src="assets/200102_12.png" width="347" height="499" alt="DIE B-SPLINE-BASISFUNKTIONEN sind nur in kleinen Bereichen von Null verschieden.">
+			<figcaption><span>DIE B-SPLINE-BASISFUNKTIONEN</span> sind nur in kleinen Bereichen von Null verschieden.</figcaption>
+		</figure>
+		<p>B-Spline-Kurven sind eine neue Gattung mathematischer Kurven&shy;beschreibungen. Wir beschäftigen uns mit B-Spline-Kurven, die die Eigenschaft der affinen Invarianz (Begriff: siehe oben) mitbringen. Die Definition eine B-Spline-Kurve lautet:
+		<img class="math" src="assets/200102_10.png" width="129" height="37" alt="Definition B-Spline"></p>
+		<p>Die Stützpunkte bezeichnen Sie mit <i>di</i> (de-Boor-Punkte, nach Carl de Boor). Zusätzlich gibt es einen Knotenvektor <i>t</i>, dessen Werte sich in den rekursiv definierten B-Spline-Basis&shy;funktionen niederschlagen:
+		<img class="math" src="assets/200102_9.png" width="287" height="127" alt="Definition B-Spline Basisfunktionen"></p>
+		<p>Im Bild oben rechts sehen Sie Basis&shy;funktionen vom Grad <i>0</i> bis <i>2</i>. Daran können Sie einen Vorteil gegenüber den Bernstein-Polynomen als Basis&shy;funktionen ablesen: Die B-Spline-Funktionen sind nur in einem begrenzten Bereich ungleich Null. Bernstein-Polynome sind im gesamten Bereich, in dem sich die Laufvariable <i>u</i> befindet, ungleich Null. Dies ist gleich&shy;bedeutend damit, dass ein Kontrollpunkt nur auf einem sehr begrenzten Bereich der Kurve Einfluss ausübt. Damit können Sie an bestimmten Teilen eine B-Spline-Kurve detailreich modellieren, ohne die Kurve zu ändern.</p>
+		<p>B-Spline-Basis&shy;funktionen vom Grad <i>n</i> sind stückweise polynomiell (durch Polynome beschreibbar) und bieten deshalb optimale Glattheit. Dadurch werden die geometrischen Übergangs&shy;bedingungen überflüssig. Um ein Gefühl für die Auswirkungen des Knotenvektors auf die Kurve zu bekommen, experimen&shy;tieren Sie am besten mit unserem Beispiel&shy;programm. Der Knotenvektor hat so viele Werte wie Grad <i>n</i> plus Anzahl der Stützpunkte plus 2. Der Knotenvektor beeinflusst den Verlauf der Kurve innerhalb der konvexen Hülle des Kontroll&shy;polygons. B-Spline-Kurven sind zum Beispiel nur Endpunkt&shy;interpolierend, wenn jeweils die ersten <i>(n+1)</i> und die letzten <i>(n+1)</i> Werte des Knotenvektors gleich sind.</p>
+		<figure class="floatright">
+			<img src="assets/200102_13.png" width="392" height="310" alt="EINE NORMALISIERTE B-Spline-Kurve und ihr Knotenvektor">
+			<figcaption><span>EINE NORMALISIERTE</span> B-Spline-Kurve und ihr Knotenvektor</figcaption>
+		</figure>
+		<p>Die direkte Auswertung der B-Splines können Sie mit folgendem Codeausschnitt berechnen. Beachten Sie die Spezialfälle für den Knotenvektor bei der Rekursion im Listing <i>bspline.c</i>.</p>
+		<p>Betrachten Sie eine B-Spline-Kurve vom Grad <i>n</i> mit <i>m</i> de-Boor-Punkten und einem Knotenvektor <i>t</i>. Nutzen Sie die folgenden Eigenschaften, um Kurven gezielt zu modellieren:<br>
+		• Fallen <i>n</i> de-Boor-Punkte zusammen (sind also identisch), so verläuft die Kurve durch diesen Punkt und liegt dort tangentiell an dem Kontroll&shy;polygon an. Damit können Sie Ecken in der Kurve modellieren.<br>
+		• Wenn Sie <i>n</i> de-Boor-Punkte auf einer Geraden platzieren, berührt die Kurve diese Gerade. Wenn sich <i>(n+1)</i> Punkte auf einer Gerade befinden, liegt ein Abschnitt der Kurve auf dieser Geraden.<br>
+		• Fallen <i>n</i> Knoten (Werte im Knotenvektor) zusammen, also <i>t=ti</i> <i>+1=...=ti+n</i>, so gilt <i>F(t)=di</i>. Das heißt, dass die Kurve durch einen Kontrollpunkt verläuft und dort tangentiell am Kontroll&shy;polygon anliegt.<br>
+		• Als letzte Eigenschaft können Sie die „lokale konvexe Hülle“ ausnutzen. Für ein <i>u</i> im Intervall <i>[ti, ti+1]</i> liegt die Kurve in der abge&shy;schlossenen konvexen Hülle der <i>(n+1)</i> vielen Kontrollpunkte <i>di-n, ..., di</i>.</p>
+	</section>
+
+	<section>
+		<h2>Der de-Boor-Algorithmus</h2>
+		<p>Auch für B-Spline-Kurven gibt es elegante Algorithmen zur Auswertung, die aber trotzdem rechen&shy;intensiver als die für Bézier-Kurven sind. Als Pendant zum de-Casteljau-Algorithmus gibt es für B-Spline-Kurven den – rekursiv definierten – de-Boor-Algorithmus. Seine Definition:
+		<img class="math" src="assets/200102_11.png" width="290" height="122" alt="de-Boor-Algorithmus"></p>
+		<p>Um ihn anschaulich darzustellen, bedarf es einer anderen Darstellung der B-Spline-Kurve, der so genannten Polarform.</p>
+		<p>Laut Definition gilt der de-Boor-Algorithmus nur für Parameter aus dem Intervall <i>[tj</i> <i>, tj+1</i> <i>]</i>. Folgender Programmcode berechnet den de-Boor-Algorithmus für die Kurve an der Stelle <i>u</i> vom Grad <i>l</i> im Intervall <i>[t(i), t(i+1)]</i>:</p>
+		<pre><code>
+//VECTOR deBoor(double u,long l,long i)
+{
+	if(l == 0)
+	// letzte ausgewertete Stelle
+	// im letzten Intervall !
+		if(i == nKontrollPunkte)
+			return d[nKontrollPunkte - 1];
+		else
+			return d[i];
+
+	double t2 = (u - t[i])/ (t[i + grad + 1 - l] - t[i]);
+	double t1 = 1.0 - t2;
+
+	return deBoor(u, l-1, i-1)
+		* t1 + deBoor(u, l - 1, i) * t2;
+}
+		</code></pre>
+		<p>Wenn Sie eine Spline-Kurve an der Anzahl <i>steps</i> Stellen pro Intervall des Knotenvektors auswerten wollen, verwenden Sie folgenden Code:</p>
+		<pre><code>
+//Speicher ausreichend Punkte
+VECTOR result[GENUGPUNKTE];
+int nPunkte = 0;
+// Kurvengrad n, „steps“-Stellen
+// „nIntervals“ im Knotenvektor
+for(i = n; i &lt; nIntervals + n; i++)
+{
+// Vorraussetzung im de Boor Algorithmus
+	if(t[i + 1 ] &gt; t[i])
+	{
+		for(j = 0; j &lt;= steps; j++)
+		{
+			double u = t[i] + (double)j *
+				(t[i + 1] - t[i]) / (double)steps;
+
+			result[nPunkte++] = deBoor(u, grad, i);
+		}
+	}
+}
+		</code></pre>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur:</b></p>
+		<p class="footnote">Gerald Farin: Curvers and Surfaces for Computer Aided Geometric Design, Academic Press, ISBN 0-12-249054-1</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200012.html">12/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200103.html">03/2001</a>
+	</nav>
+</body>

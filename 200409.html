@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Tiefenunschärfe mit Direct3D (PC Underground, PC Magazin 9/2004)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;9/2004. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200408.html">8/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200412.html">12/2004</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Realistische 3D-Bilder durch mangelnde Schärfe</h2>
+		<h1><span class="highlight">Tiefenunschärfe</span> mit Direct3D</h1>
+		<p class="summary">Tiefenunschärfe ist ein Effekt, der deutlich zum <span class="highlight">realistischen Eindruck</span> einer Animation beiträgt – aber allzu oft ignoriert wird. Wir zeigen Ihnen, wie Sie diesen Effekt mit Direct3D in Echtzeit erreichen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Das <i>Deferred Shading</i> konstruiert die Geometrie einer 3D-Szene zunächst ohne Beleuchtungs&shy;berechnung. Dabei zeichnen Sie nicht in den normalen sichtbaren Frame Buffer, sondern in so genannte Fat Buffers.</p>
+		<p>Tiefen&shy;unschärfe bewirkt, dass Objekte, die außerhalb des Fokus liegen, unscharf erscheinen. Typischerweise verwendet die Echtzeit-Computergrafik ein Lochkamera-Modell, um perfekt scharfe Bilder der ganzen Szene zu erzeugen. Reale Kameras brauchen Linsen mit endlichen Maßen, um die Szene auf die Bildebene abzubilden. Das verursacht die Tiefen&shy;unschärfe. Für höchste Qualität und fotoreal&shy;istisches Rendering sind Tiefen&shy;unschärfe-Effekte ein wichtiger Bestandteil, sowohl für den realistischen Eindruck, als auch als Stilmittel, um die wesentlichen Komponenten der Szene zu unterstreichen. Für Depth-of-Field-Effekte (DOF) gibt es verschiedene Ansätze. Ein sehr eleganter Ansatz für DirectX9-Grafik-Hardware, den wir Ihnen hier auch vorstellen, ist der von T. Scheuermann/ATI Research.</p>
+		<figure class="large">
+			<img src="assets/200409_1.jpg" width="916" height="346" alt="Kameramodelle: Für das mathematische Modell ziehen Sie die Loch- der Linsenkamera vor.">
+			<figcaption><span>Kameramodelle:</span> Für das mathematische Modell ziehen Sie die Loch- der Linsenkamera vor.</figcaption>
+		</figure>
+		<p>Im Bild sehen Sie die Unterschiede zwischen einer Lochkamera und einer Abbildung durch eine Linse. Im ersten Fall passiert für jede Richtung nur ein Lichtstrahl. Bei der Abbildung eines Objekts außerhalb des Fokus auf die Bildebene mit dem Linsenmodell mit einer dünnen Linse tragen mehrere bzw. viele Strahlen zu einem Bildpunkt bei. Der Bereich auf der Ebene lässt sich gut durch einen Kreis approximieren, dem Circle of Confusion (CoC).</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200409.zip">💾 200409.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Implementation</h2>
+		<p>Im vorgestellten Ansatz müssen Sie eventuell bestehende Implemen&shy;tationen nicht großartig modifizieren, um den DOF-Effekt darzustellen. Lediglich der Alpha-Kanal wird verwendet, um die Tiefe für jeden Pixel zu speichern. Wenn Sie den Alpha-Kanal für Blending Operationen benötigen macht das nichts – die Tiefen&shy;information schreiben Sie erst im jeweils letzten Renderpass in den Alpha-Kanal, also nachdem Sie diesen nicht mehr benötigen.</p>
+		<figure class="floatright">
+			<img src="assets/200409_2.jpg" width="451" height="238" alt="Entfernung: So bilden Sie die Tiefe auf eine relative Entfernung ab.">
+			<figcaption><span>Entfernung:</span> So bilden Sie die Tiefe auf eine relative Entfernung ab.</figcaption>
+		</figure>
+		<p>Der Tiefenwert, den Sie in den Alpha-Kanal schreiben, ist die relative Tiefe. Das bedeutet, die Entfernung der <i>Near-Plane</i> entspricht der Tiefe <i>-1</i>, der <i>Far-Plane +1</i> und der Focus-Ebene entspricht ein Tiefenwert von <i>0</i>. Diese drei Werte übergeben Sie an den Pixel-Shader, mit dem Sie auch den Alpha-Wert berechnen. Ein Maß für die Größe des CoC erhalten Sie, wenn Sie den Absolutwert dieser Funktion nehmen. Vor der Ausgabe des Resultats müssen Sie das Intervall <i>[-1;+1]</i> auf <i>[0;1]</i> abbilden, da der Framebuffer nur diesen Wertebereich kennt.</p>
+		<p>Folgender HLSL (High Level Shader Language) Code zeigt die Abbildung. Im Vertex-Shader berechnen Sie die Entfernung entlang der Blickrichtung:</p>
+		<pre><code>
+// matWV: model-&gt;world transformation
+float4 toVertex = mul(matWV,vertex.pos) -
+	cameraPosition;
+dist = dot(cameraDirection,toVertex);
+		</code></pre>
+		<p>Im Pixel-Shader nehmen Sie die Abbildung vor:</p>
+		<pre><code>
+float a;
+if(dist &lt; zFocal)
+	a = (dist - zFocal) / (zFocal - zNear);
+else
+	a = (distance - zFocal) / (zFar - zFocal);
+a = a * 0.5f + 0.5f;
+		</code></pre>
+		<p>Das ist schon alles, was Sie während des normalen Renderings vornehmen müssen. Wie sich die Wahl der Focal-Plane auswirkt, sehen Sie im Bild. Als stilistische Erweiterung können Sie in der obigen Berechnung eine obere oder untere Grenze für die relative Tiefe angeben. Der Effekt: Sie erzwingen damit, dass bestimmte Gegenstände Ihrer 3D-Szene immer schärfer oder verschwommener dargestellt werden, als es eigentlich – aufgrund des Betrachter&shy;abstandes – der Fall wäre. Man kann dabei auch von semantischer Tiefen&shy;unschärfe sprechen.</p>
+		<figure class="large">
+			<img src="assets/200409_3.jpg" width="702" height="215" alt="Im Alpha-Kanal: Die relative Tiefe hängt von der Wahl der Fokus-Ebene nah, mittel oder fern ab.">
+			<figcaption><span>Im Alpha-Kanal:</span> Die relative Tiefe hängt von der Wahl der Fokus-Ebene nah, mittel oder fern ab.</figcaption>
+		</figure>
+		<p>Alle weiteren Schritte sind Aufgabe des Post-Processing, entstehen also durch Nach&shy;bearbeitung aus dem fertig gerenderten Bild, welches Sie am besten in eine Textur haben rendern lassen. Zunächst beginnen Sie damit – wie immer, wenn Sie einen Blur-Effekt darstellen wollen – eine niedriger aufgelöste Version Ihres Bildes anzulegen. Diese sollte etwa ein Viertel der Kantenlänge des Originals groß sein. Zusätzlich wenden Sie zum Glätten dieser Version noch einen Gauss-Filter an.</p>
+		<p>Der PC Underground Beitrag <i>Echtzeit Processing</i> (06/03, S.188, Heft-CD) beschreibt eine effiziente Art, einen Gauss-Filter auf ein Bild anzuwenden. Aufgrund der Separier&shy;barkeit in horizontale und vertikale Anteile können Sie auch sehr große Filter-Kernel wie <i>7x7</i> in nur zwei Renderpasses anwenden. In diesem Fall genügt aber bereits ein Filter-Kernel der Größe <i>3x3</i>, den Sie in einem Renderpass implementieren, indem Sie im Vertex-Shader acht Textur-Koordinaten berechnen und den neunten Texel mit einer Textur-Koordinate auslesen, die Sie im Pixel-Shader berechnen – also mit einem Dependent-Textur-Lookup. Beachten Sie bei Textur-Loopups, dass Sie in Direct3D (und im Gegensatz zu OpenGL) zur Textur-Koordinate die Hälfte der Größe eines Texels addieren müssen, um einen Texel exakt in seiner Mitte auszulesen. Sie erhalten also nicht durch bilineare Interpolation einen interpolierten Farbwert.</p>
+		<p>Für den <i>3x3</i>-Gauss-Filter verwenden Sie folgenden Code im HLSL-Vertex-Shader (bei einer Textur-Größe von <i>512x512</i>), wenn Sie in <i>texCoord</i> die Textur-Koordinaten annehmen. So bilden Sie die Textur vollständig auf den Viewport ab:</p>
+		<pre><code>
+float ofs = 1.0 / 512.0;
+float2 texelOffset =
+	float4(0.5 / 512.0, 0.5 / 512.0);
+texcoord0 = texCoord + float2(-ofs, -ofs) +
+	texelOffset;
+texcoord1 = texCoord + float2(0.0f, -ofs) +
+	texelOffset;
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200409_4.jpg" width="887" height="362" alt="Down-Sampling: Das gerenderte Bild verfeinern Sie mit Verkleinern und Filtern.">
+			<figcaption><span>Down-Sampling:</span> Das gerenderte Bild verfeinern Sie mit Verkleinern und Filtern.</figcaption>
+		</figure>
+		<p>Analog bestimmen Sie die verbleibenden sieben Nachbar-Texel. Im Pixel-Shader lesen Sie die Textur aus, gewichten die Farb-Samples entsprechend der Gauss-Glocken&shy;funktion und summieren die Farbwerte auf. So erhalten Sie das gewünschte Resultat.</p>
+		<p>An dieser Stelle kommt der Post-Processing-Effekt: Um das Bild unscharf zu machen, benötigen Sie einen Filter, für den Sie zunächst auf einer Kreisscheibe stochastisch verteilte Abtastpunkte gemäß einer Poisson-Verteilung wählen. Mit diesem Filter-Kernel tasten Sie die beiden Texturen (das hoch und niedrig aufgelöste Bild) in der Umgebung jedes Pixels ab. Die Größe der Kreisscheibe wählen Sie anhand des Unschärfe&shy;wertes, den Sie im Alpha-Kanal abgelegt haben.</p>
+		<figure class="floatright">
+			<img src="assets/200409_5.jpg" width="672" height="320" alt="Abtastung: Die Größe der Filter-Kernel variiert.">
+			<figcaption><span>Abtastung:</span> Die Größe der Filter-Kernel variiert.</figcaption>
+		</figure>
+		<p>Um zu verhindern, dass Farbwerte von Objekten, die sich näher am Betrachter befinden, in weiter hinten liegende unscharfe Bereiche verwaschen, führen Sie für jeden Abtastpunkt noch einen Tiefentest durch. Wie Sie solche Abtastpunkte für den Filter-Kernel bestimmen können, zeigt der Kasten <i>Bestimmung von Abtastpunkten</i>.</p>
+		<p>Das Folgende erklärt die notwendigen Schritte anhand von HLSL-Programmcode, den Sie in unserem Beispiel&shy;programm finden. Sie rendern in den Post-Processing-Schritten jeweils ein Rechteck, das den ganzen Bildschirm bedeckt. Die Textur-Koordinaten sind so gewählt, dass die Original-Bilder auf den Bildschirm gemapped werden. Unser Beispiel geht davon aus, dass die hochaufgelöste Version <i>512<sup>2</sup></i> Pixel enthält, die niedrige <i>128<sup>2</sup></i>. Im Pixel Shader lesen Sie als erstes für jeden Pixel den entsprechenden Wert aus der <i>Hi-Res</i>-Textur. Die Tiefe entnehmen Sie dem Alpha-Kanal. Dort haben Sie sie ja gespeichert:</p>
+		<pre><code>
+temp = tex2D(hiresImage, texcoord);
+depth = temp.a;
+		</code></pre>
+		<p>Aus dem Tiefenwert berechnen Sie die Größe des Filter-Kernels für das <i>Hi-Res</i> Bild und skalieren daraus das Format für das <i>Low-Res</i>-Bild.</p>
+		<pre><code>
+radius = abs(depth * 10.0f - 5.0f);
+radiusLow = discRadius * radiusScale;
+result = 0.0f;
+		</code></pre>
+		<p>Die nächsten Instruktionen führen Sie in einer Schleife für jeden Abtastpunkt des Kernels durch. Zuerst berechnen Sie die Textur-Koordinaten, an denen die Bilder abgetastet werden. Das <i>taps</i>-Array enthält die relativen 2D-Koordinaten im Bereich <i>[-1;+1]<sup>2</sup></i> für den Filter.</p>
+		<figure class="floatright">
+			<img src="assets/200409_6.jpg" width="254" height="582" alt="Das Resultat: Eine einfache Test-Szene gestaltet mit verschiedenen Fokus-Ebenen.">
+			<figcaption><span>Das Resultat:</span> Eine einfache Test-Szene gestaltet mit verschiedenen Fokus-Ebenen.</figcaption>
+		</figure>
+		<pre><code>
+float2 coordHigh, coordLow;
+float4 tapHigh, tapLow, tap;
+coordHigh = texcoord + 1.0 / 512.0 *
+	taps[t] * radius;
+coordLow = texcoord + 1.0 / 128.0 *
+	taps[t] * radiusLow;
+		</code></pre>
+		<p>Mit den Faktoren <i>1/512</i> bzw. <i>1/128</i> passen Sie die Filter-Kernel der Textur-Auflösung an. Um Instruktionen zu sparen, können Sie auch Filter-Tap-Tabellen vorberechnen. Als nächstes lesen Sie die beiden Texturen aus:</p>
+		<pre><code>
+tapHigh=tex2D(hiresImage,coordHigh);
+tapLow =tex2D(loresImage,coordLow);
+		</code></pre>
+		<p>Für jeden der Abtastpunkte bestimmen Sie, wie stark der Unschärfe-Effekt sein soll. Dazu dient der Unschärfewert aus dem Tiefenwert. Anhand dieses Wertes interpolieren Sie linear zwischen dem Farbwert des <i>Hi-Res</i> und des <i>Lo-Res</i>-Bildes:</p>
+		<pre><code>
+tapBlur = abs(tapHigh.a * 2.0f - 1.0f);
+tap = lerp(tapHigh, tapLow, tapBlur);
+		</code></pre>
+		<p>Um das Verwaschen der Farben von scharfen Objekten im Vordergrund in unscharfe, weiter entfernte Bereiche zu vermeiden, führen Sie diesen Tiefentest durch:</p>
+		<pre><code>
+tap.a = (tap.a &lt; depth) ?
+	1.0f : abs(tap.a * 2.0f - 1.0f);
+		</code></pre>
+		<p>Abschließend modulieren Sie die RGB-Werte des Filters und akkumulieren die Farbwerte:</p>
+		<pre><code>
+tap.rgb *= tap.a;
+result += tap;
+		</code></pre>
+		<p>Wenn Sie diese Arbeits&shy;schritte für jeden Abtastwert durchgeführt haben, erhalten Sie den resultierenden Farbwert durch einen letzten Normalisierungs&shy;schritt</p>
+		<pre><code>
+return result / result.a;
+		</code></pre>
+	</section>
+
+	<aside>
+		<h2>Bestimmung von Abtastpunkten</h2>
+		<div>
+			<p>Aufgrund der Hardware-Beschränkungen können Sie pro Filter-Kernel nur sehr wenige Abtastpunkte wählen. Daher soll die Wahl nicht unbedacht erfolgen. Ein regelmäßiges Abtastmuster ist zwar leicht anzulegen und bietet eine gleichförmige Verteilung, allerdings ist die menschliche Wahrnehmung für die daraus resultierenden Artefakte sehr empfänglich. Deshalb ist es besser, eine Reihe zufällig verteilter Abtastpunkte zu wählen. Es genügt dabei aber nicht, einfach per Zufallszahlen&shy;generator acht oder 12 Koordinaten&shy;paare zu erzeugen. Denn zu leicht können zwei oder mehr Punkte dicht beieinander liegen.</p>
+			<p>Deshalb bietet sich folgende Methode an: Gehen Sie davon aus, dass Sie eine Liste mit 2D-Punkten haben, die sich alle in <i>[-1;1]</i> <i>2</i> befinden. Um nun die Liste um einen weiteren Punkt zu erweitern, generieren Sie zufällig einige Kandidaten&shy;punkte aus je zwei Zufallszahlen <i>[-1;1]</i>. Achten Sie nur darauf, dass der Abstand des Kandidaten vom Ursprung kleiner oder gleich <i>1</i> ist – schließlich wollen Sie eine Kreisscheibe abtasten.</p>
+			<p>Für jeden dieser Kandidaten&shy;punkte berechnen Sie nun den kleinsten Abstand zu den Punkten, die sich bereits in der Liste befinden. Schließlich fügen Sie den Kandidaten mit dem größten Abstand zur Liste hinzu. Jetzt fragt sich noch, mit welcher Liste Sie beginnen.</p>
+			<p>Angesichts der Tatsache, dass Sie einen Filter-Kernel bestimmen wollen, beginnen Sie mit der Liste, die nur den Punkt <i>(0,0)</i> enthält. Mit dieser Methode können Sie sukzessive beliebig viele Abtastpunkte erzeugen.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Hardware-Betrachtungen</h2>
+		<p>Dieser Pixel-Shader ist – selbst für moderne Grafik-Hardware – aufwändig. Auf einer ATI Radeon 9700 könnten Sie nicht mehr als vier Abtastpunkte verwenden, was nicht wirklich zufrieden stellende Resultate zeigt. Zwei Wege verbessern das Bild: Der erste ist ein optimierter Pixel-Shader, so dass mehr Abtastpunkte greifen. Dies können Sie z.B. mit Filter-Tap-Tabellen erreichen, die mit der jeweiligen Textur-Auflösung von <i>Hi</i>- und <i>Lo-Res</i>-Bild vormulti&shy;pliziert sind. Immer müssen Sie aber die Farbwerte und deren Akkumulation gewichten. Das optimierte Beispiel&shy;programm liest in einem Renderpass immerhin fünf Abtastwerte aus und liefert akzeptable Resultate. Für eine höhere Qualität (acht bis 12 Abtastwerte sind gut) benötigen Sie mehr Renderpasses – das ist der zweite Weg. Dabei rendern Sie beispielsweise drei Renderpasses mit unterschied&shy;lichen Abtastpunkten. Das Resultat dieser Passes, also die Farbwerte, müssen Sie addieren. Entweder Sie verwenden ein additives Blending im Frame-Buffer, was aufgrund der 8-Bit-Genauigkeit pro Komponente schlechte Resultate liefert, oder Sie investieren mehr Aufwand.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2004 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Info</b></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.ati.com/developer/techpapers.html" rel="external nofollow noreferrer">www.ati.com/developer/techpapers.html</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200408.html">8/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200412.html">12/2004</a>
+	</nav>
+</body>

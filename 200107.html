@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Licht in Echtzeit (PC Underground, PC Magazin 7/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;7/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200106.html">6/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200108.html">8/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Fortschrittliche Rendertechniken: Bumpmapping</h2>
+		<h1>Licht in <span class="highlight">Echtzeit</span></h1>
+		<p class="summary">Mit Bumpmapping <span class="highlight">verstärken Sie den realistischen Eindruck</span> von 3D-Grafiken. Komplexe und detailreiche Oberflächen täuschen Wirklichkeit vor.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>3D-Hardware-Entwickler bieten ständig neue Optionen an, die die 3D-Grafik-Programmierer ausfüllen müssen. Dazu gehört auch das von moderner Hardware unterstützte Bumpmapping in OpenGL: ein Verfahren, das den realistischen Eindruck von 3D-Objekt&shy;oberflächen unterstreicht. Anders als Texture-Mapping, das auf die Farbe der Objektober&shy;flächen abzielt, wird Bumpmapping dazu verwendet, Unebenheiten der Oberflächen&shy;struktur zu rendern. Im Bild unten sehen Sie einen Torus als Drahtgitter&shy;modell, texturiert und mit Bumpmapping.</p>
+		<figure class="floatleft">
+			<img src="assets/200107_1.jpg" width="319" height="261" alt="EIN OBJEKT als Drahtgittermodell mit und ohne Bumpmapping">
+			<figcaption><span>EIN OBJEKT</span> als Drahtgittermodell mit und ohne Bumpmapping</figcaption>
+		</figure>
+		<p>Mit Bumpmapping können Sie Beulen auf der Oberfläche von 3D-Objekten darstellen. Objekte in einer so hohen geometrischen Auflösung zu rendern, um solche Effekte zu erzielen, ist sehr rechenzeit- und speicher&shy;intensiv. Abgesehen davon, sind die Unebenheiten im Vergleich zur groben geometrischen Form eines Objekts sehr klein. Nehmen Sie als Beispiel das 3D-Modell eines Holztisches. Die Unregel&shy;mäßigkeiten auf der Tischfläche sind klein im Vergleich zur ihrer ebenen Form. Deshalb liegt es nahe, nicht die Geometriedaten selbst so fein zu gestalten.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200107.zip">💾 200107.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Theorie des Bumpmapping</h2>
+		<figure class="floatright">
+			<img src="assets/200107_2.jpg" width="502" height="279" alt="DIE ZUSAMMENSETZUNG der Oberflächenbeleuchtung">
+			<figcaption><span>DIE ZUSAMMENSETZUNG</span> der Oberflächenbeleuchtung</figcaption>
+		</figure>
+		<p>Der wichtige Punkt beim Bumpmapping ist: Nur die Beleuchtungs&shy;berechnung lässt die Unebenheiten sehen. Diese sind geometrisch nicht im Dreiecksnetz vorhanden. An den geraden Kanten eines mit Bumpmapping gerenderten 3D-Objekts sehen Sie, dass dessen Form selbst nicht verändert wird.</p>
+		<p>Die Idee des Bumpmapping wurde 1978 von James Blinn entwickelt. Bumpmapping ist ein rein textur&shy;basierendes Rendering-Verfahren, um Unebenheiten auf Oberflächen durch die Beleuchtung zu simulieren. Die Unebenheiten werden in einer Graustufen&shy;textur (Graustufen-Bitmap) als <i>Heightfield</i> angegeben, deren Auswirkung Sie im Bild sehen.</p>
+		<p>Der Grafiker schafft nur die Graustufen-Bitmap. Daraus generiert der Programmierer Daten, wie diese für das verwendete Bumpmapping-Verfahren nötig sind. Von diesen Verfahren stellen wir eines vor, dass neuere Hardware wie die GeForce GPUs von nVidia benötigt. Anschließend zeigen wir Ihnen einen relativ alten Ansatz, der auf jeder 3D-Hardware funktioniert.</p>
+		<figure class="floatright">
+			<img src="assets/200107_4.png" width="319" height="239" alt="EINE OBERFLÄCHE wird durch ein Heightfield verändert.">
+			<figcaption><span>EINE OBERFLÄCHE</span> wird durch ein Heightfield verändert.</figcaption>
+		</figure>
+		<p>Die Theorie der Beleuchtungs&shy;berechnung zeigt, wo das Bumpmapping ansetzt. Beleuchtung berechnen Sie aus Formeln, welche Sie mit der Vektorrechnung darstellen und verdeutlichen. Mit einer vereinfachten Formel, berechnen Sie diffuse und spiegelnde Reflexionen. Diese Formel entstammt dem Blinn-Beleuchtung&shy;smodell, das wie das Phong-Modell empirisch ermittelt wurde.</p>
+		<pre><code>
+C = (max(0,(L*N))
+	+ max (0,(H*N))^n)
+	x Dl x Dm
+		</code></pre>
+		<p>Blinn und Phong sind als Grundlagen&shy;forscher der Grafik&shy;programmierung berühmt. <i>Dl</i> ist die Farbe des Lichts, <i>Dm</i> die Farbe der Oberfläche an der betrachteten Stelle. Diese Oberflächen&shy;farbe kann aus einer Textur ausgelesen sein. Der Potenzwert <i>n</i> bestimmt die Größe der Glanzlichter. Größere Werte bedeuten kleinere Glanzlichter der spiegelnden Reflexion. Die vorkommenden Vektoren bezeichnen mit<br>
+		<i>• L:</i> die einfallende Lichtrichtung, mit<br>
+		• <i>N:</i> die Normale am Oberflächen&shy;punkt und mit<br>
+		<i>• H:</i> den so genannten Halfangle Vektor. Letzterer hängt auch von der Position des Punktes auf der Oberfläche und der Lichtquelle ab.</p>
+		<p>Wenn Sie sich obige Blinn-Formel genauer ansehen, fällt auf, dass es zwei Wege gibt, die Oberfläche nicht entsprechend der geometrischen Vorgaben, also nach dem Dreiecksnetz, darzustellen.<br>
+		• Der erste Ansatzpunkt: Verschieben Sie die Punkte der Oberfläche. Diese Technik nennt sich Displacement-Mapping und funktioniert für heutige 3D-Hardware nicht in Echtzeit.<br>
+		• Die zweite Variante, das Bumpmapping, setzt an der Oberflächen&shy;normalen an.</p>
+		<p>Für ein 3D-Objekt verwenden Sie eine Textur, aus der die Farbwerte <i>Dm</i> für die Oberfläche gespeichert sind, und eine oder mehrere Bumpmaps, die die Perturbation (die Änderung der Oberflächen&shy;normalen) enthält.</p>
+		<p>Mit den aktuellen 3D-Grafikkarten lässt sich die Beleuchtung für jeden gerenderten Pixel in Echtzeit berechnen.</p>
+	</section>
+
+	<section>
+		<h2>Dot Product Bumpmapping</h2>
+		<p>Für das Dot Product Bumpmapping Verfahren benötigen Sie moderne GPUs. Es basiert auf Bumpmaps, die als RGB-Texturen gespeichert werden. Die RGB-Werte eines Texels (zwischen 0 und 255) repräsentieren die <i>x-, y</i>- und <i>z</i>-Komponenten eines Vektors im Intervall <i>[-1, 1]</i>. Solche Bumpmaps können Sie sich aus Heightfields erzeugen lassen. Sie können ein Tool von nVidia (inklusive Sourcecode) downloaden, um RGB-Normal-Maps aus Heightfields zu generieren. Dieses Werkzeug finden Sie unter den Developer-Informationen auf der nVidia-Homepage zum freien Download: <a href="https://www.nvidia.com" rel="external nofollow noreferrer">www.nvidia.com</a>. Die Komponenten der Normalen&shy;vektoren werden durch Ableiten des Heightfields berechnet. Die zentrale Operation bei der Beleuchtungs&shy;berechnung des Bumpmappings und der diffusen Beleuchtung ist das Skalarprodukt aus der Normalen und des Vektors vom Oberflächen&shy;punkt zur Lichtquelle:</p>
+		<pre><code>N * L</code></pre>
+		<p>Diese Formel entspricht dem Lambertschen Gesetz. Es ist egal, in welchem Koordinaten&shy;raum die beiden Vektoren angegeben sind, es muss aber beides mal der selbe sein. Doch welcher Raum soll das sein und in welchem ist die Normale angegeben? Die Antwort darauf gibt das Tangent Space Bumpmapping.</p>
+		<p>Der entscheidende Koordinaten&shy;raum ist der so genannte Tangent Space. Diesen drei&shy;dimensionalen Raum geben Sie durch eine 3-x-3-Matrix an, deren drei Spalten&shy;vektoren den Raum aufspannen. Sie benötigen für jeden Vertex Ihres 3D-Modells einen Tangent Space. Die Normale des 3D-Modells am Vertex wählen Sie als <i>+z</i>-Achse, also als dritten Spaltenvektor. Durch den Vertex und seine Normale ist eine Ebene definiert, die sich tangentiell zur Oberfläche befindet, daher der Name Tangent Space.</p>
+		<p>Sie brauchen noch zwei weitere Vektoren, um den Raum aufzuspannen. Wählen Sie zum Beispiel die <i>+y</i>-Achse des Modelspace (des Koordinaten&shy;raumes, in dem Ihr 3D-Modell definiert wurde) oder einen Vektor, den Sie durch die implizite Beschreibung einer Oberfläche erhalten. Im Beispiel&shy;programm finden Sie dafür einen Torus. Der noch fehlende dritte Vektor ergibt sich aus dem Kreuzprodukt der beiden anderen. Normalerweise werden die Vektoren so konstruiert, dass sie in der Tangential&shy;ebene an der Oberfläche liegen.</p>
+		<p>Nun haben Sie zu jedem Vertex einen Tangent Space definiert, den Sie für das Rendern speichern müssen. Die folgenden Schritte müssen Sie während der Laufzeit des Programms erledigen. Interpretieren Sie Ihr Heightfield so, dass die Höhen&shy;information eine Verschiebung entlang der <i>+z</i>-Achse des Tangent Space bewirkt. Sie transformieren den Vektor zur Lichtquelle in den Tangent Space: Wenn Sie Ihr 3D-Modell rendern, generieren Sie auf dem Matrix-Stack von OpenGL eine Reihe von Trans&shy;formationen. Sie benötigen die inverse Transformation. Dazu invertieren Sie entweder die resultierende <i>ModelView</i>-Matrix, oder Sie erzeugen eine Matrix mit den einzelnen invertierten Transformations&shy;schritten in umgekehrter Reihenfolge. Wenn Sie mit dieser inversen Matrix die Position der Lichtquelle in Ihrer 3D-Welt transformieren, erhalten Sie einen Ortsvektor, der die Position der Lichtquelle im Modelspace beschreibt.</p>
+		<figure class="floatright">
+			<img src="assets/200107_9.jpg" width="411" height="310" alt="DIE RGG-WERTE in den sechs 2D-Texturen der Cubemap repräsentieren normalisierte Vektoren.">
+			<figcaption><span>DIE RGB-WERTE</span> in den sechs 2D-Texturen der Cubemap repräsentieren normalisierte Vektoren.</figcaption>
+		</figure>
+		<p>Als letzten Schritt berechnen Sie den Vektor eines jeden Vertex zur Lichtquelle (in Modelspace-Koordinaten) durch Subtraktion und transformieren diesen Vektor <i>L</i> in den Tangent Space. Die Transformation in den Tangent Space erfolgt durch das Skalarprodukt aus dem <i>L</i>-Vektor und jedem der Spalten&shy;vektoren.</p>
+		<p>Beim Rendern eines Dreiecks durch die 3D-Hardware werden die Normalen als RGB-Tripels behandelt und linear perspektivisch korrekt interpoliert. Die <i>L</i>-Vektoren können sich in unter&shy;schiedlichen Tangent Spaces befinden, denn jeder Vertex des Dreiecks hat seinen eigenen Tangent Space. Die 3D-Hardware routiert gewissermaßen die <i>L</i>-Vektoren von einem Raum in den nächsten.</p>
+		<p>Eine mathematisch korrekte Beleuchtungs&shy;berechnung müsste diese Vektoren für jeden Pixel normalisieren, da sich ihre Länge bei der linearen Interpolation der Vektor-Komponenten ändert.</p>
+		<p>Dafür bietet sich Cube Mapping an: Das ist eigentlich eine Form des Texture-Mapping, die einen unnormal&shy;isierten Vektor verwendet, um eine Textur zu adressieren. Diese besteht aus sechs quadratischen 2D-Bitmaps, die wie die Flächen eines Würfels angeordnet sind. So sehen Sie, wie ein Vektor einen Pixel adressiert.</p>
+		<figure class="large">
+			<img src="assets/200107_5.jpg" width="792" height="585" alt="CUBE MAPPING adressiert sechs 2D-Bitmaps mit unnormalisierten Vektoren.">
+			<figcaption><span>CUBE MAPPING</span> adressiert sechs 2D-Bitmaps mit unnormalisierten Vektoren.</figcaption>
+		</figure>
+		<p>Die Komponente mit dem größten Betrag und ihr Vorzeichen bestimmen, welche Seite des Würfels getroffen wird. Die 2D-Koordinaten auf der Würfelseite erhalten Sie, indem Sie die beiden kleineren Komponenten durch die Größte dividieren. Ein RGB-Tripel, das durch die Interpolation der Normalen im Tangent Space entsteht, wird als Vektor interpretiert. Dieser Vektor schneidet den Würfel an einer bestimmten Stelle. Die Lage des Schnittpunkts ist unabhängig von der Länge des Vektors, nur die Richtung ist entscheidend.</p>
+		<p>Sie können die Cubemap-Texturen so vorberechnen, dass an jeder Stelle ein bestimmtes RGB-Tripel gespeichert ist: das RGB-Tripel, das dem normalisierten Vektor entspricht. Im übrigen werden Cubemaps dazu verwendet, Licht-Reflexionen oder -Refraktionen (Lichtbrechung) darzustellen.</p>
+		<figure class="large">
+			<img src="assets/200107_7.jpg" width="808" height="627" alt="UNSER DOT-3-BUMPMAPPING Programm in Aktion">
+			<figcaption><span>UNSER DOT-3-BUMPMAPPING</span> Programm in Aktion</figcaption>
+		</figure>
+		<p>Seit 1978 haben Entwickler daran gearbeitet, das von Blinn formulierte Bumpmapping in 3D-Hardware zu integrieren. In unserem Beispiel&shy;programm finden Sie die Implementation und Fortführung der hier gezeigten Verfahren. Mit dieser Vorarbeit können Sie zur Ansteuerung der GeForce-Karte übergehen.</p>
+	</section>
+
+	<section>
+		<h2>Register Combiners</h2>
+		<p>GeForce-, Quadro- und neuere nVidia-Karten besitzen Register-Combiners. Damit lässt sich die Farbberechnung für jeden Pixel konfigurieren. Beachten Sie den Unterschied zwischen Konfigurieren und Programmieren: ersteres ist Einstellen, letzteres freies Gestalten. Dieses erlauben erst die Pixelshader der neuesten Karten&shy;generationen. Die Register-Combiners ersetzen, wenn Sie sie aktivieren, die Standard-OpenGL-Rendering&shy;optionen. Sie sind deutlich komplexer und flexibler. Die Register-Combiners steuern Sie über OpenGL Extensions. Diese sind in der neuesten Version der Datei <i>glext.h</i> definiert, die Sie auch bei unserem Beispiel&shy;programm finden. Wie Sie die Funktionen nutzen, entnehmen Sie dem Beispiel&shy;programm. Auf den <a href="https://www.nvidia.com" rel="external nofollow noreferrer">Entwickler&shy;seiten von nVidia</a> finden Sie die genauen Spezifi&shy;kationen und Dokumen&shy;tationen aller Features.</p>
+	</section>
+
+	<section>
+		<h2>Dot-3-Bumpmap-Texturen</h2>
+		<figure class="floatright">
+			<img src="assets/200107_6.jpg" width="723" height="339" alt="AUS EINEM HEIGHTFIELD wird eine RGB-Normalmap.">
+			<figcaption><span>AUS EINEM HEIGHTFIELD</span> wird eine RGB-Normalmap.</figcaption>
+		</figure>
+		<p>Um eigene Bumpmaps für Dot-3-Bumpmapping zu generieren, beginnen Sie mit einem Heightfield, also einer Graustufen-Bitmap. Hellere Graustufen bedeuten, dass die so gekenn&shy;zeichnete Oberfläche mehr nach außen geschoben wird. Eine solche Bumpmap-Textur wandeln Sie mit dem nVidia-Bumpmap-Tool in eine RGB-Normal Map um:</p>
+		<pre><code>normalmapgen.exe height.tga bump.tga</code></pre>
+		<p>Bevor Sie die Maps in OpenGL laden, generieren Sie Mipmaps. Das sind niedrigere Auflösungs&shy;stufen einer Textur, um hässliche Effekte beim Rendern zu vermeiden. In der Textur befinden sich vorzeichen&shy;behaftete Vektoren, die nur als RGB-Werte gespeichert sind. Das weiß die <i>gluBuild2DMipmaps(...)</i>-Funktion von OpenGL nicht, die automatisch Mipmaps generiert. Da diese für diesen Zweck unbrauchbar sind, müssen Sie eigene Mipmaps generieren, also eine Funktion implementieren, die die Auflösung einer RGB-Normalmap halbiert! Dazu speichern Sie jeden Pixel der RGB-Normal in folgender Struktur, die die Vektor-Komponenten und seine Länge enthält:</p>
+		<pre><code>
+typedef struct
+{
+	unsigned char nz, ny, nx, mag;
+} DOT3NORMAL;
+
+DOT3NORMAL bumpmap[SIZE*SIZE];
+		</code></pre>
+		<p><i>nx, ny</i> und <i>nz</i> initialisieren Sie jeweils mit den RGB-Werten, <i>mag</i> mit dem Wert 255. Bei der Halbierung der Auflösung fassen Sie vier benachbarte Pixel, die in einem Quadrat angeordnet sind, zu einem neuen zusammen. Die Komponenten der Vektoren <i>a,</i> <i>b, c</i> und <i>d</i> müssen Sie vom Wertebereich <i>[0,255]</i> auf der Intervallskala <i>[-1,1]</i> verschieben und skalieren. Die Werte innerhalb des Intervalls multiplizieren Sie mit der Länge des ursprünglichen Vektors und summieren sie auf. Damit erhalten Sie einen neuen Vektor, den Sie erneut normalisieren und als RGB-Tripel in der neuen Mipmap-Stufe speichern. Zusätzlich speichern Sie vorher seine Länge in <i>mag</i>. Der Code für einen Pixel sieht so aus:</p>
+		<pre><code>
+//a,b,c,d: Texel in bumpmap[]
+// angeordnet als
+// a b
+// c d
+DOT3NORMAL a, b, c, d;
+DOT3NORMAL neu;
+VERTEX n;
+n.x = (a.nx / 127 - 1) * a.mag / 255;
+n.x += (b.nx / 127 - 1) * b.mag / 255;
+n.x += (c.nx / 127 - 1) * c.mag / 255;
+n.x += (d.nx / 127 - 1) * d.mag / 255;
+...
+
+l = lengthVector(n);
+normVector(n);
+neu.nx = 128 + 127 * n.x;
+...
+
+neu.mag = min(255, 255 * l * 0.25);
+		</code></pre>
+		<p>Die so berechneten Mipmap-Stufen übergeben Sie mit <i>glTexImage2D(...)</i> an OpenGL. Wenn Sie alles zusammenfassen und mit den Implementierungs&shy;details ausstatten, erhalten Sie unser fertiges Dot-3-Bumpmapping-Programm.</p>
+	</section>
+
+	<section>
+		<h2>Emboss-Bumpmapping</h2>
+		<figure class="floatright">
+			<img src="assets/200107_3.jpg" width="276" height="370" alt="EMBOSSING bei Bumpmaps.">
+			<figcaption><span>EMBOSSING</span> bei Bumpmaps.</figcaption>
+		</figure>
+		<p>Nun gibt es noch ein sehr altes, anderes Verfahren, um Bumpmapping darzustellen. Das Emboss-Bumpmapping ist auf jeder 3D-Karte einsetzbar. Durch diesen Fakt ließen sich schon manche 3D-Karten&shy;hersteller zur Behauptung verleiten, ihre 3D-Karten würden Bumpmapping in der Hardware unterstützen. Diese Methode ist mit den Embossfiltern in Bildbearbeitungs&shy;programmen verwandt. In bestimmten Fällen sind beim Emboss-Bumpmapping Darstellungs&shy;artefakte durch Unterabtastung zu sehen, die als unscharfe Bewegungen erscheinen. Wenn Sie unser Beispiel&shy;programm dazu ausprobieren, werden Sie sehen, dass sich der Einsatz aber auf jeden Fall lohnen kann.</p>
+		<p>Das Verfahren lässt nur die Approximation der diffusen Beleuchtungs&shy;komponente zu, womit sich die vorige Formel für die Beleuchtungs&shy;berechnung auf folgende Terme reduziert:</p>
+		<pre><code>C = ((L * N)) x Dl x Dm</code></pre>
+		<p>Diese Formel hat gewaltig gegenüber der Blinn’schen-Ausgangsformel an Komplexität verloren: Es fehlen nicht nur die Rechen&shy;operationen, sondern auch der <i>Halfangle</i>-Vektor, den Sie für das Dot-3-Bumpmapping benötigten. Die Bumpmap, die wir für das Emboss-Bumpmapping einsetzen, ist eine Höhen&shy;information (Heightfield/Graustufen-Bitmap): Wie das erste Bild zeigte, repräsentiert ein Pixel in der Bumpmap eine Höhen&shy;verschiebung auf der Oberfläche.</p>
+		<figure class="large">
+			<img src="assets/200107_8.jpg" width="808" height="627" alt="UNSER BEISPIELPROGRAMM für Emboss-Bumpmapping">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> für Emboss-Bumpmapping</figcaption>
+		</figure>
+		<p>Wir betrachten das Verfahren zunächst im Ein&shy;dimensionalen, also mit einer Zahlenreihe, die einen Höhenverlauf darstellt. Wenn Ihnen die erste Ableitung einer Folge von Höhenwerten vorliegt, entspricht diese der Steigung am entsprechenden Oberflächen&shy;punkt. Diese Steigung <i>m</i> wird verwendet, um einen Basisfaktor <i>Fd</i> für die diffuse Beleuchtung zu erhöhen oder zu erniedrigen. Die Summe <i>(Fd+m)</i> approximiert den Term <i>(L*N)</i>.</p>
+		<p>Als nächstes approximieren Sie die Steigung. Lesen Sie die Höhe <i>H0</i> des Oberflächen&shy;punktes aus der entsprechende Stelle der Heightmap, was später die 3D-Hardware für Sie erledigen wird. Lesen Sie die Höhe erneut aus, wobei Sie die Bumpmap ein kleines Stückchen in Richtung der Lichtquelle verschieben, und Sie erhalten <i>H1</i>. Rechnen Sie diese Verschiebung aus. Die Differenz aus <i>H0</i> und <i>H1</i> ergibt: <i>m = H1 - H0.</i></p>
+		<p>Die Textur verschieben Sie, indem Sie die Textur&shy;koordinaten modifizieren. Die Modifikation berechnen Sie wieder im Tangent Space. Dazu transformieren Sie die Lichtquelle in den Modelspace. Bilden Sie die Skalarprodukte des Vektors von einem Vertex zur Lichtquelle und der Tangente sowie der Binormalen des Tangent Space. Damit erhalten Sie zwei Verschiebung&shy;swerte, die Sie zur ursprünglichen Texture-Koordinaten addieren.</p>
+		<p>Wenn Sie die Texturen und Bumpmaps in OpenGL geladen haben, führen Sie das Emboss-Bumpmapping in drei Renderpasses durch. Diese Variante funktioniert auf jeder OpenGL-Hardware, die Texture-Mapping unterstützt.<br>
+		• Im ersten Renderpass verwenden Sie die Bumpmap-Textur mit den Original-Textur&shy;koordinaten und deaktivieren die OpenGL-Beleuchtungs&shy;berechnung und das Blending.</p>
+		<pre><code>
+glBindTexture(GL_TEXTURE_2D, bumpTex);
+glDisable(GL_BLEND);
+glDisable(GL_LIGHTING);
+renderObject();
+		</code></pre>
+		<p>• Im zweiten Schritt erhalten Sie die 3D-Objekte mit fertiger Beleuchtung, jedoch ohne Farbe. Dazu wählen Sie die invertierte Bumpmap-Texture, Blending mit <i>GL_ONE/GL_ ONE</i> und den berechneten verschobenen Textur&shy;koordinaten:</p>
+		<pre><code>
+glBindTexture(GL_TEXTURE_2D, invBumpTex);
+glBlendFunc(GL_ONE, GL_ONE);
+glDepthFunc(GL_LEQUAL);
+glEnable(GL_BLEND);
+renderObjectEmboss();
+		</code></pre>
+		<p>• Im dritten Renderpass kommt Farbe durch die Farbtextur und die OpenGL-Beleuchtung ins Spiel. Dazu verwenden Sie folgende Einstellungen:</p>
+		<pre><code>
+glBindTexture(GL_TEXTURE_2D, textureMap);
+glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
+glEnable(GL_LIGHTING);
+renderObject();
+		</code></pre>
+		<p>Probieren Sie die High-End-Render&shy;techniken aus. Wenn Sie Ihre 3D-Grafik mit den Bumpmapping-Features ausstatten, werden Sie feststellen, wie realistisch bisher flache, künstlich anmutende 3D-Objekte auf den Betrachter wirken können.</p>
+		<p>Um die mathematische Arbeit von James Blinn zu studieren, verweisen wir auf die nachfolgenden Literatur&shy;angaben. Diese Grundlagen für die Berechnung von 3D-Räumen wurden erst in den letzten Jahren gelegt. Die komplexe mathematische Materie ist noch nicht vollständig erforscht.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur:</b></p>
+		<p class="footnote">Mark J. Kilgard;, A Practical and Robust Bump-mapping Technique for Today’s GPUs, Developer Information: www.nvidia.com</p>
+		<p class="footnote">James Blinn, Simulation of Wrinkled Surfaces, Computer Graphics (Proc. Siggraph ‘78), August 1978, Seite 286ff</p>
+		<p class="footnote">Tomas Möller, Eric Haines, Real-Time Rendering, AK Peters Ltd, ISBN 1-56-881-101-2, 102 Mark, 482 Seiten, 1999</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200106.html">6/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200108.html">8/2001</a>
+	</nav>
+</body>

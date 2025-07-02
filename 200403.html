@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Fenster in allen Farben (PC Underground, PC Magazin 3/2004)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;3/2004. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200312.html">12/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200404.html">4/2004</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Windows verschönern mit DirectDraw Overlays</h2>
+		<h1>Fenster in <span class="highlight">allen Farben</span></h1>
+		<p class="summary">Individualisieren Sie Ihr Windows System mit einem selbst programmierten, animiertem Desktop-Hintergrund. Hier erfahren Sie, wie Sie <span class="highlight">Video Overlays</span> verwenden und Ihre Programme über den System Tray erreichen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200403_3.jpg" width="461" height="232" alt="2D Effekt: Diese Effekte stellt unser Programm auf Ihrem Desktop dar.">
+			<figcaption><span>2D Effekt:</span> Diese Effekte stellt unser Programm auf Ihrem Desktop dar.</figcaption>
+		</figure>
+		<p>In dieser Ausgabe zeigen wir Ihnen, wie Sie Ihr Windows-System mit einem Desktop-Hintergrund animieren. Es gibt prinzipiell zwei Wege, dies zu erreichen. Der erste nutzt die so genannten Windows Hooks, um sich in das System einzuhängen. So fangen Sie die Nachrichten ab, die das Zeichnen des Desktops anstoßen. Der Desktop ist per Definition auch ein Windows-Fenster.</p>
+		<p>Der andere Weg verwendet Overlays. Dabei handelt es sich um 2D-Bitmaps, die die Grafikkarte beliebig auf dem Bildschirm platzieren kann. Sie können sie so verwenden, dass Sie nur bestimmte Farben auf dem Bildschirm wie die Farbe Ihres Desktop-Hintergrunds ersetzen. Auf den Overlays können Sie dann beliebige Grafikeffekte darstellen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200403.zip">💾 200403.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Direct Draw und Video Overlays</h2>
+		<p>Im ersten Schritt initialisieren Sie DirectDraw wie andere DirectX-Komponenten: Sie erzeugen eine Instanz des DirectDraw Objektes.</p>
+		<pre><code>
+LPDIRECTDRAW7 pDirectDraw;
+DirectDrawCreateEx(NULL, ....
+		</code></pre>
+		<p>Mit <i>SetCooperativeLevel(...)</i> bestimmen Sie das Top-Level-Verhalten Ihres Programms. Die Konstante <i>DDSCL_NORMAL</i> bedeutet, dass es sich um eine herkömmliche Anwendung mit einem Fenster handelt. Andere Werte deuten z.B. auf Vollbild- oder Exclusive-Level-Anwendungen hin. Achten Sie bei DirectX-Funktionen immer auf die Rückgabewerte und prüfen Sie eventuell auftretende Fehler. Um mit DirectDraw etwas darzustellen, benötigen Sie immer eine so genannte <i>Primary Surface</i>.</p>
+		<p>Surfaces sind Speicher&shy;bereiche, in denen Bitmaps verschiedenste Formate und optional mit Hintergrund- oder Tiefenpuffern repräsentieren. Die Primary Surface ist diejenige, die die für den Benutzer sichtbare Bitmap enthält. Sie beschreiben die Eigenschaften der Surface mit der <i>ddsd</i>-Struktur:</p>
+		<pre><code>
+DDSURFACEDESC2 ddsd;
+		</code></pre>
+		<p>Das <i>dwFlags</i>-Feld gibt an, welche Struktur&shy;einträge Sie ausfüllen. Mit dem <i>dwCaps</i>-Feld legen Sie fest, dass es sich um eine Primary Surface handelt, die Sie so erzeugen:</p>
+		<pre><code>
+pDirectDraw-&gt;CreateSurface(&amp;ddsd,
+	&amp;pDDSurfacePrimary, NULL);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Overlay Surfaces</h2>
+		<p>Als nächstes benötigen Sie noch eine Surface für das Overlay. Bevor Sie diese anlegen, überprüfen Sie, ob die Grafikhardware Overlays unterstützt. Dazu lassen Sie sich die Device Caps von Direct Draw geben. In dieser Struktur sind alle Fähigkeiten der Hardware beschrieben:</p>
+		<pre><code>
+DDCAPS ddCaps;
+INIT_DDSTRUCT(ddCaps);
+pDirectDraw-&gt;GetCaps(&amp;ddCaps, NULL):
+		</code></pre>
+		<p>Overlays werden unterstützt, wenn das folgende Flag gesetzt ist: <i>ddCaps.dwCaps &amp;</i> <i>DDCAPS_OVERLAY</i>. Wenn das der Fall ist, legen Sie die Overlay Surface an. Beginnen Sie wieder damit, die gewünschten Eigenschaften der Surface zu beschreiben:</p>
+		<pre><code>
+DDSURFACEDESC2 ddsdOv;
+INIT_DDSTRUCT(ddsdOv);
+		</code></pre>
+		<p>Die Bedeutung der einzelnen Flags beschreibt detailliert die MSDN Hilfe (<a href="https://msdn.microsoft.com" rel="external nofollow noreferrer">http://msdn.microsoft.com</a>). Zusammen&shy;gefasst: Sie beschreiben eine Overlay Surface per Hintergrund&shy;puffer, der im Video-Speicher liegt, mit einer exemplarischen Größe von 320x240 Pixel. Jetzt müssen Sie noch für das Pixelformat entscheiden, ob die Surface die Farbwerte im <i>RGB</i> oder <i>YUV</i>-Format enthält und mit welcher Genauigkeit sie gespeichert werden. Die meisten Grafikkarten unterstützen 32-Bit-RGBA-Overlays, die Sie auch im Folgenden anlegen. Das Beispiel&shy;programm beherrscht weitere Pixelformate, um alle Grafikkarten bedienen zu können:</p>
+		<pre><code>
+DDPIXELFORMAT overlayFormat =
+{
+	sizeof(DDPIXELFORMAT),
+	DDPF_RGB, 0, 32,
+	0x00FF0000,
+	0x0000FF00,
+	0x000000FF,
+	0
+};
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Darstellung der Overlays</h2>
+		<p>Als letztes programmieren Sie den aufwendigsten Teil, indem Sie die Overlay Surface darstellen. Dabei geben Sie an, welchen Ausschnitt des Overlays Sie wo auf dem Bildschirm darstellen wollen. Dabei müssen Sie eventuelle Beschränkungen wie Größe und Position des Overlays berück&shy;sichtigen. Zudem wird manchmal eine leichte Skalierung bzw. Streckung des Overlays gefordert. Alle Anforderungen sind in den Device Caps des Direct Draw Objektes enthalten, die Sie erfüllen müssen.</p>
+		<p>Zunächst positionieren Sie die Overlays, die zwei <i>RECT</i>-Strukturen definieren. Dann vergrößern Sie das Overlay auf den ganzen Bildschirm:</p>
+		<pre><code>
+RECT rs = { 0, 1, 320, 240 };
+		</code></pre>
+		<p>Wenn Sie das Overlay in Originalgröße darstellen wollen, müssen Sie die minimale Skalierung einhalten, wozu Sie diese Einträge verwenden:</p>
+		<pre><code>
+DWORD scale = max(1000, ddCaps.dwMinOverlayStretch);
+		</code></pre>
+		<p>Die Größen für das Overlay beschränken Sie, indem Sie den darzu&shy;stellenden Ausschnitt zuschneiden:</p>
+		<pre><code>
+DWORD s = ddCaps.dwAlignSizeSrc;
+if(ddCaps.dwCaps &amp; DDCAPS_ALIGNSIZESRC &amp;&amp; s)
+	rs.right -= rs.right % s;
+		</code></pre>
+		<p>Das Ziel-Rechteck vergrößern Sie so, dass es ein Vielfaches des vorgegebenen Alignments wird:</p>
+		<pre><code>
+DWORD s = ddCaps.dwAlignSizeDest;
+if(ddCaps.dwCaps &amp; DDCAPS_ALIGNSIZEDEST &amp;&amp; s)
+	rd.right = ((rd.right + s - 1) / s) * s;
+		</code></pre>
+		<p>Damit stellen Sie das Overlay dar, wie es nach folgendem Funktions&shy;aufruf das Listing der Heft-CD fortführt:</p>
+		<pre><code>
+DDOVERLAYFX ovfx;
+DWORD dwUpdateFlags;
+		</code></pre>
+		<p>Das Overlay bedeckt Ihren gesamten Bildschirm, so dass Sie nichts anderes mehr sehen. Da Sie aber nur Teile wie den Desktop&shy;hintergrund einfärben wollten, verwenden Sie das so genannte <i>Color Keying</i>.</p>
+		<p>Das Verfahren ersetzt nur eine bestimmte Farbe oder einen bestimmten Farbbereich per Overlay auf dem Bildschirm. So färben Sie Desktop- und Fenster&shy;hintergründe oder Schrift mit Farbwerten ein.</p>
+		<figure class="large">
+			<img src="assets/200403_1.jpg" width="1008" height="737" alt="Color Keying: Das Overlay erzeugt animierte Fensterhintergründe; auch Schrift kann es einfärben.">
+			<figcaption><span>Color Keying:</span> Das Overlay erzeugt animierte Fensterhintergründe; auch Schrift kann es einfärben.</figcaption>
+		</figure>
+		<p>Die <i>DDColorMatch</i>-Funktion passt den angegebenen Farbwert (hier <i>(0,0,0)</i> : schwarz) an das Pixelformat der Primary Surface an. Jetzt teilen Sie der Primary Surface den Color Key Wert mit und aktivieren die Funktionalität, indem Sie die <i>dwUpdateFlags</i> vor dem Aufruf der <i>UpdateOverlay</i>-Methode modifizieren:</p>
+		<pre><code>
+DDCOLORKEY colorKey;
+
+colorKey.dwColorSpaceLowValue =
+	colorKey.dwColorSpaceHighValue =
+		DDColorMatch(pDDSurfacePrimary, RGB(0, 0, 0));
+
+pDDSurfacePrimary-&gt;SetColorKey(
+	DDCKEY_DESTOVERLAY, &amp;colorKey);
+
+if (ddCaps.dwCKeyCaps &amp; DDCKEYCAPS_DESTOVERLAY)
+	dwUpdateFlags |= DDOVER_KEYDEST;
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Update der Overlay Surface</h2>
+		<p>Zuletzt aktualisieren die Overlay Surface. Unserer Beispiel&shy;programm berechnet einen 2D-Grafikeffekt in einem 32-Bit-RGB-Puffer, der in die Overlay Surface zu kopieren ist. Wenn das Pixelformat der Surface von dem des Puffers abweicht, müssen Sie das Format konvertieren, wie dies der Quelltext des Beispiel&shy;programms vorführt. Um auf den Inhalt einer Surface zuzugreifen, verwenden Sie die <i>Lock(...)</i>-Methode. Sie erhalten dann eine Struktur, welche die Auflösung des Bitmaps und die Bytes pro Bitmapzeile beschreiben:</p>
+		<pre><code>
+pSurface-&gt;Lock(NULL, &amp;ddsd,
+	DDLOCK_SURFACEMEMORYPTR | DDLOCK_WAIT, NULL);
+		</code></pre>
+		<p>Dorthin kopieren Sie das Bild des Grafikeffektes und beenden den Schreibzugriff mit:</p>
+		<pre><code>
+Surf = (BYTE*)ddsd.lpSurface;
+DWORD *src = ...;
+
+for(y = 0; y &lt; 240; y++)
+{
+	memcpy(pSurf, src, sizeof(DWORD) * 320);
+	pSurf += ddsd.lPitch;
+	src += 320;
+}
+
+pSurface-&gt;Unlock(NULL);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>System Tray</h2>
+		<figure class="floatright">
+			<img src="assets/200403_2.jpg" width="237" height="186" alt="Notifiy Icon: Unsere Applikation in der Tray Bar, mit Kontextmenü und Tooltip.">
+			<figcaption><span>Notifiy Icon:</span> Unsere Applikation in der Tray Bar, mit Kontextmenü und Tooltip.</figcaption>
+		</figure>
+		<p>Anwendungen, die im Hintergrund arbeiten und keine ständige Benutzer&shy;interaktion voraussetzen, brauchen kein ständig geöffnetes Anwendungs&shy;fenster. Die notwendigen Funktionen sollten aber trotzdem bequem erreichbar sein, wozu sich der so genannte System Tray anbietet: Dort steuert der Benutzer-Programme per Icon.</p>
+		<p>Sie programmieren diese so genannten <i>NotifyIcons</i> vergleichs&shy;weise leicht nach Anleitung. Das Konzept der Notify Icons sieht vor, dass Benutzer-Interaktionen wie ein Mausklick auf das Icon als Nachricht an ein Windowsfenster geschickt werden. Das bedeutet, Sie müssen wie gewohnt ein Fenster und eine Nachrichten-Callback-Funktion programmieren, ohne das Fenster darstellen zu müssen. Erzeugen Sie zuerst ein Fenster wie im Beispiel eine Dialog-Box aus dem Ressource File:</p>
+		<pre><code>
+HWND hWnd = CreateDialog(hInst,
+	MAKEINTRESOURCE(IDD_DLG_DIALOG),
+	NULL,
+	(DLGPROC)messageHandler);
+		</code></pre>
+		<p>Als nächstes legen Sie eine <i>NOTIFYICONDATA</i>-Struktur an, die die notwendigen Informationen für das Notify Icon enthält. Allerdings gibt es zwei Versionen dieser Struktur, die unterschied&shy;liche Informationen und so verschiedene Strukturgrößen aufweisen. Welche der beiden Varianten Sie verwenden, hängt von der Version der Windows eigenen <i>Shell32.dll</i> ab.</p>
+		<p>Um die Versionsnummer abzufragen, bieten die meisten Windows-DLLs wie <i>Comctl32.dll,</i> <i>Shdocvw.dll</i> und <i>Shlwapi.dll</i> die Methode <i>DllGetVersion</i> an. Sie laden also diese DLL, holen die Adresse der <i>DllGetVersion</i>-Methode und fragen mit ihrer Hilfe die Versionsnummer ab. Einen Beispielcode finden Sie in unserem Programm und der MSDN-Hilfe von MS Visual C++. So definieren Sie die kürzere Version der Struktur, die auch schon alle Felder enthält:</p>
+		<pre><code>
+typedef struct _NOTIFYICONDATA
+{
+	DWORD cbSize;
+		</code></pre>
+		<p>Zuerst tragen Sie in Ihre Struktur die tatsächliche Größe ein:</p>
+		<pre><code>
+NOTIFYICONDATA niData;
+		</code></pre>
+		<p>Nun geben Sie an, welche Felder Sie mit validen Werten füllen. Sie geben ein Icon, eine Tooltip-Nachricht und eine Fenster&shy;nachricht an:</p>
+		<pre><code>
+niData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+
+// beliebige ID
+niData.uID = TRAY_ICON_ID;
+		</code></pre>
+		<p>Nun geben Sie an, welches Windows-Fenster (bzw. dessen Message-Handler), die Nachrichten vom Notify Icon empfängt. Diese Callback-Funktion rufen Sie mit einer ausgewählten Nachricht <i>TWM_TRAYMSG</i> auf, deren Wert sich zwischen <i>WM_APP</i> und <i>0xBFFF</i> befindet, sobald ein Mouse Event im Bereich des Notify Icons auftritt.</p>
+		<pre><code>
+niData.hWnd = hWnd;
+		</code></pre>
+		<p>Dann bleibt also noch der Tooltip-Text und das Icon, die Sie in die Struktur eintragen:</p>
+		<pre><code>
+lstrcpyn(niData.szTip, _T(„Text“),
+	sizeof(niData.szTip) / sizeof(TCHAR));
+		</code></pre>
+		<p>Zuletzt schicken Sie die Nachricht an das System ab, die das Traybar Icon hinzufügt:</p>
+		<pre><code>
+Shell_NotifyIcon (NIM_ADD, &amp;niData);
+		</code></pre>
+		<p>Jetzt geben Sie noch die Ressourcen für das Icon frei:</p>
+		<pre><code>
+if(niData.hIcon &amp;&amp; DestroyIcon...
+		</code></pre>
+		<p>Die Nachrichten, die aufgrund des Notify Icon gesendet werden, bearbeiten Sie also in der Message Handler Funktion der oben angelegten Dialog-Box:</p>
+		<pre><code>
+INT_PTR CALLBACK messageHandler(HWND hWnd,
+	UINT msg, WPARAM wP, LPARAM lP)...
+		</code></pre>
+		<p>Ein doppelter Mausklick soll die Dialog-Box darstellen. Ein Klick der rechten Maustaste ruft die <i>createContextMenu(...)</i>-Methode auf, die ein Kontext-Menü aufbaut und darstellt:</p>
+		<pre><code>
+void createContextMenu(HWND hWnd)
+{
+	HMENU hMenu = CreatePopupMenu();
+	if(hMenu)
+	{
+		InsertMenu(hMenu, -1,
+			MF_BYPOSITION, TWM_BEISPIEL,
+			_T(„Beispieleintrag“));
+
+		SetForegroundWindow(hWnd);...
+		</code></pre>
+		<p>Die <i>CreatePopupMenu()</i>-Methode erzeugt ein zunächst leeres Drop-Down-Menü. Mit der <i>InsertMenu(...)</i>-Methode fügen Sie Menüpunkte hinzu. Die beiden letzten Parameter geben die Konstante für die Nachricht an, die im Falle eines Anklickens gesendet wird, sowie den Text des Eintrags. Nach dem Aufbau des Menüs sorgt <i>SetForegroundWindow(...)</i> dafür, dass es sichtbar wird. <i>GetCursorPos(...)</i> gibt die Position des Mauszeigers aus, und dement&shy;sprechend platzieren Sie das Drop-Down-Menü.</p>
+		<p>Dies und die Eingaben&shy;behandlung leistet der <i>TrackPopupMenu(...)</i>-Befehl, dem Sie auch das Window-Handle des Fensters übergeben, das die Nachrichten empfangen soll. Nachdem das Menü verlassen wird, geben Sie die Ressourcen mit <i>DestroyMenu(hMenu)</i> wieder frei. Da Sie hier wieder das Window-Handle der Dialog-Box angegeben haben, müssen Sie den Message Handler noch um folgendes erweitern:</p>
+		<pre><code>
+switch(msg) {
+	...
+	case WM_COMMAND:
+		trayMsg = LOWORD(wParam);
+		switch(trayMsg)
+		{
+			case TWM_BEISPIEL:
+				// Beispieleintrag wurde gewählt
+				break;
+		}
+	return 1; ...
+}
+		</code></pre>
+		<p>Damit haben Sie schon alle Werkzeuge in der Hand, die Sie für Notify Icons benötigen. Wenn Sie das Programm verlassen, müssen Sie das Icon aus der Liste löschen:</p>
+		<pre><code>
+niData.uFlags = 0;
+Shell_NotifyIcon(NIM_DELETE, &amp;niData);
+		</code></pre>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2004 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200312.html">12/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200404.html">4/2004</a>
+	</nav>
+</body>

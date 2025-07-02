@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Raum ohne Rechenaufwand (PC Underground, PC Magazin 12/2004)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;12/2004. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200409.html">9/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="#" style="visibility: hidden;"></a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Parallax Bump Mapping</h2>
+		<h1><span class="highlight">Raum</span> ohne Rechenaufwand</h1>
+		<p class="summary">Bump Mapping ist ein verbreitetes Verfahren, um detaillierte Oberflächen mit Texturierungs&shy;methoden darzustellen. Es geht aber besser, ohne gleich aufwändiges Displacement Mapping zu verwenden: mit <span class="highlight">Parallax Bump Mapping</span>!</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>In mehreren bisherigen Ausgaben von PC Underground haben Sie verschiedene Methoden kennen gelernt, die alle unter den Begriff Bump Mapping fallen. Allen diesen Verfahren, wie Emboss, Dot-Product 3 oder Bump Mapping mit per Pixel Lighting (ab Pixel Shader 2.0) ist gemein, dass sie die Oberfläche selbst nicht verändern – lediglich die Oberflächen&shy;normale wird bei der Beleuchtungs&shy;berechnung modifiziert, um den Eindruck von komplexen Oberflächen&shy;strukturen zu erwecken. Oft genannt ist auch der Begriff Displacement Mapping. Dies ist die naheliegenste und aufwändigste Variante, um komplexe Oberflächen darzustellen: Die Oberfläche wird in eine Vielzahl von kleinen Dreiecken unterteilt. Die dadurch entstehenden Eckpunkte werden senkrecht zur Oberflächen&shy;normale, entsprechend einer Höhenfunktion oder Textur, verschoben. Für die neuen Vertices werden auch neue Normalen berechnet, um die Beleuchtung anzupassen.</p>
+		<p>Das hier vorgestellte Parallax Bump Mapping reiht sich in die oben genannten Verfahren ein, d.h. nur in die Beleuchtungs&shy;berechnung wird eingegriffen. Aber es hat ein zusätzliches Feature, das den räumlichen Eindruck weiter verstärkt. Zuvor begleiten wir Sie aber bei einem kleinen mathematischen Exkurs, um die Grundlagen für perfektes Bump Mapping zu schaffen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Tangent Space</h2>
+		<figure class="floatright">
+			<img src="assets/200412_1.jpg" width="256" height="163" alt="Normal Maps: So definieren Sie die Oberflächenstrukturen.">
+			<figcaption><span>Normal Maps:</span> So definieren Sie die Oberflächenstrukturen.</figcaption>
+		</figure>
+		<p>Der Tangent Space ist das wichtigste Konzept beim Bump Mapping mit Normal Maps – auch als Bump Maps bezeichnet. Normal Maps sind nichts anderes als Texturen, deren Farbwerte Oberflächen&shy;normalen kodieren und zwar so, dass die <i>rot/grün/blau</i>-Werte die <i>X/Y/Z</i>-Komponenten der Normale sind. Diese Normal Maps werden wie normale Texturen auf eine Oberfläche abgebildet. Bei der Beleuchtungs&shy;berechnung, die Sie für jeden Pixel durchführen, wird die Normale ausgelesen. Allerdings können Sie diese Normale nicht direkt verwenden, weil in den Normal Maps die Orientierung der gerade zu zeichnenden Oberfläche nicht enthalten ist. Normal Maps konstruieren Sie, als würde die Textur auf der <i>X/Y</i>-Ebene liegen und die <i>Z</i>-Komponente nach oben zeigen.</p>
+		<p>An dieser Stelle kommt nun der Tangent Space in Spiel. Dieser ist ein Koordinaten-System aus drei Achsen, das für jeden Vertex definiert ist: Die <i>X</i>- und <i>Y</i>-Achse liegen in der Tangential&shy;ebene an der Oberfläche an dem Vertex. Diese beiden Achsen werden klassischer&shy;weise mit Tangente und <i>Binormale</i> bezeichnet, obwohl für letztere die Bezeichnung <i>Bitangente</i> korrekt wäre. Die <i>Z</i>-Achse ist gleich der Vertex-Normalen.</p>
+		<figure class="large">
+			<img src="assets/200412_3.jpg" width="640" height="503" alt="Tangent Space: Das Prinzip hinter dem Bump Mapping stellen diese Vektoren dar.">
+			<figcaption><span>Tangent Space:</span> Das Prinzip hinter dem Bump Mapping stellen diese Vektoren dar.</figcaption>
+		</figure>
+		<p>Diese Definition des Tangent Space ist konform mit der der Normal Maps: Wenn Sie die Richtung zur Lichtquelle <i>L</i> und zum Betrachter <i>V</i>, die Sie für die Beleuchtungs&shy;berechnung benötigen, in den Tangent Space transformieren, können Sie die Normale aus der Normal Maps auslesen und direkt für die Beleuchtungs&shy;berechnung verwenden. Das Beispiel zeigt dies mit Halfway-Vektoren und HLSL-Syntax:</p>
+		<pre><code>
+float3 H = normalize(L + V);
+float3 N = tex2D(bumpMap,texCoord) * 2 ? 1;
+I = saturate(dot(N,L)) * diffuseColor +
+	pow(saturate(dot(H, N)), spec) * specColor;
+		</code></pre>
+		<p>Die Skalierung und Verschiebung des Wertebereichs bei der Normale ist notwendig, da in der Textur Werte aus <i>[0;1]</i> enthalten sind. Die Komponenten der Normalen werden zum Speichern in der Textur vom Intervall <i>[-1;1]</i> in das Intervall <i>[0;1]</i> abgebildet, um sie als RGB-Farbwerte repräsentieren zu können. Solche Normal Maps können Sie mit diversen Tools wie von nVidia (siehe Literatur) aus Graustufen-Höhenbildern erzeugen. Die Tangent Spaces berechnen Sie also pro Vertex, d.h. Sie ändern sich auch über ein zu zeichnendes Dreieck. Das stellt aber kein Problem dar: Sie berechnen die Trans&shy;formationen in den Tangent Space in einem Vertex Shader und die Grafikkarte interpoliert die entsprechenden Vektoren für Sie.</p>
+	</section>
+
+	<section>
+		<h2>Berechnung des Tangent Space</h2>
+		<figure class="floatright">
+			<img src="assets/200412_2.jpg" width="474" height="474" alt="Abbildung: Der korrekte Tangent Space richtet sich am Texture Mapping aus.">
+			<figcaption><span>Abbildung:</span> Der korrekte Tangent Space richtet sich am Texture Mapping aus.</figcaption>
+		</figure>
+		<p>Damit diese Interpolation gut geht, müssen Sie darauf achten, dass die Tangent Spaces der drei Eckpunkte eines Dreiecks sinnvoll gewählt sind. Die einfachste Variante liefert in vielen Fällen akzeptable Ergebnisse. Sie ist einfach abhängig von der Normalen, einen Tangent Space zu konstruieren. Nehmen Sie an, die Normale des Vertex ist <i>N=(nx,ny,nz)</i>. Ein Vektor, der sicher nicht dieselbe Richtung hat (es sei denn, <i>N</i> wäre Nullvektor), ist <i>A=(ny, -nz, nx)</i>. Durch ein Kreuzprodukt erhalten Sie einen der Tangential&shy;vektoren <i>T=N x A</i> und durch ein weiteres, den zweiten: <i>B=T x N</i>. Das ist alles leicht in einem Vertex Shader zu berechnen, aber bessere Ergebnisse erhalten Sie, wenn Sie den Tangent Space an dem Mapping der Texturen ausrichten.</p>
+		<p>Betrachten Sie dazu das Bild rechts unten: Eine Textur wird auf ein Dreieck <i>(UVW)</i> abgebildet, wobei <i>P=(px,py,pz)T</i> und <i>Q=(qx,qy,qz)T</i> die Differenz&shy;vektoren der Eckpunkte <i>(V-U)</i> bzw. <i>(W-U)</i> sind. Die Differenz&shy;vektoren der Textur-Koordinaten sind <i>(s<sub>1</sub>,t<sub>1</sub>)T</i> bzw. <i>(s<sub>2</sub>,t<sub>2</sub>)T</i>, d.h. der Wert <i>s1</i> kennzeichnet die erste Komponente der Textur-Koordinate von <i>V</i> minus der Ersten von <i>U</i> usw. Nun wollen wir zunächst den Tangent Space für dieses Dreieck bestimmen. Die Normale des Tangent Space, also die <i>Z</i>-Achse, ist gleich der Normalen des Dreiecks. Es verbleiben also die beiden Tangenten, die entlang der Ableitung der Textur-Koordinaten zeigen sollen. Anschaulich bedeutet das: Wenn Sie den Vektor <i>(s<sub>1</sub>,t<sub>1</sub>)T,</i> gegeben im Tangent Space, aus diesem heraus transformieren, wollen Sie den Vektor <i>P</i> erhalten. Diese Transformation heißt, die beiden Komponenten mit der Tangenten bzw. Binormalen zu multiplizieren und zu addieren: <i>P = s<sub>1</sub>T+t<sub>1</sub>B</i> bzw. <i>P = s<sub>2</sub>T+t<sub>2</sub>B</i></p>
+		<p>Was also bleibt, ist ein Gleichungs&shy;system mit sechs Unbekannten, nämlich den Komponenten von <i>T</i> und <i>B</i>, das sich mit Matrizen wie folgt beschreiben lässt:</p>
+		<pre><code>
+|px py pz|   |s1 t1|   |Tx Ty Tz|
+|        | = |     | * |        |
+|qx qy qz|   |s2 t2|   |Bx By Bz|
+		</code></pre>
+		<p>Dieses lösen Sie, indem Sie die Matrix mit den Differenzen der Textur-Koordinaten invertieren und danach an beiden Seiten multiplizieren:</p>
+		<pre><code>
+|s1 t1|-1          1        |t2 -t1|
+|     |     = ––––––––––– * |      |
+|s2 t2|       s1*t2-s2*t1   |-s2 s1|
+		</code></pre>
+		<p>Auf der rechten Seite bleiben lediglich die Unbekannten. Nachdem Sie die Gleichungs&shy;seiten getauscht haben, erhalten Sie:</p>
+		<pre><code>
+|Tx Ty Tz|
+|        | =
+|Bx By Bz|
+
+      1       |t2 -t1|   |px py pz|
+––––––––––– * |      | * |        |
+s1*t2-s2*t1   |-s2 s1|   |qx qy qz|
+		</code></pre>
+		<p>So erhalten Sie also <i>T</i> und <i>B</i> für ein Dreieck, benötigen aber je einen Tangent Space pro Vertex.</p>
+		<p>Dafür legen Sie ein Array an, das für jeden Vertex drei Vektoren speichert. Diese initialisieren Sie zunächst mit Null. Anschließend berechnen Sie für jedes Dreieck den Tangent Space und addieren <i>N, T</i> und <i>B</i> auf den Tangent Space seiner Eckpunkte.</p>
+		<p>Abschließend müssen Sie die Tangent Spaces pro Vertex (bezeichnet mit <i>NV, TV, BV)</i>) noch <i>orthogonali&shy;sieren</i> – wie im Folgenden mit der Gram-Schmidt-Orthogonali&shy;sierung. Um für jeden Vertex später nicht drei Vektoren zu speichern, merken Sie sich lediglich die eine der Tangenten und die Orientierung des Tangent Spaces, also ob es sich um ein links- oder rechtshändiges Koordinaten&shy;system handelt. Die zu speichernde Tangente – ein vier-Komponenten Vektor also – ist dann:</p>
+		<pre><code>
+T.xyz = TV ? (NV dot TV)NV
+T.w = (NV x TV) dot BV &lt; 0 ? -1 : 1
+		</code></pre>
+		<p>In einem Vertex Shader können Sie die Binormale aus dem obigen Vektor und der Normalen leicht berechnen (HLSL Syntax):</p>
+		<pre><code>
+float3 B = cross(N, T.xyz) *T.w;
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Bump Mapping mit Per-Pixel-Lighting</h2>
+		<p>Mit den obigen Berechnungen, deren Implementation Sie wie immer in unserem Beispiel&shy;programm vorfinden, haben Sie alles in der Hand, um Bump Mapping mit Per-Pixel-Lighting (Pixel Shader 2.0) durchzuführen.</p>
+		<p>Für die Operationen im Vertex Shader haben Sie zwei Optionen: Entweder Sie führen die Berechnungen im Object Space durch, oder Sie nehmen alle Berechnungen im World Space vor. Wir beschreiben hier die letztere Variante, die zum einen weniger und zudem weniger schwierige Operationen benötigt, wenn Sie mehrere Lichtquellen in der Szene verwenden. Im Vertex Shader berechnen Sie – außer der gewöhnlichen Koordinaten&shy;transformation – die Binormale und transformieren <i>N, T</i> und <i>B</i> anhand der Transformation Ihres Objektes (<i>Matrix matWV</i>). Außerdem benötigen Sie die World Space Position des Vertex:</p>
+		<pre><code>
+N = mul(matWV, vertex.Nv);
+T = mul(matWV, vertex.Tv.xyz);
+B = cross(normal,tangent) * vertex.Tv.w;
+
+// world space vertex pos
+wsPos = mul(matWV, vertex.position);
+
+// view/light vector
+V = normalize(cameraPosition - wsPos);
+L = normalize(lightPosition - wsPos);
+		</code></pre>
+		<p>Anschließend transformieren Sie <i>V</i> und <i>L</i> in den Tangent Space <i>(Vt, Lt)</i>, indem Sie die Skalarprodukte von <i>V</i> beziehung&shy;sweise <i>L</i> mit <i>T, B</i> und <i>N</i> bilden. Ihr besonderes Augenmerk gilt dabei der Reihenfolge der Verktoren in diesem Skalarprodukt:</p>
+		<pre><code>
+Lt = float3(dot(T,L), dot(B,L), dot(N,L));
+		</code></pre>
+		<p>Die Reihenfolge <i>TBN</i> ist wichtig: Erinnern Sie sich an die Normal Maps – die Z-Komponente zeigt von der Fläche weg, entspricht also der Normalen!</p>
+		<p>Die Grafikkarte interpoliert nun für Sie <i>V</i> und <i>L</i> (im Tangent Space) und Ihnen stehen die Werte im Pixel Shader zur Verfügung. Dort normalisieren Sie sie, lesen die Normal Map und gegebenenfalls weitere Texturen mit diffusen und spekularen Farbwerten und berechnen die Beleuchtung wie oben. Das Resultat sehen Sie im Bild links.</p>
+	</section>
+
+	<section>
+		<h2>Parallax Bump Mapping</h2>
+		<p>Als Parallaxe bezeichnet man ganz allgemein die scheinbare Positions&shy;änderung eines Objektes durch eine Verschiebung der Position des Beobachters. Wenn Sie nun eine unebene Oberfläche – repräsentiert durch eine Normal Map – auf ein planares Dreieck abbilden, geht die dafür notwendige Höhen&shy;information verloren und die Oberfläche wirkt flach. Das folgende Bild zeigt, was in diesem Fall passiert: Die Textur oder Normal Map wird an der Stelle <i>A</i> ausgelesen, obwohl Sie die tatsächliche Oberfläche an Punkt <i>B</i> sehen würden. Wenn Sie also die Textur-Koordinate für jeden zu zeichnenden Pixel korrigieren können, würden Sie einen Parallax-Effekt simulieren. Dazu benötigen Sie außer der Normalen aus der Normal Map noch eine Höhen&shy;information. Hohe Bereiche verursachen eine Verschiebung der Textur-Koordinate in Richtung des Betrachters, niedrige Bereiche eine Verschiebung in die andere Richtung. Die Höhen&shy;information können Sie entweder durch separate Textur zugänglich machen oder im Alpha Kanal der Normal Map speichern.</p>
+		<figure class="floatright">
+			<img src="assets/200412_4.jpg" width="512" height="255" alt="Parallax Bump Mapping: Wenn der Betrachter seine Position verschiebt, vermitteln geänderte Textur-Koordinaten eine bessere Tiefe.">
+			<figcaption><span>Parallax Bump Mapping:</span> Wenn der Betrachter seine Position verschiebt, vermitteln geänderte Textur-Koordinaten eine bessere Tiefe.</figcaption>
+		</figure>
+		<p> Was Sie also für den Parallax-Effekt benötigen sind drei Dinge: eine ursprüngliche Textur-Koordinate, die durch die Texturierung gegeben ist, die Richtung zum Betrachter im Tangent Space <i>(Vt)</i> und den eben genannten Höhenwert der Oberfläche gespeichert in einer Textur. Den Höhenwert, der in der Textur den Wertebereich <i>[0;1]</i> einnimmt, skalieren und verschieben Sie auf <i>[-x;x]</i>, wobei <i>x</i> ein sehr kleiner Wert ist, etwa von der Größenordnung <i>0.02</i>. Die verschobene Textur-Koordinate <i>UVneu</i> berechnen Sie aus der alten <i>UValt</i>:</p>
+		<pre><code>
+UVneu = UValt + height * Vt.xy / Vt.z
+		</code></pre>
+		<p>Diese Berechnung stimmt allerdings nur unter einer Voraussetzung. Nämlich dann, wenn die Höhe bei <i>A</i> gleich der bei <i>B</i> ist, was in den seltensten Fällen so sein wird. Wenn Sie nahezu senkrecht auf eine Oberfläche sehen, werden die Textur-Koordinaten-Differenzen kleiner und die obige Annahme ist akzeptabel. Wenn Sie flacher auf eine Oberfläche blicken, werden die Verschiebungen der Textur-Koordinaten aber unendlich groß. Also gilt es, die Offsets nach oben zu beschränken. Die einfachste und funktionier&shy;ende Variante ist, die Verschiebung auf den Höhenwert bei <i>A</i> zu beschränken. Diese Option reduziert gleichzeitig den Berechnungs&shy;aufwand, denn Sie erreichen genau das mit folgendem Code:</p>
+		<pre><code>
+UVneu = UValt + height * Vt.xy
+		</code></pre>
+		<p>Die Verschiebung kann nicht größer als <i>height</i> sein, da der Vektor <i>Vt</i> normalisiert ist und auch seine 2D-Projektion <i>Vt.xy</i> maximal die Länge <i>1</i> haben kann. Um Parallax Bump Mapping zu erhalten, müssen Sie lediglich Ihren <i>normalen</i> Bump Mapping Pixel Shader so erweitern, dass an der interpolierten Textur-Koordinate zunächst der Höhenwert ausgelesen wird.</p>
+		<pre><code>
+V = normalize(fragment.V);
+height = tex2D(heightMap, fragment.UValt);
+height = height * 0.04 - 0.02;
+UVneu = fragment.UValt + height * V;
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200412_5.jpg" width="450" height="419" alt="Virtuelle Wirklichkeit: Hier können Sie Bump und Parallax Mapping vergleichen.">
+			<figcaption><span>Virtuelle Wirklichkeit:</span> Hier können Sie Bump und Parallax Mapping vergleichen.</figcaption>
+		</figure>
+		<p>Die Normale und weitere Oberflächen&shy;attribute lesen Sie an der Stelle <i>UVneu</i> aus Texturen aus. Die Verschiebung der Textur-Koordinaten ist nur eine Approximation der Oberflächen&shy;beschaffenheit. Deswegen müssen Sie bei der Gestaltung von Height Maps und deren Skalierung etwas probieren, bis Sie ein optimales Ergebnis erhalten. Die besten Resultate erzielen Sie, wenn Sie Height Maps ohne Sprünge und nicht zu starken Variationen anlegen. Bei Oberflächen mit sehr steilen Flanken würden sich außerdem Teile gegenseitig verdecken – ein Effekt, den Sie mit Parallax Bump Mapping ohnehin nicht erzielen können.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2004 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Info</b></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.infiscape.com/rd.html" rel="external nofollow noreferrer">www.infiscape.com/rd.html</a></p>
+		<p class="footnote"><a href="https://developer.nvidia.com/object/nv_texture_tools.html" rel="external nofollow noreferrer">developer.nvidia.com/object/nv_texture_tools.html</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200409.html">9/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="#" style="visibility: hidden;"></a>
+	</nav>
+</body>

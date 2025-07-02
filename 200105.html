@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Blühende Landschaften (PC Underground, PC Magazin 5/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;5/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200104.html">4/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200106.html">6/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Genesis-Projekt: Eigene Landschaftsdaten generieren</h2>
+		<h1>Blühende <span class="highlight">Landschaften</span></h1>
+		<p class="summary">Generieren Sie eigene <span class="highlight">realistische Landschafts&shy;daten</span> mit dafür passenden Algorithmen. Die aufbereiteten 3D-Daten geben Sie über OpenGL aus.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200105_1.png" width="256" height="247" alt="EINE GENERIERTE HEIGHTMAP legt die Landschaft fest.">
+			<figcaption><span>EINE GENERIERTE HEIGHTMAP</span> legt die Landschaft fest.</figcaption>
+		</figure>
+		<p>Die einfachste Methode, Landschafts&shy;daten zu generieren, geht von einer Art Landschafts&shy;karte aus, in der die Höhen&shy;information gespeichert ist (<i>Heightmap</i> oder einem <i>Heightfield</i>). Dahinter verbirgt sich eine Bitmap mit Graustufen.</p>
+		<p>Das Bild zeigt eine Heightmap. Hellere Pixel bedeuten, dass die Landschaft an dieser Stelle höher ist, dunklere Pixel stehen für tiefer gelegene Landschafts&shy;teile. Diese Bitmap enthält die später notwendigen Informationen, um die 3D-Daten zu generieren. Zunächst erzeugen Sie die Heightmaps. Dabei helfen Ihnen Algorithmen, mit denen Sie charak&shy;teristische Heightmaps für hügelige, flache oder vulkanische Landschaften erzeugen. Alle Sourcecodes, die hier teilweise in Ausschnitten gezeigt werden, finden Sie komplett auf der Heft-CD.</p>
+	</section>
+
+	<aside>
+		<h2>DAS GENESIS-PROJEKT</h2>
+		<div>
+			<p>Unser Genesis-Projekt gliedert sich in folgende drei Teile, die Sie von den OpenGL-Grundlagen bis zum Einsatz praxis&shy;tauglicher Algorithmen führen.</p>
+			<br>
+			<p><b>Teil 1:</b> Landschaften rendern mit OpenGL</p>
+			<p class="highlight2"><b>Teil 2:</b> Eigene Landschafts&shy;daten generieren</p>
+			<p><b>Teil 3:</b> Methoden des Landschafts-Texturierens und Spezialeffekte</p>
+			<br>
+			<p>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200105.zip">💾 200105.zip</a>.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Fault Formation Algorithmus</h2>
+		<figure class="floatright">
+			<img src="assets/200105_2.png" width="526" height="506" alt="DIESE MIT FAULT-FORMATION angelegten Heightmaps weisen 4, 8, 32 und 64 Iterationen auf.">
+			<figcaption><span>DIESE MIT FAULT-FORMATION</span> angelegten Heightmaps weisen 4, 8, 32 und 64 Iterationen auf.</figcaption>
+		</figure>
+		<p>Der Fault Formation Algorithmus eignet sich, um Landschafts&shy;daten für Küstenregionen, steile Hänge oder Felsplateaus anzulegen. In der Natur entstehen solche Landstriche unter anderem dadurch, dass sich Platten tektonisch verschieben, Küsten erodieren und Landschaften sich durch Wasser- oder Wind-Phänomene verändern.</p>
+		<p>Der Algorithmus ist einfach: Sie starten mit einer leeren Heightmap der Größe <i>SIZE x SIZE</i>. Jeder Punkt erhält die Höhe Null. Nun wählen Sie eine zufällige Linie in der Heightmap:</p>
+		<figure class="floatright">
+			<img src="assets/200105_3.png" width="528" height="512" alt="DIE HEIGHTMAPS aus dem vorigen Bild hat ein <i>FIR</i>-Filter modifiziert.">
+			<figcaption><span>DIE HEIGHTMAPS</span> aus dem vorigen Bild hat ein <i>FIR</i>-Filter modifiziert.</figcaption>
+		</figure>
+		<pre><code>
+x1 = rand() % SIZE;
+y1 = rand() % SIZE;
+do
+{
+	x2 = rand() % SIZE;
+	y2 = rand() % SIZE;
+} while (x2 == x1 &amp;&amp; y2 == y1);
+
+float dx = (float)(x2 - x1);
+float dy = (float)(y2 - y1);
+		</code></pre>
+		<p>Diese Linie teilt die Map in zwei Teile. Entscheiden Sie sich für eine Seite, und erhöhen Sie alle Punkte um eine bestimmte Höhendifferenz.</p>
+		<pre><code>
+// Entscheidung, welche Seite
+int upDown =
+	(dx &gt; 0 &amp;&amp; dy &lt; 0) ||
+	(dx &gt; 0 &amp;&amp; dy &gt; 0);
+// die Steigung der Linie
+	if(dx)
+		dy /= dx;
+	else
+		dy = 0.0f;
+
+x = 0;
+y = y1 - x1 * dy;
+
+// Punkte gegen die Linie testen
+for(x2 = 0; x2 &lt; SIZE; x2++, y += dy)
+{
+	for (y2 = 0; y2 &lt; SIZE; y2++)
+		if((upDown &amp;&amp; y2 &lt; y) || /*up*/
+			(!upDown &amp;&amp; y2 &gt; y) /*down*/)
+		terrain[x2 + y2 * SIZE] +=  heightDifference;
+}
+		</code></pre>
+		<p>Wiederholen (iterieren) Sie diesen Vorgang mehrmals, wobei Sie jedes Mal die Höhendifferenz <i>heightDifference</i> verkleinern, bis Sie genügend Details auf der Heightmap haben.</p>
+		<p>Im Bild sehen Sie die Heightmap nach vier, acht, 32 und 64 Iterationen. Es ergeben sich unnatürliche Höhen&shy;unterschiede benachbarter Bereiche in der Bitmap. In den hohen Frequenzen sind Helligkeits&shy;sprünge bei einer Frequenz&shy;analyse der Bitmaps zu finden. Wenden Sie den <i>FIR</i>-Filter (Finite Impulse Response) an, um den natürlichen Erosionseffekt auf der Landschaft nachzubilden. Er wandelt eine Folge von Eingabewerten <i>x[1..n]</i> in eine Sequenz <i>y[1..n]</i> um. Verwenden Sie folgende Formel:</p>
+		<pre><code>y[i] = k * y[i - 1] + (1 - k) * x[i]</code></pre>
+		<p>Die Konstante <i>k</i> bestimmt die Stärke des Filters. Der Wert von <i>k</i> befindet sich im Bereich von <i>0</i> bis <i>1</i>. Kleine Werte stehen für eine schwache Erosion, größere Werte für stärkere. Ein Wert um <i>0.5</i> ist gut geeignet für die Landschafts&shy;generierung. Den <i>FIR</i>-Filter wenden Sie auf jede Zeile und auf jede Spalte in beiden Richtungen an.</p>
+		<p>Wenn Sie den Filter auf die Heightmap anwenden, lassen sich schöne Landschafts&shy;daten erzeugen.</p>
+	</section>
+
+	<section>
+		<h2>Midpoint-Displacement Algorithmus</h2>
+		<p>Mit dem Midpoint-Displacement-Algorithmus (Fraktal-Plasma oder Diamond-Square-Algorithmus) können Sie bergige und hügelige Landschaften generieren. Sie erzeugen die Heightmap wieder iterativ, wobei Sie die Start-Höhen-Differenz <i>dh</i> wählen. Veran&shy;schaulichen Sie sich den Algorithmus zuerst im Ein&shy;dimensionalen.</p>
+		<figure class="large">
+			<img src="assets/200105_5.png" width="355" height="345" alt="DIE GRAFIK verdeutlicht den Midpoint-Displacement-Algorithmus im Eindimensionalen.">
+			<figcaption><span>DIE GRAFIK</span> verdeutlicht den Midpoint-Displacement-Algorithmus im Eindimensionalen.</figcaption>
+		</figure>
+		<figure class="floatleft">
+			<img src="assets/200105_4.png" width="251" height="495" alt="MIT DEM DIAMOND STEP berechnen Sie Midpoint Displacement in 2D.">
+			<figcaption><span>MIT DEM DIAMOND STEP</span> berechnen Sie Midpoint Displacement in 2D.</figcaption>
+		</figure>
+		<p>Sie beginnen im ersten Schritt mit einer Linie AB im oberen Teil des Bildes. Unterteilen Sie die Linie in der Mitte am Punkt <i>C</i>, und addieren Sie zur Höhe des neuen Punkts einen Zufallswert zwischen <i>-dh</i> und <i>+dh</i>, wie dies der mittlere Teil des Bildes zeigt. In den weiteren Schritten verringern Sie <i>dh</i>, indem Sie <i>dh</i> mit <i>pow(2.0, -roughness)</i> multiplizieren und die neuen Liniensegmente unterteilen.</p>
+		<p>Mit der <i>roughness</i>-Konstante steuern Sie, wie rauh und detailreich die Landschaft wird. Beim Wert <i>1</i> wird der Spielraum für die zufällige Höhenänderung in jedem Iterations&shy;schritt halbiert. Für Werte über 1 haben die ersten Iterationen größeren Einfluss auf die Form der Landschaft, und Sie generieren große Hügel und Berge. Bei Werten unter 1 haben die späteren Iterations&shy;schritte größeres Gewicht, und Sie erhalten eher chaotische Daten. Wie die Werte das Ergebnis beeinflussen, sehen Sie im folgenden Bild für die Werte <i>4, 1</i> und <i>0.25</i>.</p>
+		<figure class="large">
+			<img src="assets/200105_6.png" width="781" height="244" alt="VERSCHIEDENE ROUGHNESS-WERTE(<i>4, 1, 0.25</i>) beeinflussen Form und Detail der Landschaft.">
+			<figcaption><span>VERSCHIEDENE ROUGHNESS-WERTE</span> (<i>4, 1, 0.25</i>) beeinflussen Form und Detail der Landschaft.</figcaption>
+		</figure>
+		<p>Um solche Bilder zu berechnen, müssen Sie den Algorithmus ins Zwei&shy;dimensionale übertragen. Hier beginnen Sie nicht mit einer Linie, sondern mit einem Quadrat. Bei einem Quadrat müssen Sie fünf Mittelpunkte berechnen: vier an den Kanten zwischen den Eckpunkten und einen in der Mitte.</p>
+		<p>Mit dem <i>Diamond Step</i> berechnen Sie den Punkt in der Mitte des Quadrats. Sie beginnen mit dem Quadrat <i>ABCD</i>. Die Höhe des Punkts <i>E</i> in der Mitte erhalten Sie durch Mittelung der Höhen bei <i>A, B,</i> <i>C, D</i> und dem Addieren eines Zufallswerts. Die Mittelpunkte auf den Kanten berechnen Sie durch die Eckpunkte des Quadrats und der Quadrat&shy;mittelpunkte der beiden anliegenden Quadrate. Diesen <i>Square Step</i> zeigt das folgende Bild.</p>
+		<figure class="large">
+			<img src="assets/200105_7.png" width="438" height="476" alt="DER SQUARE STEP ist die zweite Operation des 2D-Midpoint-Displacement.">
+			<figcaption><span>DER SQUARE STEP</span> ist die zweite Operation des 2D-Midpoint-Displacement.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Particle-Deposition Algorithmus</h2>
+		<figure class="floatright">
+			<img src="assets/200105_8.png" width="345" height="557" alt="DER PARTICLE-DEPOSITION-ALGORITHMUS lässt Lava fließen.">
+			<figcaption><span>DER PARTICLE-DEPOSITION-ALGORITHMUS</span> lässt Lava fließen.</figcaption>
+		</figure>
+		<p>Der Particle-Deposition-Algorithmus eignet sich dazu, vulkanische Landschaften nachzubilden. Sie programmieren eine Art Partikel&shy;fallsystem. Sie beginnen mit einem leeren Heightfield. An einer Stelle lassen Sie eine Reihe von Partikeln fallen. Der erste bleibt am Boden liegen, wie der obere Teil des unteren Bildes zeigt. Der zweite trifft auf den ersten auf und fließt weiter, bis er zur Ruhe kommt, wenn es keinen Nachbarpunkt im Heightfield gibt, der eine geringere Höhe aufweist (Bild Mitte).</p>
+		<p>Lassen Sie einige Partikel fallen, wobei Sie von Zeit zu Zeit den Ort variieren, bis Sie einen Vulkankegel erhalten. Die Form der Landschaft beeinflussen Sie durch die Zahl der Partikel und der Änderung des Ursprungsort der Partikel.</p>
+		<p>Wenn die Lava abgekühlt ist, bricht die Spitze des Kegels ein. Diesen Effekt können Sie nachbilden. Dazu suchen Sie den höchsten Punkt eines Kegels. Alle Punkte in der Umgebung, deren Höhe nicht zu stark von der des Gipfels abweicht (dazu definieren Sie eine Konstante), spiegeln Sie an der Kraterlinie.</p>
+		<figure class="floatright">
+			<img src="assets/200105_9.png" width="290" height="282" alt="DIE GRAFIK symbolisiert, wie Sie Vulkankrater anlegen.">
+			<figcaption><span>DIE GRAFIK</span> symbolisiert, wie Sie Vulkankrater anlegen.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Polygondaten generieren</h2>
+		<p>Wenn Sie an dieser Stelle angelangt sind, liegt eine Heightmap vor, aus der Sie Polygondaten erzeugen müssen, um die Landschaft mit OpenGL darzustellen. Zum Rendern der Landschaft eignen sich von den OpenGL-Render-Primitiven besonders die Triangle Strips, die Sie in der letzten Ausgabe kennengelernt haben. 3D-Beschleuniger können diese besonders schnell zeichnen. Zuerst definieren Sie eine Struktur, in der Sie die Daten für jeden Vertex speichern:</p>
+		<pre><code>
+typedef struct
+{
+// Texturkoordinaten
+float texCoord[2];
+// Farbwerte
+float color[3];
+// Vertexposition
+float vertex[3];
+} INTERLEAVEDVERTEX;
+INTERLEAVEDVERTEX *pVertex;
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200105_10.png" width="256" height="249" alt="DIE TEXTUR zeigt Licht- und Schatteneffekte zur Landschaft aus dem ersten Bild.">
+			<figcaption><span>DIE TEXTUR</span> zeigt Licht- und Schatteneffekte zur Landschaft aus dem ersten Bild.</figcaption>
+		</figure>
+		<p>Nun generieren Sie die Vertizes für die Triangle Strips aus der Heightmap der Größe <i>SIZE x SIZE</i>, die im Array <i>terrain</i> gespeichert ist:</p>
+		<pre><code>
+// SIZE: Größe der Heightmap
+unsigned char terrain[SIZE * SIZE];
+pVertex = new INTERLEAVEDVERTEX[SIZE * SIZE * 2 * 3];
+INTERLEAVEDVERTEX *p = pVertex;
+// Macro
+#define addVertex(x, y) \
+{ \
+	height = terrain[(x) + (y) * SIZE]; \
+	p-&gt;vertex[0] = x - SIZE / 2; \
+	p-&gt;vertex[1] = y - SIZE / 2; \
+	p-&gt;vertex[2] = height; \
+	p-&gt;color[..] = ...; \
+	p-&gt;texCoord[0] = (x) / SIZE; \
+	p-&gt;texCoord[1] = (y) / SIZE; \
+	p ++; \
+	nVertices ++; \
+}
+
+// Vertexdaten
+for (int j = 0; j &lt; SIZE - 1; j += 1)
+	for (int i = 0; i &lt; SIZE - 1; i += 1)
+	{
+		addVertex(i, j + RESOLUTION);
+		addVertex(i, j);
+	}
+		</code></pre>
+		<p>Zeichnen Sie die Daten mit den bekannten OpenGL-Befehlen:</p>
+		<pre><code>
+glBegin(GL_TRIANGLE_STRIP);
+for (i = 0; i &lt; SIZE; i++)
+{
+	INTERLEAVEDVERTEX *p =
+		&amp;pVertex[i * (SIZE * 2 - 2)];
+	for (j = 0; j &lt; SIZE * 2; j++)
+	{
+		glTexCoord2fv(&amp;p-&gt;texCoord[0]);
+		glColor3fv(&amp;p-&gt;color[0]);
+		glVertex3fv(&amp;p-&gt;vertex[0]);
+		p++;
+	}
+}
+glEnd();
+		</code></pre>
+		<p>Die Befehle verbrauchen jedoch Performance. Bei einer Größe der Heightmap von <i>256 x 256</i> Pixeln haben Sie es mit einer Anzahl von <i>131 072</i> Dreiecke zu tun. Allein der Overhead, der durch das Aufrufen der Funktionen (mal 3 <i>= 393 216</i> Aufrufe) entsteht, ist beachtlich. Optimieren Sie deshalb die Übertragung der Vertexdaten zu OpenGL.</p>
+	</section>
+
+	<section>
+		<h2>Effizientes Rendering</h2>
+		<figure class="floatright">
+			<img src="assets/200105_11.jpg" width="648" height="507" alt="EINE GENERIERTE LANDSCHAFT in 3D-Darstellung wartet auf Besucher.">
+			<figcaption><span>EINE GENERIERTE LANDSCHAFT</span> in 3D-Darstellung wartet auf Besucher.</figcaption>
+		</figure>
+		<p>Verwenden Sie Interleaved Arrays. Diese enthalten Vertex-, Farb- und Texturdaten des 3D-Objekts oder der 3D-Landschaft. In diesem Array können Sie auch andere Daten speichern, die mit dem Rendering nichts zu tun haben. Dazu teilen Sie OpenGL mit, wie viele Bytes diese in Anspruch nehmen. Mit folgenden Zeilen zeichnen Sie die Landschaft:</p>
+		<pre><code>
+glInterleavedArrays(GL_T2F_C3F_V3F, 0, pVertex);
+for (int i = 0; i &lt; SIZE - 1; i++)
+glDrawArrays(GL_TRIANGLE_STRIP,
+	i * (SIZE * 2 - 2), SIZE * 2 - 2);
+		</code></pre>
+		<p>Der Parameter <i>GL_T2F_C3F_V3F</i> ist eine OpenGL-Konstante, die den Aufbau der Struktur im Array beschreibt. Dieser Aufbau entspricht unserem <i>INTERLEAVEDVERTEX</i>. Der zweite Parameter <i>glInterleavedArrays</i> ist der Stride-Wert (die Größe der zusätzlichen gespeicherten Daten in Bytes). Wenn Sie Sie die Vertex-, Textur- und Farbdaten jeweils in einem Array ohne weitere Daten speichern, spricht man von Streams. Diese können noch schneller von OpenGL bearbeitet werden. Bereiten Sie die Streaming-Daten für die Landschaft während der Initialisierung vor:</p>
+		<pre><code>
+float *pTexCoordStream = new...;
+float *pColorStream = new...;
+float *pVertexStream = new...;
+p = pVertex;
+for (i = 0; i &lt; nVertices; i++, p++)
+{
+	memcpy(&amp;pTexCoordStream[i * 2],
+		&amp;p-&gt;texCoord[0],
+		2 * sizeof(float));
+	memcpy(&amp;pColorStream[i * 3],
+		&amp;p-&gt;color[0],
+		3 * sizeof(float));
+	memcpy(&amp;pVertexStream[i * 3],
+		&amp;p-&gt;vertex[0],
+		3 * sizeof(float));
+}
+		</code></pre>
+		<p>Teilen Sie OpenGL mit, dass Sie Streaming-Daten verwenden wollen:</p>
+	<pre><code>
+glEnableClientState(GL_COLOR_ARRAY);
+glEnableClientState(GL_VERTEX_ARRAY);
+glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+//Pointer auf die Arrays setzen
+glVertexPointer(3, GL_FLOAT, 0, pVertexStream);
+glTexCoordPointer(2, GL_FLOAT,0,pTexCoordStream);
+glColorPointer(3, GL_FLOAT, 0, pColorStream);
+...
+
+// und Zeichnen
+for (int i = 0; i &lt; SIZE-1; i++)
+glDrawArrays(GL_TRIANGLE_STRIP,
+	i * (SIZE * 2 - 2), SIZE * 2 - 2);
+glFlush();
+
+// Streaming wieder abschalten
+glDisableClientState(GL_COLOR_ARRAY);
+glDisableClientState(GL_VERTEX_ARRAY);
+glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+		</code></pre>
+		<p>Auch dass die Daten der Landschaft statisch sind, können Sie OpenGL mitteilen. Damit optimieren Sie die Daten für den Treiber oder kopieren die Daten in den eigenen Speicher der Grafikkarte, falls diese Optionen unterstützt werden. Bei den dazu benötigten Funktionen handelt es sich um OpenGL-Extensions (Erweiterungen), die nicht immer in OpenGL vorhanden waren. Deren Existenz in einem OpenGL-Treiber müssen Sie abfragen. Dazu versuchen Sie, die Adresse der benötigten Funktionen im Speicher zu bekommen:</p>
+		<pre><code>
+typedef void(APIENTRY *LOCKARRAYS_PROC)
+	(int first, int count);
+typedef void(APIENTRY *UNLOCKARRAYS_PROC)(void);
+LOCKARRAYS_PROC pfLockArrays;
+UNLOCKARRAYS_PROC pfUnlockArrays;
+pfLockArrays = (LOCKARRAYS_PROC)
+	wglGetProcAddress("glLockArraysEXT");
+pfUnlockArrays = (UNLOCKARRAYS_PROC)
+	wglGetProcAddress("glUnlockArraysEXT");
+
+if(!pfLockArrays || !pfUnlockArrays)
+{
+	/* nicht unterstützt! */
+}
+		</code></pre>
+		<p>Werden die beiden Funktionen unterstützt, teilen Sie OpenGL mit, dass Sie Streaming-Daten verwenden wollen, und sperren („locken“) die Streams mit:</p>
+		<pre><code>(*pfLockArrays)(0, nVertices);</code></pre>
+		<p>Zeichnen Sie mit <i>glDrawArrays</i>. Am Programmende heben Sie die Sperre auf und schalten das Streaming ab:</p>
+		<pre><code>(*pfUnlockArrays)();</code></pre>
+		<p>Die Farbwerte bestimmen Sie durch die Höhe der Landschaft. Die Beleuchtungs&shy;effekte auf der Landschaft entstehen durch eine Textur, die Sie entweder mit Paintshop Pro oder Photoshop anlegen. Wenden Sie einen Emboss-Filter auf die Heightmap (Bild rechts) an.</p>
+		<p>Übergeben Sie die Textur&shy;koordinaten der Landschaft mit den anderen Daten an OpenGL. Lassen Sie sich zunächst eine ID geben, die Ihre Textur in Zukunft eindeutig identifiziert:</p>
+		<pre><code>
+int ID;
+glGenTextures(1, &amp;ID);
+		</code></pre>
+		<p>Nun wählen Sie die Textur aus:</p>
+		<pre><code>glBindTexture(GL_TEXTURE_2D, ID);</code></pre>
+		<p>Bei OpenGL gibt es eine Reihe von Parametern, die das Texture Mapping beeinflussen – etwa ob sich die Textur wiederholen soll, wie sie vergrößert oder verkleinert dargestellt werden soll.Arbeiten Sie mit folgenden Einstellungen:</p>
+		<pre><code>
+glTexParameterf(GL_TEXTURE_2D,
+	GL_TEXTURE_WRAP_S, GL_REPEAT);
+glTexParameterf(GL_TEXTURE_2D,
+	GL_TEXTURE_WRAP_T, GL_REPEAT);
+glTexParameterf(GL_TEXTURE_2D,
+	GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+glTexParameterf(GL_TEXTURE_2D,
+	GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+		</code></pre>
+		<p>Welche Tricks Ihnen die Funktion <i>glTexParameterf</i> eröffnet, entnehmen Sie der Online- oder jeder OpenGL-Dokumentation. Im nächsten Schritt laden Sie eine Bitmap im <i>bmp</i>-Format und übergeben sie an OpenGL:</p>
+		<pre><code>
+AUX_RGBImageRec *texture;
+texture = auxDIBImageLoad("texture.bmp");
+gluBuild2DMipmaps(GL_TEXTURE_2D, 3,
+	texture-&gt;sizeX,
+	texture-&gt;sizeY,
+	GL_RGB,
+	GL_UNSIGNED_BYTE,
+	texture-&gt;data);
+		</code></pre>
+		<p>Der letzte Befehl übergibt die Daten und verkleinert die Textur-Versionen. Schalten Sie das Texturieren an- und aus:</p>
+		<pre><code>
+glEnable(GL_TEXTURE_2D);
+glDisable(GL_TEXTURE_2D);
+		</code></pre>
+		<p>Alle Textur&shy;funktionen, die Sie für unser Beispiel&shy;programm benötigen, finden Sie in der Wrapper-Klasse <i>PCUTexture</i>. Dort verwenden Sie das Texture Mapping, um die Licht&shy;verhältnisse auf der Landschaft darzustellen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas/Tom Rathert</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur</b></p>
+		<p class="footnote">Jackie Neider u.a.: OpenGL Programming Guide: The Official Guide to Learning OpenGL, Release</p>
+		<p class="footnote">1 A. L. Barabási und H. E. Stanley: Fractal Concepts in Surface Growth, Cambridge University Press, 1995</p>
+		<p class="footnote">Robert Krten: Generating Realistic Terrain, Dr. Dobbs Journal (July 1994)</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200104.html">4/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200106.html">6/2001</a>
+	</nav>
+</body>
+

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Auf Knopfdruck (PC Underground, PC Magazin 8/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;8/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200007.html">7/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200009.html">9/2000</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>DirectX 7 – Eingabegeräte ansteuern</h2>
+		<h1>Auf <span class="highlight">Knopfdruck</span></h1>
+		<p class="summary">Mit DirectInput sind Sie Herr der Eingabesysteme. Gleichgültig, ob Sie Maus, Tastatur, Joystick, Game Controller oder Force-Feedback-Geräte ansteuern. Lesen Sie, wie Sie <span class="highlight">Ein- und Ausgabedaten verarbeiten</span>.</p>
+	</header>
+
+	<section>
+		<h3>C. Dachsbacher/O. Käferstein</h3>
+		<p>Wenn Sie ein Programm entwickeln, das mit Maus und Tastatur auskommt, können Sie auf DirectInput (Application Programming Interface für komplexe Ein/Ausgabegeräte) verzichten. Dann können Sie alle Eingaben des Benutzers in der Windows-Message-Schleife über Schlüssel&shy;wörter wie <i>WM_CHAR, WM_MOUSEMOVE</i> abfragen und behandeln. DirectInput verwenden Sie, wenn Sie in extrem kurzen Zeitinter&shy;vallen Daten des Eingabegeräts benötigen oder spezielle Eingabegeräte wie Force-Feedback-Joysticks, Lenkräder oder Ähnliches einsetzen wollen.</p>
+		<p>Erst wenn Sie DirectInput initialisiert haben, können Sie die Eingabegeräte ansprechen. Mit dieser Voraussetzung programmieren Sie so, dass Sie die Handlungen Ihrer Programmnutzer verarbeiten. Force-Feedback-Geräte (Eingabegeräte mit Datenströmen vom und zum PC) erhalten via DirectInput ihre Wirksamkeit.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200008.zip">💾 200008.zip</a>.</div>
+	</aside>
+
+	<section>
+		<p>DirectInput arbeitet direkt mit den Gerätetreibern zusammen, Maus- und Tastatur-Nachrichten (elektronische Schaltimpulse) werden unterdrückt oder ignoriert. Ignoriert bedeutet, sie sind für das Input-System uninteressant und werden weitergeleitet. Unterdrückt bedeutet, dass DirectInput die Daten von den Eingabegeräten verwendet. Dabei werden die Nachrichten, die normalerweise an Windows oder Fenster auf dem Bildschirm ausgegeben würden, nicht weitergeleitet. Wenn Sie also die Maus mit DirectInput im <i>Exclusive Mode</i> verwenden, kann Windows nicht einmal den Standard-Mauscursor darstellen, da es keine Nachrichten über den Zustand der Mausknöpfe oder Bewegungen bekommt.</p>
+		<figure class="floatright">
+			<img src="assets/200008_1.jpg" width="626" height="333" alt="HIER SEHEN SIE DIE Informationen von DirectX über einen Force-Feedback-Joystick.">
+			<figcaption><span>HIER SEHEN SIE DIE</span> Informationen von DirectX über einen Force-Feedback-Joystick.</figcaption>
+		</figure>
+		<p>Wegen des engen Zusammenspiels mit den Gerätetreibern ignoriert Direct-Input Einstellungen, die Sie in der System&shy;steuerung für Maus oder Tastatur vornehmen. Bei der Tastatur kennt DirectInput auch keine Tasten&shy;wiederholung. Es wird nur für jede Taste unterschieden, ob sie gerade gedrückt oder losgelassen ist.</p>
+		<p>Auch bei der Maus kennt DirectInput keine Einstellungen der System&shy;steuerung wie Beschleunigung des Cursors oder vertauschte Knöpfe. Daher gehen alle Daten am Kontrollsystem von Windows (dem Subsystem) vorbei, das sonst für die Interpretation der Mausdaten zuständig wäre.</p>
+		<p>Einstellungen, die Sie direkt in den Treibern für die Eingabegeräte vornehmen, werden berücksichtigt. Wenn Sie eine Drei-Tasten-Maus besitzen und den Treiber anweisen, einen Klick mit der mittleren Maustaste als Doppelklick zu verwenden, meldet DirectInput einen Klick mit dieser Taste als zwei Klicks mit der ersten Maustaste.</p>
+		<p class="tip">Keine Regel ohne Ausnahme: Bei Joysticks verwendet DirectInput die Kalibrierungs&shy;informationen, die der Benutzer in der System&shy;steuerung eingestellt hat.</p>
+		<p>Bei den Schnittstellen verschiedener Geräteeingaben darf das Human Interface Device (HID) nicht fehlen. Dabei handelt es sich um eine Klasse innerhalb der Universal-Serial-Bus-Standards (USB), welche USB-Eingabegeräte ansteuert und auswertet. DirectInput unterstützt alle Geräte, die nach dem HID-Standard funktionieren. Im Gegensatz zu traditionellen Eingabegeräten können HID-Geräte zusätzlich Daten ausgeben. So können Sie zum Beispiel (wie bei Assembler-Programmen unter MS-DOS) Keyboard-LEDs an- oder ausschalten.</p>
+		<p>Wenn Sie mit DirectInput ein HID-Gerät auswählen, können Sie dessen Art und Fähigkeiten auslesen, weil vordefinierte Codes Sie darüber informieren. Über den HID-Standard finden Sie weitere Informationen unter der Adresse <a href="https://www.usb.org" rel="external nofollow noreferrer">www.usb.org</a>.</p>
+	</section>
+
+	<section>
+		<h2>Programm mit DirectInput</h2>
+		<p>Wie bei anderen Komponenten des DirectX-Systems gibt es auch für DirectInput ein DirectInput-Objekt. Dieses unterstützt die IDirectInput7-COM-Schnittstelle, die über die Methode <i>CreateDeviceEx</i> einen Zeiger auf <i>IDirectInputDevice7</i>-Geräte liefert. Das sind Eingabegeräte die eigene Features mitbringen. Dazu zählen Knöpfe und Tasten mit Reglern, die eine Position im Raum repräsentieren, Mausrädchen oder Joysticks.</p>
+		<p>Um DirectInput-Eingaben zu verarbeiten greifen Sie zunächst über die <i>DirectInputCreateEx</i>-Funktion auf das <i>IDirectInput7</i>-Interface zu.</p>
+		<p>Die mit einem Unterstrich gekenn&shy;zeichneten Variablen nehmen Sie als global an. Dabei handelt es sich um <i>Instance Variables</i>, die Ihren Programmen ebenso eigen sind wie den Variablen der angeforderten Eingabegeräte.</p>
+		<pre><code>
+// DirectInput Interface
+LPDIRECTINPUT7 _di;
+HRESULT hr;
+hr = DirectInputCreateEx(_hinst, DIRECTINPUT_VERSION,
+	IID_IDirectInput7, (void**)&amp;_di, NULL);
+if(FAILED(hr))
+	return "geht nicht";
+		</code></pre>
+		<p>Nachdem Sie das <i>IDirectInput7</i>-Interface initialisiert haben, können Sie verschiedene <i>IDirectInputDevice7</i>-Objekte erzeugen lassen. Das bedeutet, dass Sie Zugriffe auf einzelne Eingabegeräte anfordern können. Die wichtigsten sind <i>GUID</i> (Global Unique IDentifier = global eindeutige Nummer zur Identifi&shy;zierung):</p>
+		<pre><code>
+GUID_SysMouse,
+GUID_SysKeyboard
+GUID_Joystick
+		</code></pre>
+		<p>Unter Windows stehen Ihnen eine Maus und eine Tastatur zur Verfügung. Ohne angeschlossene Tastatur bootet ein PC nicht, womit auch der Start von Windows entfällt. Startet Windows, bemängelt es das Fehlen einer Maus.</p>
+		<p>Den abgezogenen Joystick-Anschluss bemängelt Windows hingegen nicht. Deshalb ist der Eintrag <i>GUID_Joystick</i> keine <i>Instance GUID</i>, sondern eine <i>Produkt GUID</i>. Wenn Sie einen Joystick mit <i>CreateDeviceEx</i> anfordern, müssen Sie berück&shy;sichtigen, dass das Kontrollsystem von Windows keine eventuellen Fehler meldet.</p>
+		<p>Wenn an einem PC mehrere Mäuse oder Tastaturen angeschlossen sind, werden die Geräte zusammen&shy;gefasst. Sie können dann jede Maus oder Tastatur benutzen. DirectInput kennt noch weitere GUIDs:</p>
+		<pre><code>
+GUID_SysMouseEm,
+GUID_SysMouseEm2,
+GUID_SysKeyboardEm,
+GUID_SysKeyboardEm2
+		</code></pre>
+		<p>Diese Einträge dienen nur Testzwecken, in unserem Beispiel setzen Sie sie nicht ein. Der Unterschied zu den in unserem Programm aufgerufenen Maus- und Tastatur-GUIDs ist, dass bei den Test-GUIDs alle Eingaben über eine zusätzliche Emulations&shy;schicht laufen.</p>
+		<p>Wenn Sie nicht wissen, welche Geräte sich an einem Rechner befinden oder welche installiert sind, können Sie nach ihnen suchen. Dabei hilft Ihnen die Methode</p>
+		<pre><code>IDirectInput7::EnumDevices</code></pre>
+		<p>Alle unterstützten Geräte dieser Art finden Sie in der Textbox auf S. 235.</p>
+	</section>
+
+	<aside>
+		<h2>DIRECTINPUT MIT SEINEN DEVICE-TYPES</h2>
+		<div>
+			<pre><code>DIDEVTYPE_MOUSE
+	DIDEVTYPEMOUSE_UNKNOWN
+	DIDEVTYPEMOUSE_TRADITIONAL
+	DIDEVTYPEMOUSE_FINGERSTICK
+	DIDEVTYPEMOUSE_TOUCHPAD
+	DIDEVTYPEMOUSE_TRACKBALL
+
+DIDEVTYPE_KEYBOARD
+	DIDEVTYPEKEYBOARD_UNKNOWN
+	DIDEVTYPEKEYBOARD_PCXT
+	DIDEVTYPEKEYBOARD_OLIVETTI
+	DIDEVTYPEKEYBOARD_PCAT
+	DIDEVTYPEKEYBOARD_PCENH
+	DIDEVTYPEKEYBOARD_NOKIA1050
+	DIDEVTYPEKEYBOARD_NOKIA9140
+	DIDEVTYPEKEYBOARD_NEC98
+	DIDEVTYPEKEYBOARD_NEC98LAPTOP
+	DIDEVTYPEKEYBOARD_NEC98106
+	DIDEVTYPEKEYBOARD_JAPAN106
+	DIDEVTYPEKEYBOARD_JAPANAX
+	DIDEVTYPEKEYBOARD_J3100
+
+DIDEVTYPE_JOYSTICK
+	DIDEVTYPEJOYSTICK_UNKNOWN
+	DIDEVTYPEJOYSTICK_TRADITIONAL
+	DIDEVTYPEJOYSTICK_FLIGHTSTICK
+	DIDEVTYPEJOYSTICK_GAMEPAD
+	DIDEVTYPEJOYSTICK_RUDDER
+	DIDEVTYPEJOYSTICK_WHEEL
+	DIDEVTYPEJOYSTICK_HEADTRACKER
+DIDEVTYPE_HID</code></pre>
+		</div>
+	</aside>
+
+	<section>
+		<p>Geben Sie die folgenden Zeilen Code ein, um auf Maus oder Tastatur zuzugreifen:</p>
+		<pre><code>
+LPDIRECTINPUTDEVICE7 _mouse;
+HRESULT hr;
+hr = _di-&gt;CreateDeviceEx(GUID_SysMouse,
+	IID_IDirectInputDevice7, (void**)&amp;_mouse, NULL);
+if(FAILED(hr))
+	return „geht nicht“
+
+LPDIRECTINPUTDEVICE7 _keyboard;
+hr = _di-&gt;CreateDeviceEx(GUID_SysKeyboard,
+	IID_IDirectInputDevice7, (void**)&amp;_keyboard, NULL);
+if(FAILED(hr))
+	return „geht nicht“
+		</code></pre>
+		<p>Joystick-Geräte, die Sie nicht an jedem Rechner voraussetzen können, müssen Sie mit der Syntax</p>
+		<pre><code>IDirectInput7::EnumDevices</code></pre>
+		<p>suchen. Wie bei allen Windows<i>Enum</i>-Methoden schreiben Sie eine Callback-Prozedur, die Sie mit der Syntax</p>
+		<pre><code>IDirectInput7::EnumDevices</code></pre>
+		<p>aufrufen. Als Parameter erhält die Callback-Prozedur bei jedem Aufruf eine Beschreibung von einem gefundenen Eingabegerät, und Sie können sich eines davon – sofern vorhanden – aussuchen.</p>
+		<p>Mit dem ersten Parameter von <i>IDirectInput7::EnumDevices</i> geben Sie an, welche Art von Eingabegerät Sie suchen: Joystick, Maus, Tastatur oder HID-Gerät. Sie können die Suche einschränken, indem Sie die Flags (der letzte Parameter bei <i>IDirectInput7::EnumDevices</i> ) entsprechend setzen. Sie können ausschließlich nach Force-Feedback-Geräten suchen oder nach Geräten, die gerade angeschlossen und nicht nur installiert sind.</p>
+		<p>Das folgende Codebeispiel demonstriert, wie Sie einen ange&shy;schlossenen Joystick suchen und finden:</p>
+		<pre><code>
+LPDIRECTINPUTDEVICE7 _joy;
+// Die Callback-Prozedur
+BOOL CALLBACK EnumCallback
+	(LPCDIDEVICEINSTANCE pdidInstance, LPVOID pvRef)
+{
+	// Interface holt Joystick
+	HRESULT hr = _di-&gt;CreateDeviceEx
+		(pdidInstance-&gt;guidInstance,
+		IID_IDirectInputDevice7,pvRef), NULL);
+
+	if(FAILED(hr))
+		return DIENUM_CONTINUE;
+	// Enumeration beenden
+	return DIENUM_STOP;
+}
+...
+
+//Suche ANGESCHLOSSENEN Joystick
+hr = _di-&gt;EnumDevices(DIDEVTYPE_JOYSTICK,
+	&amp;EnumCallback, (void**)&amp;_joy,
+	DIEDFL_ATTACHEDONLY);
+		</code></pre>
+		<p>Das <i>DIEDFL_ATTACHEDONLY</i>-Flag setzt voraus, dass der Joystick korrekt angeschlossen ist. Wenn Sie zusätzlich Force-Feedback-Fähigkeit verlangen, verwenden Sie folgenden Aufruf:</p>
+		<pre><code>
+hr = _di-&gt;EnumDevices (DIDEVTYPE_JOYSTICK,
+	&amp;EnumCallback, (void**)&amp;_joy,
+	DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK);
+		</code></pre>
+		<p>Mäuse mit Force-Feedback-Eigenschaften rufen Sie so ab:</p>
+		<pre><code>
+LPDIRECTINPUTDEVICE7 _mausFF;
+hr = _di-&gt;EnumDevices(DIDEVTYPE_MOUSE,
+	&amp;EnumCallback, (void**)&amp;_mausFF,
+	DIEDFL_FORCEFEEDBACK);
+
+if(FAILED(hr))
+	return „geht nicht“;
+		</code></pre>
+		<p>Damit haben Sie ein gewünschtes Eingabegerät angefordert. Nun müssen Sie den Geräten noch mitteilen, wie Sie von ihnen Daten erhalten wollen. Dabei können Sie genau einstellen, wie und welche Daten Sie bei der Bewegung der Geräte bekommen. Sie teilen dieses DirectInput über die Syntax folgender Methode mit:</p>
+		<pre><code>IDirectInputDevice::SetDataFormat</code></pre>
+		<p>Dabei lönnen Sie das Datenformat komplett selbst definieren, indem Sie eine <i>DIDATAFORMAT</i>-Struktur füllen und als Parameter übergeben, oder Sie verwenden einfach eine der global vordefinierten Variablen:</p>
+		<pre><code>
+c_dfDIKeyboard
+c_dfDIMouse
+c_dfDIMouse2
+c_dfDIJoystick
+c_dfDIJoystick2
+		</code></pre>
+		<p>Für unsere Zwecke genügen die vordefinierten Einstellungen, und so setzen Sie sie für unsere angeforderten Geräte ein:</p>
+		<pre><code>
+hr = _keyboard-&gt;SetDataFormat(&amp;c_dfDIKeyboard);
+if(FAILED(hr))
+	return false;
+
+hr = _mouse-&gt;SetDataFormat(&amp;c_dfDIMouse2);
+if(FAILED(hr))
+	return false;
+
+hr = _joy-&gt;SetDataFormat(&amp;c_dfDIJoystick2)
+if(FAILED(hr))
+	return false;
+		</code></pre>
+		<p>Nachdem Sie das Programmgerüst so weit aufgebaut haben, müssen Sie DirectInput mitteilen, in welchem Modus Sie die Geräte betreiben wollen. Dabei steht Ihnen der <i>DISCL_EXCLUSIVE</i>-Modus zur Auswahl, bei dem Sie anderen Applikationen keinen Zugriff mehr auf das von Ihnen in Beschlag genommene Eingabegerät zugestehen können, oder der <i>DISCL_NONEXCLUSIVE</i>-Modus. Wie der Namen verrät, ist der Zugriff anderer Anwendungen in diesem Modus gestattet. Die Einstellungen nehmen Sie mit folgender Methode vor:</p>
+		<pre><code>IDirectInputDevice7::SetCooperativeLevel</code></pre>
+		<p>Damit können Sie genau beeinflussen, wie Ihre Instanz des Eingabeobjekts mit eventuell vorhandenen anderen Instanzen und dem System interagiert. Sie können fordern, dass Ihre Anwendung im Vordergrund laufen muss, oder Sie deaktivieren die Windows-Taste. Der Aufruf sieht folgendermaßen aus:</p>
+		<pre><code>
+hr = _keyboard-&gt;SetCooperativeLevel(_hwnd,
+	DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+		</code></pre>
+		<p>Nachdem Sie das <i>Coorperative Level</i> gesetzt haben, müssen Sie das Eingabegerät vorbereiten und ihm mitteilen, dass Sie ab jetzt Daten bekommen wollen. Dies erledigen Sie mit der Syntax:</p>
+		<pre><code>
+IDirectInputDevice7::Acquire Methode:
+
+hr= _keyboard.device-&gt;Acquire();
+hr= _mouse.device-&gt;>Acquire();
+hr= _joy.device-&gt;Acquire();
+		</code></pre>
+		<p>Damit sind die Vorarbeiten, das Eingabegerät anzusteuern, abgeschlossen, und Sie können die Daten abholen. Diese liegen im geräte&shy;spezifischen Format vor, das Sie entweder aus der vordefinierten Liste gewählt oder selbst festgelegt haben. Dazu geben Sie beispielhaft ein:</p>
+		<pre><code>_mouse-&gt;SetDataFormat(&amp;c_dfDIMouse2);</code></pre>
+	</section>
+
+	<aside>
+		<h2>DATENFORMATE VON UND FÜR EINGABEGERÄTE</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Datenformat</th><th>Struktur mit Zustand</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>c_dfDIMouse</td><td>DIMOUSESTATE</td></tr>
+					<tr><td>c_dfDIMouse2</td><td>DIMOUSESTATE2</td></tr>
+					<tr><td>c_dfDIKeyboard</td><td>array of 256 bytes</td></tr>
+					<tr><td>c_dfDIJoystick</td><td>DIJOYSTATE</td></tr>
+					<tr><td>c_dfDIJoystick2</td><td>DIJOYSTATE2</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<figure class="floatright">
+			<img src="assets/200008_2.jpg" width="800" height="600" alt="MIT DIESEN SCHALTKNÖPFEN im Beispielprogramm sehen Sie Force-Feedback-Geräte in Aktion.">
+			<figcaption><span>MIT DIESEN SCHALTKNÖPFEN</span> im Beispielprogramm sehen Sie Force-Feedback-Geräte in Aktion.</figcaption>
+		</figure>
+		<p>In unserem Beispiel&shy;programm holen Sie mit einem Timer die jeweils aktualisierten Daten der einzelnen Eingabegeräte in Intervallen von zehn Millisekunden ab. In einer Direct3D-Anwendung oder einem Spiel könnten Sie die Daten zum Beispiel auch nach jedem Frame, also nach jedem berechneten Bild, abholen. Dabei sollten Sie berück&shy;sichtigen, dass heutige 3D-Beschleuniger eventuell sehr hohe Frame-Raten schaffen. Mit weit über 100 Bildern pro Sekunde werden die Zeitintervalle unnötig klein. Bei zu kleinen Zeitinter&shy;vallen erhalten Sie zu viele redundante Daten, da DirectInput Ihnen den jeweiligen Ist-Zustand eines Eingabesystems liefert.</p>
+		<p>Einige Eingabesysteme wie Joysticks sind <i>pollable devices</i>. Das heißt, dass Sie DirectInput informieren müssen, bevor Sie aktualisierte Daten von einem dieser Geräte abholen. Der Befehl dazu</p>
+		<pre><code>_joy.device-&gt;Poll()</code></pre>
+		<p>wird von nicht <i>pollable devices</i> automatisch ignoriert.</p>
+		<p>Die Methode</p>
+		<pre><code>IDirectInputDevice::GetDeviceState()</code></pre>
+		<p>holt die Daten ab. Übergeben Sie ihr einen Zeiger auf eine Struktur, die die Daten aufnehmen soll, und die Größe dieser Struktur. Wenn Sie selbst definierte Datenformate gewählt haben, müssen Sie auch definieren, wie diese Struktur aussieht. Für die vordefinierten Datenformate sehen Sie in der Tabelle unten den Namen der jeweils zugehörigen Struktur.</p>
+		<p>Mit folgenden Zeilen lesen Sie die aktuellen Informationen eines Joysticks aus:</p>
+		<pre><code>
+HRESULT hr;
+// Struktur für die Daten
+DIJOYSTATE2 js2;
+// Joystick-Info auslesen
+hr = DIERR_INPUTLOST;
+while(DIERR_INPUTLOST == hr)
+{
+	//Poll Befehl ausführen, um neue Daten auslesen zu können
+	hr = _joy.device-&gt;Poll();
+
+	// neue Daten auslesen
+	hr = _joy.device-&gt;GetDeviceState(sizeof(DIJOYSTATE2), &amp;js2);
+	if(hr == DIERR_INPUTLOST)
+		if(FAILED( _joy.device-&gt;Acquire()))
+		{
+			_log( "inputWRAPPER_DX7: updateJOY :
+				cannot GetDeviceState");
+			return false;
+		}
+}
+		</code></pre>
+		<p>Als Beispiel greifen Sie die <i>DIJOYSTATE2</i>-Struktur heraus:</p>
+		<pre><code>
+typedef struct DIJOYSTATE2 {
+	LONG lX; LONG lY; LONG lZ;
+	LONG lRx; LONG lRy; LONG lRz;
+	LONG rglSlider[2];
+	DWORD rgdwPOV[4];
+	BYTE rgbButtons[128];
+	LONG lVX; LONG lVY; LONG lVZ;
+	LONG lVRx; LONG lVRy;LONG lVRz;
+	LONG rglVSlider[2];
+	LONG lAX; LONG lAY; LONG lAZ;
+	LONG lARx; LONG lARy;LONG lARz;
+	LONG rglASlider[2];
+	LONG lFX; LONG lFY; LONG lFZ;
+	LONG lFRx; LONG lFRy;LONG lFRz;
+	LONG rglFSlider[2];
+} DIJOYSTATE2, *LPDIJOYSTATE2;
+		</code></pre>
+		<p>Das Listing macht deutlich, dass die Zeiten des simplen Atari Joysticks mit einem roten Knopf vorbei sind.</p>
+	</section>
+
+	<aside>
+		<h2>DIE DIJOYSTATE2-STRUKTUR</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Syntax</th><th>Information</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>IX, IY, IZ</td><td>Joystick X, Y und Z Achse (meistens links/rechts, vorwärts/rückwärts und Throttle-Funktion)</td></tr>
+					<tr><td>lRx, lRy, lRz</td><td>Rotation der Achsen</td></tr>
+					<tr><td>rglSlider[2]</td><td>Zwei zusätzliche Achsen (Slider)</td></tr>
+					<tr><td>rgdwPOV[4]</td><td>Positionen von Richtungs-Controllern</td></tr>
+					<tr><td>rgbButtons[128]</td><td>Array mit den Zuständen der Knöpfe</td></tr>
+					<tr><td>lVX, lVY, lVZ</td><td>Geschwindigkeit der Achsen</td></tr>
+					<tr><td>lVRx, lVRy, lVRz</td><td>Winkelgeschwindigkeit der Achsen</td></tr>
+					<tr><td>rglVSlider[2]</td><td>Geschwindigkeit zusätzlicher Achsen</td></tr>
+					<tr><td>lAX, lAY, lAZ</td><td>Beschleunigung entlang der Achsen</td></tr>
+					<tr><td>lARx, lARy, lARz</td><td>Winkelbeschleunigung entlang der Achsen</td></tr>
+					<tr><td>rglASlider[2]</td><td>Beschleunigung an zusätzlichen Achsen</td></tr>
+					<tr><td>lFX, lFY, lFZ</td><td>Kraft auf den Achsen</td></tr>
+					<tr><td>lFRx, lFRy, lFRz</td><td>Drehmoment an den Achsen</td></tr>
+					<tr><td>rglFSlider[2]</td><td>Kräfte an zusätzlichen Achsen</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Force Feedback mit DirectInput</h2>
+		<figure class="floatright">
+			<img src="assets/200008_3.jpg" width="640" height="539" alt="DEN FORCE-FEEDBACK-EDITOR finden Sie im DirectX Developer Kit.">
+			<figcaption><span>DEN FORCE-FEEDBACK-EDITOR</span> finden Sie im DirectX Developer Kit.</figcaption>
+		</figure>
+		<p>Mit dem Force-Feedback-Effekt-Editor (Bestandteil des DirectX7 SDK) nutzen Sie die Fähigkeiten der Force-Feedback-Geräte. Mit diesem Editor können Sie eigene Effekte erzeugen und speichern. Sie können diese Dateien dann mit DirectInput laden und für Ihre Force-Feedback-Geräte nutzen.</p>
+		<p>Laden Sie eine dieser Dateien, und holen Sie sich daraus die Effekte für den Joystick:</p>
+		<pre><code>
+FILE_EFFECT effects;
+effects.device = _joy.device;
+char filename[] = "test.ffe";
+// Effekte Enumerieren im File und im Callback erzeugen
+if(_joy.canREACT)
+{
+	if(FAILED(_joy.device-&gt;EnumEffectsInFile(file,
+		EnumAndCreateEffectsCallback, &amp;effects, 0)))
+		return false;
+}
+		</code></pre>
+		<p>Um die Werte zu verarbeiten, benötigen Sie wieder eine Callback-Prozedur. Unsere Variante überprüft einfach, ob der angeschlossene Joystick die Fähigkeit mitbringt, einen Effekt abzuspielen, und fügt ihn in diesem Fall in eine Liste ein.</p>
+		<pre><code>
+BOOL CALLBACK
+	EnumAndCreateEffectsCallback(
+	LPCDIFILEEFFECT fileEFFECT,
+	LPVOID pvRef)
+{
+	HRESULT hr;
+	LPDIRECTINPUTEFFECT effect = NULL;
+	FILE_EFFECT* entry =
+		reinterpret_cast&lt;FILE_EFFECT*&gt;(pvRef);
+	// den File-Effekt anlegen
+	if(FAILED(
+		hr = entry-&gt;device-&gt;CreateEffect(
+			fileEFFECT-&gt;GuidEffect,
+			fileEFFECT-&gt;lpDiEffect,
+			&amp;effect, NULL))
+	)
+		//effekt nicht wiederzugeben
+		//nächster bitte
+		return DIENUM_CONTINUE;
+
+	// eine neue Effekt-Node anlegen
+	EFFECT_NODE enode;
+	enode.effect = effect;
+	enode.repeats = 1;
+	//in verkettete Liste einhängen
+	if(effect)
+		entry-&gt;effects.push_back(enode);
+
+	return DIENUM_CONTINUE;
+}
+		</code></pre>
+		<p>Jetzt können Sie die geladenen Effekte, die Sie in der verketteten Liste gespeichert haben, ausgeben. Stoppen Sie alle eventuell schon laufenden Force-Feeback-Effekte:</p>
+		<pre><code>
+//Zeiger auf Effekt d.Liste:
+
+FILE_EFFECT *feff = ...;
+feff-&gt;device-&gt;SendForceFeedbackCommand(DISFFC_STOPALL);
+		</code></pre>
+		<p>Und so spielen Sie alle Effekte aus der Liste der Reihe nach ab:</p>
+		<pre><code>
+//eleganter Iterator:
+
+std::vector&lt;EFFECT_NODE&gt;::iterator it;
+for(it = feff-&gt;effects.begin(); it &lt; feff-&gt;effects.end(); it++)
+	// und Effekt starten !
+	(*it).effect-&gt;Start((*it).repeats, 0);
+		</code></pre>
+		<p>Mit diesem Instrumen&shy;tarium können Sie Ihre Eingabegeräte umfassend nutzen. Damit spielen Sie auf allen Programm&shy;registern dieser Eingabegeräte und – dank Force Feedback – auch Ausgabegeräte. DirectInput ist eine der Säulen des DirectX-Systems und damit wesentlicher Bestandteil jedes Spiels, das auf DirectX basiert.</p>
+	</section>
+
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200007.html">7/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200009.html">9/2000</a>
+	</nav>
+</body>

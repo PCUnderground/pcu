@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>„Nun lasst uns in 3D sprechen!“ (PC Underground, PC Magazin 11/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;11/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200310.html">10/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200312.html">12/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>High Level Shader Language Direct3D 9</h2>
+		<h1>„Nun lasst uns in <span class="highlight">3D</span> sprechen!“</h1>
+		<p class="summary">Hochsprachen für die Programmierung von Grafikkarten haben Hochkonjunktur. In dieser Ausgabe erfahren Sie, wie einfach es ist, Microsofts <span class="highlight">HLSL in Direct3D</span> zu verwenden.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200311_1.jpg" width="466" height="422" alt="Zufall: Ein 3D Array von Zufallszahlen dient als Grundlage für Noise-Funktionen.">
+			<figcaption><span>Zufall:</span> Ein 3D Array von Zufallszahlen dient als Grundlage für Noise-Funktionen.</figcaption>
+		</figure>
+		<p>Die Einführung einer programmier&shy;baren Geometrie- und Fragment&shy;verarbeitung bei den Grafikkarten, ersteres ab den GeForce 3 oder Radeon 8500 GPUs und für letzteres ab den Radeon 9700 bzw. GeForce FX GPUs, war ein wichtiger Schritt: Damit genießen Programmierer neue Freiheiten, um eine Vielzahl von Grafikeffekten zu gestalten. Diese Effekte konnte – wenn überhaupt – zuvor nur die CPU berechnen.</p>
+		<p>Für die Programmierung kamen und kommen noch Assembler artige Sprachen zum Einsatz, die Sie aus bisherigen PC-Underground-Artikeln kennen. Für viele Einsatzzwecke ist aber eine Hochsprache wünschenswert, wie Sie z.B. schon seit langem von Renderman her bekannt ist. Die erste Hochsprache dieser Art ist <i>nVidiasCg</i> (C for graphics), die einen Vertex- oder Fragment-Shader aus C ähnlicher Syntax in Assembler-Code übersetzt. Eine solche Hochsprache wird auch direkt in OpenGL 2.0 integriert sein, für Direct3D gibt es das schon: die High Level Shader Language, kurz HLSL. Diese Ausgabe führt Ihnen anhand eines konkreten Beispiels vor, wie Sie in Direct3D ganz einfach HLSL Shader programmieren und einbinden.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200311.zip">💾 200311.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Effect Files</h2>
+		<p>Mit Direct3D können Sie so genannte <i>Effect Files</i> (Erweiterung <i>.fx</i>) definieren. Diese definieren textuell eine oder mehrere Render-Techniken. Eine <i>fx</i>-Datei beschreibt vollständig, wie das Rendering eines 3D-Objekts ablaufen soll, d.h. welche Texturen und Texture Mode wie verwendet werden, welche Vertex und Pixel Shader zum Einsatz kommen, und ob einer oder mehrere Renderpasses benötigt werden. Diese Dateien bieten also einen Weg, in abstrakterer Form als mit der Low-Level-Methode zu programmieren. Sie können somit Vertex und Pixel Shader nutzen, um Rendering-Effekte zu kapseln. Die Effekte selbst können Sie dann entweder mit HLSL oder der bereits bekannten Assembler&shy;sprache programmieren.</p>
+		<p>Wie diese Effect Files aufgebaut sind, zeigen wir Ihnen anhand eines Beispiels. Darin werden Sie einige Direct3D Renderstates erkennen, die Sie bisher über explizite Aufrufe einstellen mussten. Als Beispiel soll uns eine an sich wenig spektakuläre Texturierung dienen. Die <i>fx</i>-Datei definiert zunächst eine <i>texture</i>-Variable (texMap), der Sie später bei der Verwendung von der Applikation aus eine Texture zuweisen. Anschließend definieren Sie <i>tech0</i>, das nur einen Renderpass enthält. Die meisten der Renderstate Bezeichner sind selbst&shy;erklärend, da ihr Name etwa dem der <i>SetRenderState(...)</i>-Konstanten entspricht.</p>
+		<pre><code>
+texture texMap;
+technique tech0
+{
+	pass P0
+	{
+		// keine Shader:
+		fvf = XYZ | Tex1;...
+		</code></pre>
+		<p>Diesen Effet, wie in der Datei <i>effect.fx</i>, verwenden Sie in Ihrem Programm. Um den Effekt zu laden, benötigen Sie ein <i>ID3DXEFFECT</i>-Objekt. Den Rest übernimmt D3DX:</p>
+		<pre><code>
+LPDIRECT3DTEXTURE9 pTexture;...
+		</code></pre>
+		<p>Wie immer sollten Sie prüfen, ob dabei ein Fehler aufgetreten ist. Sollte dies der Fall sein, so können Sie sich eine detaillierte Fehlermeldung ausgeben lassen:</p>
+		<pre><code>
+if(FAILED(hr))
+{
+	char *buf =pBufferErrors-&gt; ...
+}
+		</code></pre>
+		<p>Jetzt müssen Sie noch eine der potenziell mehreren <i>Techniken</i> aus dem Effect File wählen. Dazu können Sie die erste, auf der verwendeten Hardware ausführbaren, Techniken suchen lassen.</p>
+		<pre><code>
+D3DXHANDLE hTechnique;
+pEffect-&gt;FindNextValidTechnique(NULL, &amp;hTechnique);
+		</code></pre>
+		<p>Wenn Sie für den ersten Parameter das Handle einer anderen Technik angeben, beginnt die Suche von dort ausgehend. Zuletzt wählen Sie die gefundene Technik aus und setzen die benötigte Texture:</p>
+		<pre><code>
+pEffect-&gt;SetTechnique(hTechnique);
+pEffect-&gt;SetTexture...
+		</code></pre>
+		<p>Jetzt können Sie die Rendertechnik einsetzen. Da die Applikation nicht weiß, wie viele Renderpasses benötigt werden, fragen Sie deren Anzahl ab und führen sie dement&shy;sprechend aus. Das Effect File konfiguriert die Renderstates und arbeitet automatisch.</p>
+		<pre><code>
+// Anzahl der Renderpasses
+UINT nPasses;
+// Beginn 0: Sichern+Wiederherstellen
+pEffect-&gt;Begin(&amp;nPasses, 0);
+for(UINT p = 0; p &lt; nPasses, p++)
+{
+	pEffect-&gt;Pass(p);
+	// Zeichnen:
+	pD3Ddevice-&gt;DrawPrimitive...
+}
+pEffect-&gt;End();
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>High Level Shader Language</h2>
+		<figure class="floatright">
+			<img src="assets/200311_2.jpg" width="261" height="252" alt="Kubischer Filter: Mit dieser Noise-Funktion erzeugen Sie Texturen.">
+			<figcaption><span>Kubischer Filter:</span> Mit dieser Noise-Funktion erzeugen Sie Texturen.</figcaption>
+		</figure>
+		<p>Wie bereits erwähnt, können Sie innerhalb der Effect Files Vertex und Pixel Shader definieren. Diese können Sie, wie das folgende Beispiel zeigt, direkt in der bekannten Assembler Notation angeben:</p>
+		<pre><code>
+pass P0 {
+	VertexShader = asm
+	{
+		vs_1_1
+		dcl_position v0
+		dcl_normal v1
+		mov oPos, v0 mov oD0, v1
+	}
+	...
+}
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200311_4.jpg" width="450" height="217" alt="Unterschied: Links sehen Sie die <i>Lineare</i> und rechts die vorberechnete kubische Interpolation.">
+			<figcaption><span>Unterschied:</span> Links sehen Sie die <i>Lineare</i> und rechts die vorberechnete kubische Interpolation.</figcaption>
+		</figure>
+		<p>Die zweite Variante, die wir Ihnen in dieser Ausgabe vorstellen wollen, ist die Verwendung der Hochsprache HLSL mit C-ähnlicher Syntax, die im Zuge von DirectX 9 entwickelt wurde. Aufgrund des speziellen Anwendungs&shy;gebietes sind natürlich entsprechende Datentypen und Objekte definiert, von denen wir Ihnen hier die wichtigsten vorstellen. Die grundlegenden skalaren Datentypen sind <i>bool</i> (wahr oder falsch), <i>int</i> (32 Bit Integer), und die drei Floating Point Typen <i>half, float</i> und <i>double</i> mit 16, 32 und 64 Bit Genauigkeit. Dabei müssen Sie aber beachten, dass eine GPU nicht unbedingt alle diese Datentypen unterstützt. Es kann z.B. sein – und damit treten Bereichs- bzw. Genauigkeits&shy;probleme auf – dass der <i>int</i> Typ durch einen <i>float</i> emuliert wird.</p>
+		<p>Ebenso ist die Unterstützung von <i>half</i> und <i>double</i> Typen nicht gewährleistet. Sie können zwar immer jeden Typ verwenden, aber bedenken Sie die Probleme. Weiterhin sind <i>vector</i> und <i>matrix</i> Typen definiert, die, wie der Name schon sagt, verwendet werden können, um Vektoren oder Matrizen beliebiger Typen zu deklarieren. Die gebräuch&shy;lichsten zusammen&shy;gesetzten Typen sind aber von vornherein global über <i>Typedefs</i> definiert. So bezeichnet z.B. <i>float3</i> oder <i>float4</i> einen drei bzw. vier Komponenten&shy;vektor aus <i>Floats</i> und <i>float4x4</i> eine 4x4-Matrix, mit der Sie alle notwendigen Trans&shy;formationen beschreiben können.</p>
+		<p>Die nächste wichtige Gruppe stellen die <i>ObjectTypes</i> dar, zu denen auch die bereits erwähnten Vertex- und Pixel-Shader zählen. Außerdem gehören die so genannten Sampler dazu, die eine Direct3D Sampler Stage beschreiben, also welche Texture wie abgetastet und gefiltert wird. Das folgende Beispiel ist bereits Bestandteil unseres Programms, dessen Aufbau wir schrittweise aufzeigen. Es wird ein Textur-Objekt mit dem Sampler assoziiert und tri-lineares Filterung dafür gewählt:</p>
+		<pre><code>
+texture noiseTexture;
+sampler noiseSampler = sampler_state
+{
+	Texture = (noiseTexture);
+	MipFilter = LINEAR;
+	MinFilter = LINEAR;
+	MagFilter = LINEAR;
+};
+		</code></pre>
+		<p>Zuletzt benötigen Sie noch Strukturen in Ihrem HLSL-Programm, die Sie wie aus C bekannt mit dem Schlüsselwort <i>struct</i> definieren. An dieser Stelle kommen wir auf unser Beispiel&shy;programm. Die Eingabedaten pro Vertex, die Sie beispielsweise mit dem Befehl <i>DrawPrimitive</i> von der Applikation zur Grafikpipeline senden und die Ihr Vertex Shader verarbeiten soll, definieren Sie als eine Struktur:</p>
+		<pre><code>
+struct VERTEX
+{
+	float4 position : POSITION;
+	float3 normal : NORMAL;
+};
+		</code></pre>
+		<p>Dabei legen Sie die Bezeichner der Daten und den Typ (hier <i>float3</i> oder <i>float4</i>) fest – die semantische Bindung der Variablen an den Vertex-Datenstrom steht rechts des Doppelpunktes. Der Vertex Shader bearbeitet jeden dieser Vertices und erzeugt die Daten, die an die Rasterisierungs&shy;stufe der Grafikkarte weitergegeben werden. Die entsprechenden Daten fassen Sie wiederum in einer Struktur zusammen:</p>
+		<pre><code>
+struct FRAGMENT
+{
+	// transformierte Koordinaten
+	float4 position : POSITION;
+	// Texture Koordinaten
+	float3 texture0 : TEXCOORD0;
+	float3 texture1 : TEXCOORD1;
+	...
+	// zwei Farbwerte
+	float4 color : COLOR0;
+	float4 colorSpec : COLOR1;
+};
+		</code></pre>
+		<p>Als Vertex Shader deklarieren Sie eine Funktion, die als Parameter eine <i>VERTEX</i> Struktur entgegen nimmt und eine <i>FRAGMENT</i> Struktur zurückliefert:</p>
+		<pre><code>
+FRAGMENT myVS(VERTEX vertex)
+{
+	FRAGMENT result;
+	result.position = ...
+	return result.
+};
+		</code></pre>
+		<p>Genauso verfahren Sie für den Pixel Shader, der eine Struktur ausfüllt, die einen Farbwert enthält, aber auch mehrere enthalten kann:</p>
+		<pre><code>
+struct FRAGRESULT
+{
+	float4 color : COLOR;
+};
+
+FRAGRESULT myPS(FRAGMENT frag)
+{
+	FRAGRESULT result;
+	result.color = ...
+	return result;
+}
+		</code></pre>
+		<p>Für die vollständige Liste der semantischen Bindings müssen wir Sie an dieser Stelle an die DirectX-Hilfe verweisen. Ebenso verhält es sich mit dem riesigen Befehlssatz von HLSL, den wir Ihnen hier in Auszügen, sofern er im Beispiel&shy;programm Anwendung findet, vorstellen.</p>
+		<figure class="large">
+			<img src="assets/200311_3.jpg" width="669" height="449" alt="Summe: Mehrere Noise-Funktionen unterschiedlicher Frequenzen werden summiert.">
+			<figcaption><span>Summe:</span> Mehrere Noise-Funktionen unterschiedlicher Frequenzen werden summiert.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Prozedurale Texturierung</h2>
+		<p>Das Beispiel&shy;programm soll 3D-Objekte prozedural texturieren. Das bedeutet, es kann – durch eine geeignete Berechnungs&shy;vorschrift – für jeden Punkt im Raum einen Farbwert berechnen. Diese Form der Texturierung hat natürlich Vor- und Nachteile. Als wichtigste Punkte sprechen dafür, dass Sie ohne explizite Textur-Koordinaten auskommen (Solid Texturing), beliebig große Flächen ohne erkennbare Wiederholungen texturieren können und vor allem eine parametri&shy;sierte Texturierung haben, also durch Änderung weniger Parameter das Aussehen der Textur gestalten können. Die Nachteile liegen bei der benötigten Rechenzeit. Deshalb sollten Sie solche Techniken im Allgemeinen nur dort einsetzen, wo es sich auch wirklich lohnt.</p>
+		<figure class="large">
+			<img src="assets/200311_6.jpg" width="639" height="271" alt="Marmor: Mit Lookup Textures strukturieren Sie Marmor verschieden, wenn Sie Gain und Lacunarity variieren.">
+			<figcaption><span>Marmor:</span> Mit Lookup Textures strukturieren Sie Marmor verschieden, wenn Sie <i>Gain</i> und <i>Lacunarity</i> variieren.</figcaption>
+		</figure>
+		<p>Die meisten prozeduralen Texturierungen basieren dabei auf so genannten <i>Noise</i>-Funktionen. Solche Funktionen liefern reproduzier&shy;bare Pseudo&shy;zufallszahlen für jeweils gleiche Parameter, sollten bandbegrenzt sein und keine offensichtlich wiederholenden Muster aufweisen. In der Praxis wird oft einfach eine Menge von Zufallszahlen wie ein drei&shy;dimensionales Array an ganzzahligen Koordinaten berechnet. Durch eine geeignete Filterung für die Zwischenwerte erhalten Sie eine geglättete Variante, die als Noise-Funktion dienen kann.</p>
+		<p>Nun ist aber eine dieser Noise-Funktionen alleine nicht sehr spektakulär. Die Summe von Noise-Funktionen (oder auch nur einer Funktion) unterschied&shy;licher Frequenzen gestattet aber schon sehr interessante Texturen.</p>
+		<p>Jede der unterschied&shy;lichen Noise-Funktionen wird dabei als Octave bezeichnet, da oft eine verdoppelte Frequenz – wie bei Oktaven in der Musik – zwischen den Noise-Funktionen verwendet wird. Da man allerdings daran nicht gebunden ist, wird ein Parameter, der den Frequenz&shy;multiplikator zweier Oktaven darstellt, eingeführt und mit <i>Lacunarity</i> bezeichnet. Die Gewichte, mit denen Sie die Oktaven vor der Summenbildung gestalten, nehmen meist mit zunehmender Frequenz ab.</p>
+		<figure class="floatright">
+			<img src="assets/200311_5.jpg" width="255" height="318" alt="Lookup Textures in 3D: Holzstrukturen sind ganz einfach zu erzeugen.">
+			<figcaption><span>Lookup Textures in 3D:</span> Holzstrukturen sind ganz einfach zu erzeugen.</figcaption>
+		</figure>
+		<p>Der Faktor wird als <i>Gain</i> bezeichnet. Solche Texturen können Sie nun in Echtzeit berechnen und darstellen. Die dazugehörigen HLSL-Programme stellen wir Ihnen im Folgenden vor. Als Noise-Funktion dient Ihnen eine 3D-Textur.</p>
+		<p>Diese sollte aber nicht direkt die Zufallszahlen enthalten, weil die Grafikhardware nur linear filtern kann, für eine gut aussehende geglättete Variante sollten Sie eine kubische Filterung verwenden. Der Trick ist, beispielsweise <i>16x16x16</i> Zufallswerte zu berechnen und daraus eine kubisch geglättete <i>128x128x128</i> 3D-Textur zu erzeugen. Beim Auslesen der Textur wird zwar wiederum linear interpoliert, aber durch die vorberechnete Glättung werden die Artefakte kaschiert. Den Unterschied sehen Sie!</p>
+		<p>Um Ihnen HLSL besser zu präsentieren, berechnet der Vertex Shader auch eine Phong-Beleuchtung. Dazu benötigen Sie zunächst eine Reihe von Parametern, die vor dem Rendering von der Applikation mit Werten belegt werden.</p>
+		<pre><code>
+// Matrix: Object -&gt;Clip Space
+float4x4 matWVP;
+float4 lightPosition; // Object Space
+float4 cameraPosition; // Object Space
+float scale; // Noise Skalierung
+float lacunarity; // Lacunarity
+float4 amplify; // 4 Oktaven
+		</code></pre>
+		<p>Die Definition der benötigten Strukturen und Sampler haben Sie bereits im vorherigen Abschnitt gesehen, deshalb können wir uns gleich dem Vertex Shader widmen. Als erstes transformieren Sie die Koordinaten der Vertices:</p>
+		<pre><code>
+result.position = mul(...
+		</code></pre>
+		<p>Anschließend berechnen Sie die normalisierten Vektoren vom Vertex zum Betrachter und zur Lichtquelle.</p>
+		<pre><code>
+float4 toViewer, ...
+		</code></pre>
+		<p>An der Normalen können Sie den Vektor zur Lichtquelle wie folgt spiegeln:</p>
+		<pre><code>
+reflect = normalize(...
+		</code></pre>
+		<p>Die diffuse Beleuchtung berechnen Sie in <i>NdotL</i>, die spekulare Beleuchtung durch das Skalar-Produkt (Dot) aus dem Reflexions&shy;vektor und dem Vektor zum Betrachter. Die Vorzeichnen&shy;überprüfungen und die Exponentiation übernimmt der <i>lit</i>-Befehl:</p>
+		<pre><code>
+float NdotL = dot(float4...
+		</code></pre>
+		<p>Den ambienten und diffusen Beleuchtungs&shy;anteil speichern Sie getrennt vom spekularen. Die beiden Teile, die getrennt behandelt werden müssen, kombinieren Sie später im Pixel Shader.</p>
+		<pre><code>
+result.color =litVector....
+		</code></pre>
+		<p>Für das Solid Texturing berechnen Sie jetzt die Positionen, an denen die Noise-Funktionen ausgewertet werden sollen, aus der Object Space Koordinate des Vertex. Die Positionen für vier Oktaven schreiben Sie in die Textur Koordinaten:</p>
+		<pre><code>
+float4 noisePosition =....
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200311_7.jpg" width="512" height="248" alt="Lookup Textures: Diese Texturen verwendet das Rendering für die letzten beiden Bilder.">
+			<figcaption><span>Lookup Textures:</span> Diese Texturen verwendet das Rendering für die letzten beiden Bilder.</figcaption>
+		</figure>
+		<p>Der Pixel Shader liest die Noise Textur an den vier berechneten Positionen aus und muss daraus lediglich noch die Summe bilden. Die Gewichtung der Oktaven (im <i>amplify</i> Parameter) und die anschließende Summe ließe sich elegant mit einem Skalarprodukt darstellen. Die Restriktionen der Pixel Shader der Version 1.4 (oder niedriger) verlangen aber die Austeilung in zwei Operationen, wie Sie im Beispiel sehen. Der resultierende Farbwert wird mit dem ambient-diffusen Beleuchtungs&shy;anteil multipliziert und der spekulare Anteil hinzuaddiert:</p>
+		<pre><code>
+float4 octaves;
+octaves.x = tex3D...
+		</code></pre>
+		<p>Jetzt müssen Sie nur noch die Vertex und Pixel Shader in den Effekt einsetzen. Dazu verwenden Sie die <i>Pass</i>-Beschreibung, wobei Sie die Ziel Vertex und Pixel Shader Version jeweils angeben:</p>
+		<pre><code>
+VertexShader = compile vs_1_1 vsNoise();
+		</code></pre>
+		<p>Die Programm&shy;parameter setzen Sie von Ihrer Applikation aus, wobei Sie die Methoden des <i>ID3DXEFFECT</i> Interfaces nutzen:</p>
+		<pre><code>
+D3DXVECTOR4 vec;....
+		</code></pre>
+		<p>Sie erweitern das Programm einfach aber effektvoll, wenn Sie die berechnete Summe der Noise-Werte nicht direkt als Farbwert verwenden, sondern als Textur-Koordinate für eine Lookup-Textur verwenden. So erhalten Sie Holz- und Marmor-Effekte.</p>
+	</section>
+
+	<section>
+		<h2>Occlusion Query</h2>
+		<p>Lohnt der Aufwand? Wenn ein 3D-Objekt sehr weit vom Betrachter entfernt größtenteils verdeckt ist, können Sie auf einfachere Shader ausweichen. Mit dem Occlusion Query Mechanismus stellen Sie fest, wie viele Pixel tatsächlich in den Framebuffer geschrieben wurden. Beachten Sie, dass der <i>GetData</i>-Befehl asynchron arbeitet – es befinden sich einfach zu viele Zwischenstufen in der Grafikpipeline, als dass das Resultat sofort bereitstünde. Sie sollten ein Programm so konzipieren, dass Sie in der <i>While</i>-Schleife noch andere Aufgaben erledigen können, oder vor dem Aufruf <i>GetData</i> etwas Zeit verstreichen kann.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200310.html">10/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200312.html">12/2003</a>
+	</nav>
+</body>

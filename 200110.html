@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Spiel mit Puppen (PC Underground, PC Magazin 10/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;10/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200109.html">9/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200111.html">11/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Polygon-Modelle mit Milkshape 3D</h2>
+		<h1><span class="highlight">Spiel mit</span> Puppen</h1>
+		<p class="summary">Legen Sie Ihre eigenen Low-Polygon-3D-Modelle mit Milkshape 3D an, die Sie texturieren und <span class="highlight">in eigenen Programmen verwenden</span>. Mit Plug-ins haben Sie Dateiformate im Griff.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Für Programmierer und Grafiker, die 3D-Spielfiguren erschaffen, mit Texturen versehen und animieren möchten, ist das 3D-Modelling-Programm Milkshape geeignet. Modellieren Sie zunächst eine Figur, um deren Daten anschließend in Ihre eigenen OpenGL-Programme zu importieren. Beim Programmieren mit Milkshape 3D verwendet der 3D-Grafiker wenige Polygone: mehrere Hundert, bis zu etwa Tausend Dreiecke. Das spart Rechenzeit.</p>
+		<figure class="large">
+			<img src="assets/200110_1.jpg" width="800" height="569" alt="MILKSHAPE 3D nach dem Start">
+			<figcaption><span>MILKSHAPE 3D</span> nach dem Start</figcaption>
+		</figure>
+		<p>Sie können für unsere Einführung eine Testversion von Milkshape 3D unter dieser URL downloaden: <a href="www.swissquake.ch/chumbalum-soft/ms3d1x/">www.swissquake.ch/chumbalum-soft/ms3d1x/</a> Die aktuelle Version ist 1.5.7.</p>
+		<p>Wenn Sie Milkshape 3D starten, sehen Sie den Haupt&shy;bildschirm. Den meisten Platz nehmen die vier Ansichten des noch nicht vorhandenen 3D-Modells ein. Voreingestellt sind die achsen&shy;parallelen Ansichten von vorne, rechts und oben. Das vierte Fenster zeigt die Szene aus der Perspektive einer frei positionier&shy;baren Kamera. Auf der rechten Seite sehen Sie die Toolbar, in der Sie fast alle Befehle finden, mit denen Sie später modellieren, texturieren und animieren. Am unteren Bildschirmrand sehen Sie die Kontroll&shy;buttons für die Animation.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200110.zip">💾 200110.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Das erste 3D-Modell</h2>
+		<p>Wenn Sie mit Ihrem 3D-Objekt beginnen, sollten Sie sich ungefähr vorstellen können, was Sie modellieren wollen. Am besten, Sie fertigen einige kleine Skizzen von verschiedenen Blickwinkeln an. Damit werden Sie besser zurechtkommen und im Endeffekt meist auch schneller am Ziel sein.</p>
+		<p>Für die Skizzen legen Sie die Proportionen fest. Bei der Charakter&shy;modellierung, werden die Modelle meist aus kleinen, einfachen geometrischen Objekten zusammen&shy;gesetzt. Diese Modelle finden Sie in Ego-Shootern. Damit geben Sie die grobe Form vor, die Sie dann in Feinarbeit verbessern.</p>
+		<figure class="large">
+			<img src="assets/200110_2.jpg" width="800" height="869" alt="DER EXTRUDE-BEFEHL erzeugt weitere Würfel.">
+			<figcaption><span>DER EXTRUDE-BEFEHL</span> erzeugt weitere Würfel.</figcaption>
+		</figure>
+		<figure class="large">
+			<img src="assets/200110_11.jpg" width="800" height="569" alt="DEM WÜRFEL verpassen Sie ungefähr die Form eines Oberkörpers.">
+			<figcaption><span>DEM WÜRFEL</span> verpassen Sie ungefähr die Form eines Oberkörpers.</figcaption>
+		</figure>
+		<figure class="floatright">
+			<img src="assets/200110_3.jpg" width="319" height="315" alt="NUN VERVIELFÄLTIGEN SIE die obere Seite der Würfelreihe.">
+			<figcaption><span>NUN VERVIELFÄLTIGEN SIE</span> die obere Seite der Würfelreihe.</figcaption>
+		</figure>
+		<p>Unser Beispiel soll den Oberkörper einer Spielfigur darstellen. Als einfaches geometrisches Objekt beginnen Sie mit einem Würfel. Wählen Sie dazu in der Toolbar unter dem <i>Model-Tab</i> eine <i>Box Tool</i> aus. Klicken Sie in die Front-Ansicht, und halten Sie den Knopf gedrückt, um ein Viereck aufzuziehen. In der Kameraansicht sehen Sie einen grauen Würfel. Die Darstellungs&shy;parameter einer Ansicht ändern Sie im Kontextmenü, das Sie über die rechte Maustaste erreichen. Um eine Ansicht zu verschieben oder zu skalieren, halten Sie die <i>[Strg]</i>- oder <i>[Shift]</i>-Taste gedrückt. Bewegen Sie die Maus, während Sie die Rechte Taste drükken, im entsprechenden Fenster.</p>
+		<figure class="floatright">
+			<img src="assets/200110_4.jpg" width="319" height="238" alt="NACH GETANER FEINARBEIT kann sich das Ergebnis sehen lassen.">
+			<figcaption><span>NACH GETANER FEINARBEIT</span> kann sich das Ergebnis sehen lassen.</figcaption>
+		</figure>
+		<p>Aus diesem Würfel werden Sie den Körper des 3D-Charakters modellieren. Wählen Sie in der Toolbar <i>Model/ Select</i>. Bei den <i>Select</i>-Optionen benötigen Sie die Einträge <i>Face</i> und <i>Ignore Backfaces</i>. Damit selektieren Sie per Mausklick einzelne Dreiecke, wobei Sie von hinten sichtbare Polygone ignorieren. Wählen Sie in der Frontansicht die beiden Dreiecke.</p>
+		<figure class="floatright">
+			<img src="assets/200110_5.jpg" width="319" height="215" alt="JETZT KLEBEN SIE den kopierten Arm an.">
+			<figcaption><span>JETZT KLEBEN SIE</span> den kopierten Arm an.</figcaption>
+		</figure>
+		<p>Mit <i>Toolbar/Extrude</i> können Sie neue Teile aus einem bestehenden 3D-Modell herausziehen. Ziehen Sie die markierten Dreiecke nach außen. Damit erhalten Sie einen zweiten Würfel, der mit dem ersten verbunden ist. Diesen Vorgang wiederholen Sie, bis Sie vier bis sechs Würfel haben, je nachdem, wie viele Polygone Sie für die Figur verwenden wollen. Markieren Sie im Bild die obere Seite der Würfelreihe, und verviel&shy;fältigen Sie diese mehrmals, um mehrere Würfelreihen zu bekommen. Mit dem Befehl <i>Toolbar/Scale</i> können Sie die Breite unseres noch ziemlich ungestalteten Oberkörpers an markierten Vertices ändern. Zunächst erhalten Sie eine grobe Form, die Sie verfeinern.</p>
+		<figure class="floatright">
+			<img src="assets/200110_6.jpg" width="319" height="215" alt="DIESE BEIDEN VERTICES müssen Sie verschmelzen.">
+			<figcaption><span>DIESE BEIDEN VERTICES</span> müssen Sie verschmelzen.</figcaption>
+		</figure>
+		<p>Den Arm der Figur erzeugen Sie mit dem <i>Extrude</i>-Befehl, um der groben Form Feinschliff zu geben. Damit Sie sich nicht zweimal die Arbeit machen, einen Arm zu modellieren, markieren Sie die Polygone des ersten Arms. Mit <i>Edit/Duplicate Selection</i> erhalten Sie eine Kopie des Arms. Diese liegt an derselben Position wie das Original und ist deshalb nicht zu sehen. Spiegeln Sie den Arm (im Menü unter <i>Vertex/Mirror</i>), und schieben Sie ihn möglichst genau an die Schulter.</p>
+		<p>Um den Arm und den Oberkörper zu verbinden, markieren Sie jeweils die zwei Vertices, die Sie verschmelzen wollen, und wählen <i>Vertex/Snap together</i>. Damit bekommen die beiden Vertices dieselbe Position, sind aber noch getrennt. Nachdem Sie alle Vertices angepasst haben, führen Sie den Befehl <i>Vertex/Weld together</i> aus, um die doppelten Vertices zu eliminieren. Die Hände unseres 3D-Modells sind aus separaten Würfeln aufgebaut. Die Beine modellieren Sie ebenso wie die Arme.</p>
+	</section>
+
+	<section>
+		<h2>Oberflächenmaterial und Texturen</h2>
+		<figure class="floatright">
+			<img src="assets/200110_8.jpg" width="256" height="256" alt="EIN SKIN ist eine Textur für einen 3D-Charakter.">
+			<figcaption><span>EIN SKIN</span> ist eine Textur für einen 3D-Charakter.</figcaption>
+		</figure>
+		<p>Die meisten Ego-Shooter kommen mit wenigen Texturen für die 3D-Charaktere aus, meist reicht eine mit 256 x 256 Pixeln. Dadurch werden der Aufwand beim Rendering und der Textur-Speicher&shy;verbrauch gesenkt.</p>
+		<p>Zunächst gruppieren Sie Ihr 3D-Modell neu. In der Toolbar unter <i>Groups</i> finden Sie eine Liste von Polygongruppen, die Sie getrennt selektieren, löschen, benennen und verstecken können. Wählen Sie die Gruppen <i>Oberkörper,</i> <i>Kopf</i> und <i>Arme</i> aus, und wählen Sie <i>Regroup</i>, um sie zusammen&shy;zufassen. Die <i>Smoothing Groups</i> unten in der Toolbar fassen die Polygone zusammen, die zu einer glatten Oberfläche gehören. Falsch zusammen&shy;gefasste Polygone machen sich beim Rendering durch Schattierungs&shy;fehler bemerkbar.</p>
+		<figure class="floatright">
+			<img src="assets/200110_7.jpg" width="319" height="216" alt="MIT DEM TEXTURECOORDINATE-EDITOR passen Sie die Textur an.">
+			<figcaption><span>MIT DEM TEXTURECOORDINATE-EDITOR</span> passen Sie die Textur an.</figcaption>
+		</figure>
+		<p>Wählen Sie in der Toolbar den <i>Material-Tab</i>, und erzeugen Sie mit <i>New</i> neues Material. Wenn Sie alle Polygone ausgewählt haben, drücken Sie <i>Assign</i>, um das neue Material zuzuweisen. Für das Material können Sie beliebige <i>Ambient-,</i> <i>Diffuse-</i> und <i>Specular-</i> Farben einstellen.</p>
+		<p>Texturen heißen bei 3D-Modellen auch <i>Skins</i>. Um dem Material eine Textur hinzuzufügen, drücken Sie auf den oberen der beiden Knöpfe, die mit <i>&lt;none&gt;</i> beschriftet sind, und wählen eine Bilddatei aus. Viel Zeit kostet die Anpassung der Textur an die Polygone, also die Festlegung der Textur&shy;koordinaten. Wenn Sie ein oder mehrere Dreiecke auswählen und im Menü unter <i>Window</i> den <i>Texture Coordinate Editor</i> wählen (oder <i>[Strg-t]</i> drücken), öffnet sich ein Fenster. Dort sehen Sie die Textur des Materials und die Vertices der markierten Polygone. Durch die Verschiebung der Vertices in der Textur legen Sie die Texturbereiche fest, die jeweils auf ein Polygon projiziert (gemappt) werden. Angesichts der Anzahl der Vertices ist das sehr aufwendig. Aber gerade die Texturierung und die exakte Zuweisung der Koordinaten lässt ein Low-Polygon-Modell wirklich gut aussehen.</p>
+	</section>
+
+	<section>
+		<h2>Milkshape-3D-Daten</h2>
+		<p>Wenn Sie keine eigenen 3D-Modelle erzeugen wollen, können Sie Milkshape 3D nutzen, um zahlreiche Formate wie <i>MD2, MD3, MDL, 3D</i>-Studio, Lightwave, Autocad DXF ins eigene <i>MS3D</i>-Format zu konvertieren. Das <i>MS3D</i>-Format von Milkshape 3D ist sehr einfach aufgebaut, lässt sich komfortabel laden und in OpenGL darstellen. Als Framework für die OpenGL- Darstellung verwenden Sie den OpenGL-Startup, den Sie aus den letzten PC-Underground-Ausgaben kennen. Dessen Aufbau müssen Sie aber nicht im Kopf haben, um ihn anzuwenden.</p>
+		<p>Im <i>MS3D</i>-Dateiformat sind für Sie zunächst fünf Strukturen interessant:</p>
+		<p>,,1 Am Beginn einer <i>MS3D</i>-Datei befindet sich der Header. Die ID muss <i>MS3D000000</i> sein, die Versionsnummer <i>3</i>:</p>
+		<pre><code>
+typedef struct
+{
+	char id[10];
+	int version;
+} MS3D_HEADER;
+		</code></pre>
+		<p>Anschließend folgt ein 16-Bit-Interrupt-Aufruf <i>(unsigned int)</i>, der die Anzahl der Vertices des 3D-Objekts angibt. Entsprechend oft finden Sie folgende Struktur in der Datei, die die Vertexdaten enthält:</p>
+		<pre><code>
+typedef struct
+{
+	byte flags;
+	float vertex[3];
+	char boneId;
+	byte refCount;
+} MS3D_VERTEX;
+		</code></pre>
+		<p>In der <i>MS3D_VERTEX</i>-Struktur sind unter anderem die drei Floatwerte interessant, die die Koordinaten des Vertexes enthalten.</p>
+		<p>Es folgt wieder ein <i>unsigned int</i> (16 Bit), in dem die Anzahl der Dreiecke gespeichert ist. Entsprechend lesen Sie folgende Struktur aus:</p>
+		<pre><code>
+typedef struct
+{
+	word flags;
+	word vertexIndices[3];
+	float vertexNormals[3][3];
+	float s[3];
+	float t[3];
+	byte smoothingGroup;
+	byte groupIndex;
+} MS3D_TRIANGLE;
+		</code></pre>
+		<p>Wichtig sind hier die <i>vertexIndices</i>, die Indizes der Dreieckspunkte in der Vertexliste, die dazugehörigen Normalen und die Textur&shy;koordinaten (<i>s</i> und <i>t</i>).</p>
+		<p>Für die <i>Smoothing Groups</i> lesen Sie zuerst wieder die Anzahl aus und dann entsprechend oft die dazugehörige Struktur. Achten Sie darauf, dass die <i>Smoothing Groups</i> eine variierende Anzahl von Dreiecken enthalten (<i>nTriangles</i> und <i>*triangleIndices</i>):</p>
+		<pre><code>
+typedef struct
+{
+	byte flags;
+	char name[32];
+	word nTriangles;
+	word *triangleIndices;
+	char materialIndex;
+} MS3D_GROUP;
+		</code></pre>
+		<p>Zuletzt folgen die Material&shy;definitionen. In der Struktur sind alle Daten enthalten, die Sie in Milkshape in der <i>Toolbar/Material</i> einstellen können. Zusätzlich finden Sie in der Struktur einen Zeiger auf ein <i>PCUTexture</i>-Objekt, um in der <i>MS3D</i>-Laderoutine die Texture-Bitmaps zu laden.</p>
+		<pre><code>
+typedef struct
+{
+	char name[32];
+	float ambiet[4];
+	float diffuse[4];
+	float specular[4];
+	float emissive[4];
+	float shininess;
+	float transparency;
+	char mode;
+	char texture[128];
+	char alphamap[128];
+	PCUTexture *textureMap;
+} MS3D_MATERIAL;
+		</code></pre>
+		<p>Die gelesenen Daten speichern Sie am besten zusammen in einer Klasse, die Sie im Sourcecode zu dieser Ausgabe finden:</p>
+		<pre><code>
+class MS3DObject
+{
+private:
+	word nVertices;
+	word nTriangles;
+	word nGroups;
+	word nMaterials;
+	MS3D_HEADER header;
+	MS3D_VERTEX *pVertex;
+	MS3D_TRIANGLE *pTriangle;
+	MS3D_GROUP *pGroup;
+	MS3D_MATERIAL *pMaterial;
+public:
+	MS3DObject();
+	~MS3DObject();
+	int loadObject
+	(char *path, char *name);
+	void renderObject();
+};
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>MS3D mit OpenGL rendern</h2>
+		<figure class="floatright">
+			<img src="assets/200110_9.jpg" width="319" height="239" alt="DAS BEISPIELPROGRAMM stellt unser 3D-Modell in OpenGL dar.">
+			<figcaption><span>DAS BEISPIELPROGRAMM</span> stellt unser 3D-Modell in OpenGL dar.</figcaption>
+		</figure>
+		<p>Die Daten aus den <i>MS3D</i>-Dateien sind prädestiniert, um sie mit OpenGL zu rendern. Die Material&shy;parameter können Sie direkt an OpenGL weitergeben. Rendern Sie die <i>Groups</i> nacheinander. Setzen Sie jeweils die entsprechenden Material&shy;parameter und gegebenenfalls die Textur. Zeichnen Sie alle Dreiecke der Group, indem Sie die Normalen, Textur&shy;koordinaten und Vertex&shy;koordinaten übermitteln:</p>
+		<pre><code>
+void MS3DObject::renderObject()
+{
+	for(int i = 0; i &lt; nGroups; i++)
+	{
+		// Materialparameter
+		int m = pGroup[i].materialIndex;
+		glMaterialfv(GL_FRONT_AND_BACK,
+			GL_AMBIENT, pMaterial[m].ambient);
+		glMaterialfv(GL_FRONT_AND_BACK,
+			GL_DIFFUSE, pMaterial[m].diffuse);
+		glMaterialfv(GL_FRONT_AND_BACK,
+			GL_SPECULAR, pMaterial[m].specular);
+		glMaterialfv(GL_FRONT_AND_BACK,
+			GL_SHININESS, &amp;pMaterial[m].shininess);
+		glMaterialfv(GL_FRONT_AND_BACK,
+			GL_EMISSION, pMaterial[m].emissive);
+
+		if(pMaterial[m].textureMap)
+			pMaterial[m].textureMap-&gt;select();
+
+		glBegin(GL_TRIANGLES);
+
+		for(j = 0; j &lt; pGroup[i].nTriangles; j++)
+		{
+			idx = pGroup[i].triangleIndices[j];
+			MS3D_TRIANGLE *tri = &amp;pTriangle[idx];
+			for(k = 0; k < 3; k++)
+			{
+				glNormal3fv(tri-&gt;vertexNormals[k]);
+				glTexCoord2f(tri-&gt;s[k],tri-&gt;t[k]);
+				glVertex3fv(pVertex[tri-&gt;vertexIndices[k]].vertex);
+			}
+		}
+		glEnd();
+	}
+}
+		</code></pre>
+		<p>Damit die Material&shy;parameter, die Sie an OpenGL übergeben, korrekt dargestellt werden, schalten Sie mit <i>glEnable(</i> <i>GL_LIGHTING)</i> die OpenGL-Beleuchtungs&shy;berechnung an und definieren noch eine Lichtquelle:</p>
+		<pre><code>
+glEnable(GL_LIGHTING);
+glEnable(GL_LIGHT0);
+
+GLfloat ldiffuse[] = {1, 1, 1, 1};
+GLfloat lambient[] = {0.1f, 0.1f, 0.1f, 1.0f};
+
+glLightfv(GL_LIGHT0, GL_AMBIENT, lambient);
+glLightfv(GL_LIGHT0, GL_DIFFUSE, ldiffuse);
+glLightfv(GL_LIGHT0, GL_SPECULAR, ldiffuse);
+
+GLfloat lposition[4] = {30, 30, 30, 0};
+glLightfv(GL_LIGHT0, GL_POSITION, lposition);
+		</code></pre>
+		<p>Im Bild sehen Sie unser Beispiel&shy;programm zusammen mit dem 3D-Modell, das Sie im ersten Teil des Artikels gestalten konnten.
+		Wenn Sie weitere 3D-Objekte anlegen wollen, empfehlen wir Ihnen Tutorials zu Milkshape 3D. Eine gute Sammlung von Links zu diesem Thema finden Sie unter <a href="https://www.swissquake.ch/chumbalum-soft/ms3d1x/tutorials.html" rel="external nofollow noreferrer">www.swissquake.ch/chumbalum-soft/ms3d1x/tutorials.html</a> Weitere freie Testmodelle, die Sie unter Umständen noch mit Milkshape 3D konvertieren müssen, finden Sie unter <a href="https://www.3dcafe.com" rel="external nofollow noreferrer">www.3dcafe.com</a> oder wenn Sie mit Suchmaschinen zum Beispiel nach <i>md2 model</i> suchen.</p>
+	</section>
+
+	<section>
+		<h2>Plug-ins für Milkshape 3D</h2>
+		<figure class="floatright">
+			<img src="assets/200110_10.jpg" width="355" height="347" alt="UNSER KLEINES BEISPIEL-PLUG-IN informiert Sie über das 3D-Modell.">
+			<figcaption><span>UNSER KLEINES BEISPIEL-PLUG-IN</span> informiert Sie über das 3D-Modell.</figcaption>
+		</figure>
+		<p>Milkshape 3D unterstützt viele Dateiformate. Sie können Daten an Milkshape 3D auch übergeben, indem Sie Ihr eigenes Plug-in in Form einer DLL-Datei schreiben. Wenn Sie es ins Milkshape-3D-Programm&shy;verzeichnis kopieren, können Sie es vom Hauptmenü aus aufrufen und laden. Eigene Plug-ins programmieren Sie mit den Libraries, die Sie im SDK (Software Developer Kit) finden. Das SDK können Sie zusammen mit Milkshape 3D downloaden. Legen Sie dazu in Ihrem C++-Compiler ein DLL-Projekt an. Linken Sie die <i>msModelLibd.lib</i> aus dem SDK dazu, und binden Sie die Header <i>msPlugInImpl.h</i> und <i>msLib.h</i> ein. Schreiben Sie ein Plug-in, das nur Informationen über ein 3D-Modell in einer Windows-MessageBox ausgibt. Dies demonstriert, wie Sie auf die Modelldaten für ein Export-/Import-Plug-in zugreifen.</p>
+		<p>Der Aufbau der Plug-in-DLLs ist immer gleich: Sie benötigen einen <i>DLLMainEntry Point</i>, den jede DLL unter Windows besitzen muss. Um die DLL zu einem Milkshape-Plug-in zu machen, müssen Sie folgende Klasse implementieren:</p>
+		<pre><code>
+class cPlugIn : public cMsPlugIn
+{
+	char szTitle[64];
+public:
+	cPlugIn();
+	virtual ~cPlugIn();
+public:
+	int GetType();
+	const char* GetTitle();
+	int Execute (msModel* pModel);
+};
+		</code></pre>
+		<p>Die Methode <i>GetType()</i> liefert zwei Funktionen: Export oder Import. Auf diese Funktionen greifen Sie in der DLL unter <i>cMsPlugIn::e TypeExport</i> oder <i>cMsPlug In::eTypeImport</i> zurück.</p>
+		<p>Die Methode <i>GetTitle()</i> liefert den Titel des Plug-ins zurück, der im Hauptmenü angezeigt wird. Die <i>Execute()</i>-Methode enthält einen Zeiger auf ein <i>msModel</i> (Milkshape-3D-Modell), in dem alle Daten gespeichert sind. Auf diese Daten können Sie mit Funktionen aus den Library-Dateien zugreifen. Das kleine Beispiel soll Daten nur in eine <i>MessageBox</i> exportieren. Dazu implementieren Sie die <i>Execute()Methode</i>:</p>
+		<pre><code>
+int cPlugIn::Execute(msModel *pModel)
+{
+	// sicherheitsabfragen:
+	if(!pModel)
+		return -1;
+
+	if(msModel_GetMeshCount(pModel) == 0)
+	{
+		// kein modell vorhanden
+		return 0;
+	}
+
+	anzahl_frames = msModel_GetTotalFrames(pModel);
+	akt_frame = msModel_GetFrame(pModel);
+	anzahl_meshes = msModel_GetMeshCount(pModel);
+
+	for(i = 0; i &lt; anzahl_meshes; i++)
+	{
+		msMesh *pMesh = msModel_GetMeshAt(pModel, i);
+		anzahl_vertices[i] = msMesh_GetVertexCount(pMesh);
+		anzahl_triangles[i] = msMesh_GetTriangleCount(pMesh);
+	);
+
+	// ausgabe zusammenbauen als
+	string
+	...
+
+	MessageBox(NULL, text, "PCU Modell Info", MB_OK);
+
+	// wichtig: wieder freigeben:
+	msModel_Destroy(pModel);
+
+	return 0;
+}
+		</code></pre>
+		<p>Analog bietet die Library auch Funktionen, um Daten zu schreiben oder um beliebige Datei-Formate zu importieren. Sie können damit sogar eigene Tools, die 3D-Daten generieren oder automatisch modifizieren, direkt einbinden.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote">Nähere Informationen zu diesem Beitrag finden Sie auf der Website <a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200109.html">9/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200111.html">11/2001</a>
+	</nav>
+</body>

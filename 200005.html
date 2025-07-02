@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Gewinnbringender Verlust (PC Underground, PC Magazin 5/2000)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;5/2000. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200004.html">4/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200006.html">6/2000</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Effiziente Datenkompression in C</h2>
+		<h1><span class="highlight">Gewinnbringender</span> Verlust</h1>
+		<p class="summary">Der Sonnen&shy;untergang auf Ihren Urlaubsfotos verliert auch durch kleine Farb&shy;änderungen nicht an Qualität – dafür <span class="highlight">gewinnen Sie Speicherplatz</span>.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Grafiken in TrueColor-Auflösung enthalten meist viele Informationen, die das menschliche Auge kaum oder gar nicht wahrnimmt. Diese lassen sich durch Quantisierung beseitigen. Das Ergebnis verdichten Sie durch statistische Methoden.</p>
+		<p>Als ein statistisches Verfahren haben Sie in der letzten Ausgabe die Huffman-Codierung kennengelernt. Sie weist den Eingabe&shy;symbolen die optimalen Bitcodes zu. Häufig auftretende Zeichen werden durch kurze Bitcodes ersetzt, seltene Symbole generieren einen längeren Ausgabecode.</p>
+		<p>Die Huffman-Codierung ist allerdings nur anwendbar, wenn Sie mit Bitcodes arbeiten. Ein Bitcode besitzt immer eine ganzzahlige Länge. Was aber, wenn der optimale Code zu einem Eingabesymbol nicht 3 oder 4, sondern 3.7 Bit lang sein müsste?</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel stehen derzeit (noch) nicht zur Verfügung.</div>
+	</aside>
+
+	<section>
+		<h2>Arithmetische Datenkompression</h2>
+		<p>Solche Codes können Sie weder berechnen noch speichern. Dieses Manko behebt die arithmetische Daten&shy;kompression. Sie arbeitet mit einem Wahrscheinlich&shy;keitsintervall von 0.0 bis 1.0 . Dabei ist 0.0 noch im Intervall enthalten, 1.0 hingegen nicht.</p>
+	</section>
+
+	<aside>
+		<h2>SYMBOLINTERVALLE</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Symbol</th><th>Wahrschein&shy;lichkeit</th><th>Intervall</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>A</td><td>50%</td><td>[0.0, 0.5)</td></tr>
+					<tr><td>B</td><td>30%</td><td>[0.5, 0.8)</td></tr>
+					<tr><td>C</td><td>20%</td><td>[0.8, 1.0)</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<p>Dieses Intervall unterteilen Sie in einzelne Abschnitte, die Sie den Eingabe&shy;symbolen zuordnen. Je öfter ein Symbol auftritt, desto größer ist sein Teilintervall (vgl. Tabelle links unten).</p>
+		<p>Mit diesen Informationen können Sie den Encoder starten. Die Berechnungen mit Hilfe der unteren und oberen Intervall&shy;grenzen <i>Low</i> bzw. <i>High</i> sehen in Pseudocode so aus:</p>
+		<pre><code>
+Low = 0.0;
+High = 1.0;
+&lt;Für alle Symbole&gt;:
+{
+	HighSymbol = &lt;obere Intervallgrenze des Eingabezeichens&gt;;
+	LowSymbol = &lt;untere Intervallgrenze des Eingabezeichens&gt;;
+	Range = High - Low;
+	Low = Low + Range * LowSymbol;
+	High = Low + Range * HighSymbol;
+}
+		</code></pre>
+		<p>Mit unseren Beispielwahr&shy;scheinlich&shy;keiten und der zu codierenden Eingabe <i>BCAB</i> ergeben sich die (Zwischen-) Ergebnisse aus folgender Tabelle:</p>
+	</section>
+
+	<aside>
+		<h2>CODIERUNG</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Symbol</th><th>Range</th><th>Low</th><th>High</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>Start</td><td>—</td><td>0</td><td>1</td></tr>
+					<tr><td>B</td><td>1</td><td>0.5</td><td>0.8</td></tr>
+					<tr><td>C</td><td>0.3</td><td>0.74</td><td>0.8</td></tr>
+					<tr><td>A</td><td>0.06</td><td>0.74</td><td>0.77</td></tr>
+					<tr><td>B</td><td>0.03</td><td>0.755</td><td>0.764</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<p>Das Ergebnis dieser Kompression ist die Zahl 0.755, die als letzter Low-Wert übrig bleibt. Im Decoder prüfen Sie die Wahrschein&shy;lichkeiten und Intervalle der Symbole nach. Anhand der Zahl, die er als Eingabe erhält, identifiziert er das zu decodierende Zeichen. Er prüft, in welchem Intervall die aktuelle Zahl liegt.</p>
+		<p>Hat er herausgefunden, um welches Symbol es sich handelt, vergrößert er die Zahl bzw. das Intervall. Die Vergrößerung ergibt sich durch das Intervall des identifi&shy;zierten Symbols:</p>
+		<pre><code>
+&lt;Für alle Symbole&gt;:
+{
+	&lt;Identifiziere Symbol durch Prüfung,
+	 in welchem Symbolintervall die Zahl liegt&gt;
+	Range = HighSymbol - LowSymbol;
+	Number = Number - LowSymbol;
+	Number = Number / Range;
+}
+		</code></pre>
+		<p>In unserem Beispiel läuft die Decodierung wie in der Tabelle dargestellt:</p>
+	</section>
+
+	<aside>
+		<h2>DECODIERUNG</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Zahl</th><th>Zeichen</th><th>Range</th><th>Neue Zahl</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>0.755</td><td>B [0.5, 0.8)</td><td>0.3</td><td>0.85</td></tr>
+					<tr><td>0.85</td><td>C [0.8, 1.0)</td><td>0.2</td><td>0.25</td></tr>
+					<tr><td>0.25</td><td>A [0.0, 0.5)</td><td>0.5</td><td>0.5</td></tr>
+					<tr><td>0.5</td><td>B [0.5, 0.8)</td><td>0.3</td><td>...</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<p>Zum Entpacken teilen Sie dem Decoder mit, wie viele Zeichen Sie erwarten. Alternativ können Sie ein spezielles Dateiende-Symbol (EOF) einführen. Sonst würde der Decoder beliebig viele Zeichen decodieren und ab einer bestimmten Stelle nur Datenmüll hervorbringen.</p>
+		<p>So faszinierend es klingt, eine ganze Datei durch eine einzige Zahl darzustellen und zu speichern: Mit wachsendem Informations&shy;gehalt einer Nachricht nimmt beim Kompressions&shy;ergebnis die Anzahl der Stellen hinterm Komma zu. Das erhöht den Speicherplatz&shy;bedarf. Eine komplexe Abhandlung über den Sinn des Universums können Sie nicht durch eine einfache Zahl repräsentieren.</p>
+		<p>Heutige Prozessoren stellen Ihnen keine Fließkomma-Zahlen mit einer Genauigkeit zur Verfügung, die für die Kompression größerer Dateien ausreichen würde. Schließlich könnte jede Rundung bei den Berechnungen das Ergebnis verfälschen. Deshalb vertrauen in Ihren Algorithmen ganz auf Integerzahlen. Dazu skalieren Sie das Intervall [0.0, 1.0] auf die Größe einer 16-Bit-Zahl, also auf [0, 65536]. Da Sie mit ganzen Zahlen arbeiten, entspricht dies dem Intervall [0, 65535].</p>
+		<p>Damit ergeben sich in unserem Beispiel die in der folgenden Tabelle dargestellten Teilintervalle:</p>
+	</section>
+
+	<aside>
+		<h2>INTEGERINTERVALLE</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Symbol</th><th>Wahrschein&shy;lichkeit</th><th>Intervall</th><th>Hex-Code</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>A</td><td>50%</td><td>[0, 32768)</td><td>0x0000</td></tr>
+					<tr><td>B</td><td>30%</td><td>[32768, 52429)</td><td>0x8000</td></tr>
+					<tr><td>C</td><td>20%</td><td>[52429, 65536)</td><td>0xcccd</td></tr>
+					<tr><td colspan="3"></td><td>0xffff</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<p>Durch die Skalierung der Wahrschein&shy;lichkeitsinter&shy;valle stellen Sie sicher, dass Sie als Ergebnis nur 16-Bit-Zahlen erhalten. Beim Rechnen mit den beliebig langen Zahlen, die bei der Kompression entstehen können, wenden Sie einen Trick an: Sie behalten jeweils nur 16 Bit einer Zahl im Speicher, die restlichen schieben Sie bei Bedarf nach:</p>
+		<pre><code>
+Im temporären Speicher:
+1001 1110 0110 0111
+Bits zum Nachschieben:
+1100 0011 1010 0101 ...
+		</code></pre>
+		<p>Sie rechnen beim Ein- und Auspacken mit jeweils einem Low- und einem High-Wert. Stimmen beim Codieren einmal das höchstwertige Bit (Most Significant Bit, MSB) des <i>Low</i>- und des <i>High</i>-Wertes überein, ändert sich dieser Wert nicht mehr. Sie können ihn in die Ausgabedatei schreiben und haben somit wieder ein Bit mehr Platz für die weitere Berechnung.</p>
+		<p>Analog zu gleich bleibenden Bits der <i>Low</i>- und <i>High</i>-Werte beginnen die Folge&shy;intervalle in unserem Einführungs&shy;beispiel von [0.74, 0.77] in allen folgenden Schritten mit 0.7.... Der Unterschied ist, dass wir uns hier im Dezimalsystem befinden, bei dem eine Ziffer eine Stelle darstellt – bei der Bitrechnung ist jeweils ein Bit eine Stelle.</p>
+		<p>Tritt ein sogenannter „Underflow“ auf, wird der Abstand von <i>High</i> und <i>Low</i> so klein, dass Sie Ihn nicht mehr mit 16 Bit darstellen können. Beispielsweise liegen die beiden Werte</p>
+		<pre><code>
+Low = 0.399997;
+High = 0.4000001;
+		</code></pre>
+		<p>näher beisammen als der kleinste mit 16 Bit darstellbare Abstand von 1.0/ 65536.0.</p>
+		<p>Ist der Abstand zu klein und unterscheiden sich das jeweils höchstwertige Bit von <i>Low</i> und <i>High</i>, ist eine Spezial&shy;behandlung nötig. Sonst würde der temporäre 16-Bit-Wert überlaufen. In diesem Fall schieben Sie alle Bits in <i>Low</i> und <i>High</i> um eine Stelle nach links, lassen aber die höchstwertigen Bits stehen. Das dadurch weggefallene zweithöchst&shy;wertige Bit merken Sie sich und geben es dann mit aus, wenn wieder einmal die Most Significant Bits übereinstimmen.</p>
+		<p>Zuletzt müssen Sie Auftritts&shy;wahrscheinlich&shy;keiten der einzelnen Eingabesymbole und damit die Intervall&shy;grenzen bestimmen. Wenn Sie alle Auftritts&shy;häufigkeiten der Symbole in den zu kompri&shy;mierenden Daten zählen und diese unverändert lassen, haben Sie ein sogenanntes statisches Order-0-Modell. Wenn Sie zu Beginn der Komprimierung jedoch noch nicht alle Eingabesymbole kennen oder das Auftreten der Symbole innerhalb eines Datenstroms starken Schwankungen unterliegt, empfiehlt sich eine andere Vorgehensweise.</p>
+		<p>Im adaptiven Modell, das Sie bei der arithmetischen Daten&shy;kompression relativ einfach implementieren, aktualisieren Sie ständig die Auftritts&shy;wahrscheinlich&shy;keiten und somit die Intervalle. Der Algorithmus passt sich so besser an veränderte Symbol&shy;häufigkeiten in verschiedenen Teilen des Datenblocks an, eine verbesserte Kompressions&shy;rate ist die Folge.</p>
+		<p>Dazu verwenden Sie zwei Arrays, in denen Sie die statistischen Daten speichern:</p>
+		<pre><code>
+//Häufigkeit der Symbole
+int SymbolFrequenz[MAXSYM+1];
+//Kumulierte Häufigkeiten
+int SymbolKumuliert[MAXSYM+1];
+
+//Tabellen zur Umwandlung
+//von Zeichen in Intervalle
+int SymbolToIntervall[MAXSYM];
+int IntervallToSymbol[MAXSYM+1];
+		</code></pre>
+		<p>Den arithmetischen Packer und das Modell initialisieren Sie für die Kompression wie folgt:</p>
+		<pre><code>
+//Encoder
+low=0;
+high=0x20000;
+value=0;
+UnderflowBits=0;
+
+//nChars ist Anzahl der Eingabesymbole
+SymbolKumuliert[nChars] = 0;
+for(sym = nChars; sym &gt;= 1; sym--)
+{
+	ch = sym - 1;
+	SymbolToIntervall[ch] = sym;
+	IntervallToSymbol[sym] = ch;
+	SymbolFrequenz[sym] = 1;
+	SymbolKumuliert[sym - 1] =
+		SymbolKumuliert[sym] + SymbolFrequenz[sym];
+}
+SymbolFrequenz[0] = 0;
+		</code></pre>
+		<p>Es fehlt noch eine Funktion, die die Wahrschein&shy;lichkeiten anpasst, wenn neue Symbole hinzukommen. Erhöhen Sie den Eintrag <i>SymbolFrequenz[]</i> des hinzu&shy;gekommenen Symbols.</p>
+		<p>Dann erhöhen Sie die kumulierten Häufigkeiten aller folgenden Zeichen:</p>
+		<pre><code>
+i = symbol;
+SymbolFrequenz[i]++;
+while(--i &gt;= 0)
+	SymbolKumuliert[i]++;
+		</code></pre>
+		<p>Da Sie mit fixen Zahlen&shy;bereichen arbeiten, dürfen die kumulierten Wahrschein&shy;lichkeiten nicht zu groß werden. Ist dies der Fall, skalieren Sie einfach alle Häufigkeiten – Sie können Sie zum Beispiel halbieren:</p>
+		<pre><code>
+if(SymbolKumuliert[0] &lt;= 0x3fff)
+{
+	c = 0;
+	for(i = nChars; i &gt; 0; i--)
+	{
+		SymbolKumuliert[i] = c;
+		c += (SymbolFrequenz[i] =
+				(SymbolFrequenz[i] + 1) &gt; 1);
+	}
+	SymbolKumuliert[0] = c;
+}
+		</code></pre>
+		<p>Nach dem Codieren aller Daten müssen Sie den Encoder noch „flushen“, also alle in den 16 Bit gepufferten Bits sowie die Underflow-Bits ausgeben:</p>
+		<pre><code>
+UnderflowBits++;
+if(low &lt; 0x8000) Output(0);
+else Output(1);
+//Puffer flushen
+putcode(0, 8);
+		</code></pre>
+		<p>Die noch fehlende Ausgabe&shy;funktion schreibt das angegebene Bit - in unserem Fall immer das höchstwertige – sowie die angesammelten Underflow-Bits:</p>
+		<pre><code>
+Output(int bit)
+{
+	putcode(bit, 1);
+	for(; UnderflowBits &gt; 0; UnderflowBits--)
+		putcode(!bit, 1);
+}
+</code></pre>
+		<p>Jetzt können Sie einen arithmetischen En- und Decoder implementieren. Auf der Heft-CD im <i>Bonus</i>-Verzeichnis finden Sie den arithmetischen Daten&shy;komprimierer <i>lzari.c</i> von Haruhiko Okumura. Da er wie viele andere patentiert ist, ist eine kommerzielle Nutzung nicht ohne weiteres möglich. Es existieren aber patentfreie Modifikationen: sogenannte Range-Encoder.</p>
+	</section>
+
+	<section>
+		<h2>Bildkompression à la JPEG</h2>
+		<p>Statistische Packer kommen meist als letzte Stufe einer Reihe hintereinander geschalteter Kompressions&shy;algorithmen zum Einsatz. Wir zeigen Ihnen Verfahren der ersten Stufen, mit denen Sie Bilder verlust&shy;behaftet komprimieren. Die dabei verwendeten Algorithmen ähneln denen der JPEG-Kompression, teilweise sind sie sogar identisch. Farb&shy;informationen in einem TrueColor-Bild werden für jedes Pixel durch einen Wert für Rot, Grün und Blau (RGB) dargestellt. Es genügen drei Komponenten, um jede vom Menschen wahrnehmbare Farbe darzustellen. Dabei muss es sich nicht um Rot, Grün und Blau handeln.</p>
+		<figure class="floatright">
+			<img src="assets/200005_1.jpg" width="473" height="307" alt="DAS YIQ-VERFAHREN teilt Bildinformationen in Luminanz- und Chrominanzwerte.">
+			<figcaption><span>DAS YIQ-VERFAHREN</span> teilt Bild&shy;informationen in Luminanz- und Chrominanz&shy;werte.</figcaption>
+		</figure>
+		<p>Ein anderes Farbmodell ist das YIQ-Modell, das beim US-Farbfernsehen NTSC zum Einsatz kommt. Das <i>Y</i> steht für die Luminanz (Helligkeit). Schwarzweiß-Fernseher stellen lediglich diese <i>Y</i>-Komponente dar. Die Farb&shy;information (Chrominanz) ist in den beiden anderen Komponenten gespeichert. Das Bild unten zeigt, wie ein Farbbild in diese drei Komponenten zerlegt wird.</p>
+		<p>Auf Helligkeits&shy;änderungen reagiert das menschliche Auge sensibler als auf Farbänderungen oder Änderungen der Sättigung. Deshalb brauchen Sie für die Chrominanz&shy;werte nicht so viel Speicherplatz zu investieren wie für die Helligkeits&shy;informationen. Diesen Vorteil macht sich auch das amerikanische Fernsehen bei der YIQ-Übertragung zunutze. Dabei wird die <i>Y</i>-Komponenten mit einer Bandbreite von 4 MHz, <i>I</i> mit 1,5 MHz und <i>Q</i> mit 0,6 MHz übertragen.</p>
+		<p>Zum Umrechnen von RGB nach YIQ verwenden Sie die Formel</p>
+		<pre><code>
+[Y] [0.299  0.587  0.114] [R]
+[I]=[0.596 -0.275 -0.321] [G]
+[Q] [0.212 -0.523  0.311] [B]
+		</code></pre>
+		<p>Dies ist eine Matrix-Vektor-Multiplikation. Sie erhalten die RGB-Werte aus den YIQ-Werten, indem Sie diese mit der inversen Matrix multiplizieren:</p>
+		<pre><code>
+[R] [1  0.956  0.621] [Y]
+[G]=[1 -0.272 -0.647] [I]
+[B] [1 -1.105  1.702] [Q]
+		</code></pre>
+		<p>Der Grünwert trägt den größten Teil zur Helligkeit bei: 58.7 Prozent. Neben dem YIQ-Verfahren gibt es eine ähnliche Umrechnung von RGB in Luminanz und Chrominanz, die speziell für JPEG und MPEG gedacht ist:</p>
+		<pre><code>
+y = 77 / 256 * r + 150 / 256 * g + 29 / 256 * b;
+i = -44/256 * r - 87 / 256 * g + 131 / 256 * b;
+q = 131/256 * r - 110 / 256 * g - 21/256 * b;
+r = y + 1.371 * q;
+g = y - 0.698 * q - 0.336 * i;
+b = y + 1.732 * i;
+		</code></pre>
+		<p>Suchen Sie sich von den beiden obigen Umrechnungen eine aus. In den Quelltexten zum Artikel haben wir für Sie beide Möglichkeiten implementiert.</p>
+		<p>Nach dem Umrechnen der Bilddaten behandeln Sie zunächst jeden der drei YIQ-Kanäle separat. Die folgenden Beschreibungen beziehen sich jeweils nur auf einen dieser Kanäle: Zunächst zerteilen Sie das Bild in 8x8 Pixel große Blöcke, welche Sie dann der Reihe nach behandeln.</p>
+		<p>Auf jeden der Blöcke wenden Sie die Diskrete Cosinus-Transformation (DCT) an. Die für Sie wichtige Formel für einen 8x8-Pixel-Block lautet:</p>
+		<img class="math" alt="dct" src="assets/200005_4.png" width="361" height="188">
+		<figure class="floatright">
+			<img src="assets/200005_2.jpg" width="319" height="261" alt="DIE PIXEL innerhalb eines 8x8-Blocks unterscheiden sich meist nicht sehr stark.">
+			<figcaption><span>DIE PIXEL</span> innerhalb eines 8x8-Blocks unterscheiden sich meist nicht sehr stark.</figcaption>
+		</figure>
+		<p>Dabei sind <i>C[i][j]</i> die Transformations&shy;koeffizienten, <i>P[x][y]</i> die Pixelwerte des 8x8-Blocks (die Intensität des Pixels im aktuellen Farbkanal) und <i>G[i][j]</i> die trans&shy;formierten Daten.</p>
+		<p>Sie können Sich die Pixel als Punkte im drei&shy;dimensionalen Raum vorstellen, deren <i>x</i>- und <i>y</i>-Koordinate durch ihre Position im Bild und ihre <i>z</i>-Koordinate durch den entsprechenden Intensitäts&shy;wert gegeben ist. Die 8x8 Pixel sind dann Punkte auf einer Fläche.</p>
+		<p>Als Ergebnis erhalten Sie ein quadratisches Array mit 8x8 Realzahlen, die die Koeffizienten von überlagerten zwei&shy;dimensionalen Sinus&shy;funktionen darstellen. Diese würden Sie benötigen, um die Oberfläche zu rekonstruieren. Für eine eher flache Oberfläche sind die meisten <i>G[i][j]</i>-Werte gleich Null. Bei stark oszillierenden Flächen sind hingegen viele Werte ungleich Null.</p>
+		<p>Der linke obere Abschnitt von <i>G[i][j]</i> beschreibt die Beiträge nieder&shy;frequenter Sinus&shy;funktionen zur Oberfläche. Die Werte in der rechten unteren Hälfte sind das Resultat höher&shy;frequenter Funktionen. Diese Interpretation deutet die DCT als „harmonischen Analysator“. Die dazu inverse DCT (IDTC) können Sie als „harmonischen Synthesizer“ betrachten.</p>
+		<p>Der erste Wert <i>g[0][0]</i> ist der Koeffizient der Sinusfunktion, die mit einer Frequenz von Null schwingt. Daher ist <i>g[0][0]</i> die Basis&shy;helligkeit des analysierten 8x8-Blocks. Dieser Wert heißt auch DC-Koeffizient. Da ein Bild innerhalb eines 8x8-Blocks normalerweise keine starken Veränderungen aufweist, sind die anderen 63 Werte (die AC-Koeffizienten) im Verhältnis deutlich kleiner (siehe Bild rechts oben).</p>
+		<p>Ein 8x8-Block könnte so aussehen:</p>
+		<pre><code>
+136 131 135 139 135 138 139 145
+139 146 132 146 135 133 138 134
+148 145 140 144 148 132 134 149
+149 145 142 132 137 137 139 143
+149 140 132 139 150 146 145 130
+141 137 144 145 131 133 134 149
+132 143 146 146 133 146 144 135
+139 165 143 144 132 134 135 143
+		</code></pre>
+
+		<p>Das Resultat der DCT ist:</p>
+		<pre><code>
+1118  6   5  -6  7  4 -1 -5
+  -2  0   4   5  7 -5 -7  2
+ -10 -7  -5 -12 -2  6  2 -7
+  -4 -8 -33   3 -4  6  2 -3
+  -3 -4   4  11  0  0  4  6
+   3 -4   3  -6 -7 -2  7  2
+   0 -2   6 -11 15 -3  8  4
+   7 -3 -10  12  0 -1 -4  3
+		</code></pre>
+		<p>Diese Interpretation der DCT hilft dabei, die Bild&shy;informationen, deren Fehlen dem Betrachter nicht oder kaum auffallen wird, zu reduzieren. Dazu verringern Sie die Größe bzw. die Genauigkeit der 64 Zahlen – vor allem derjenigen in der unteren rechten Hälfte.</p>
+		<p>Die Bild&shy;informationen reduzieren Sie mit einer Quantisierungs&shy;matrix <i>Q</i>. Diese Matrix enthält einen Faktor für jeden der 64 <i>G[i][j]</i>-Werte. Sie teilen nun einfach jeden Wert <i>G[i][j]</i> durch <i>Q[i][j]</i>. Da Sie mit ganzzahligen Werten rechnen, entstehen dadurch noch mehr Werte gleich Null, die Sie eventuell nicht mehr speichern müssen. Die 64 Einträge der Quantisierungs&shy;matrix stellen den Datenverlust dar, den Sie beim Komprimieren in Kauf nehmen. Eine geschickte Wahl der Koeffizienten von <i>Q</i> ist also für die spätere Bildqualität entscheidend. Eine mögliche Matrix wäre</p>
+		<pre><code>
+static int quantization_matrix[64]=
+{
+	16,11,10,16,24,40,51,61,
+	12,12,14,19,26,58,60,55,
+	14,13,16,24,40,57,69,56,
+	14,17,22,29,51,87,80,62,
+	18,22,37,56,68,109,103,77,
+	24,35,55,64,81,104,113,92,
+	49,64,78,87,103,121,120,101,
+	72,92,95,98,112,100,103,99,
+};
+		</code></pre>
+		<p>Nach einer Quantisierung könnte das obige Resultat einer DCT so aussehen:</p>
+		<pre><code>
+1118 2  0  0 0 0 0 0
+   0 0  0  0 0 0 0 0
+  -2 0  0 -1 0 0 0 0
+   0 0 -3  0 0 0 0 0
+   0 0  0  0 0 0 0 0
+   0 0  0  0 0 0 0 0
+   0 0  0  0 0 0 0 0
+   0 0  0  0 0 0 0 0
+		</code></pre>
+		<p>Es bleibt eine ganze Reihe Nullen übrig. Das sind redundante Daten, die Sie mit einer geeigneten Codierung speichern müssen.</p>
+		<p>Dazu sortieren Sie den Block zunächst um, indem Sie die Felder im Zick-Zack-Verfahren von links oben nach rechts unten durchlaufen:</p>
+		<pre><code>
+static int zigzag_table[64]=
+{
+	0,1,8,16,9,2,3,10,17,24,32,
+	25,18,11,4,5,12,19,26,33,
+	40,48,41,34,27,20,13,6,7,
+	14,21,28,35,42,49,56,57,50,
+	43,36,29,22,15,23,30,37,44,
+	51,58,59,52,45,38,31,39,46,
+	53,60,61,54,47,55,62,63
+};
+
+for(i = 0; i &lt; 64; i++)
+	block_neu[i] = block[zigzag_table[i]];
+		</code></pre>
+		<p>Dadurch erreichen Sie, dass die Koeffizienten der Frequenz in aufsteigender Reihenfolge im ein&shy;dimensionalen <i>block_neu</i>-Array stehen. Suchen Sie den letzten Wert in <i>block_neu</i>, der ungleich Null ist. Speichern Sie bis dahin alle Werte, und hängen Sie ein spezielles Symbol an. Dieses dient als Markierung und zeigt beim Decodieren an, dass für den Block nicht mehr Koeffizienten gespeichert sind:</p>
+		<pre><code>
+for(j = 63; j != -1; j--) {
+	if(block[j]) break;
+	for(i = 0; i &lt;= j; i++)
+		&lt; Schreibe block[i]&gt;;
+		&lt; Schreibe BlockendeMarkierung&gt;;
+		</code></pre>
+		<p>Die Ausgabedaten der Quantisierung können Sie dem bereits vorgestellten arithmetischen Encoder übergeben, der sich um die statistische Kompression kümmert. Dazu muss er die Anzahl der verschiedenen Symbole kennen. Um das herauszufinden, puffern Sie die Werte, die Sie nach der Quantisierung und der Zick-Zack-Transformierung erhalten, erst einmal im Hauptspeicher. Sobald Sie wissen, mit wie vielen Symbolen Sie es zu tun haben, übergeben Sie alle Daten an den Encoder.</p>
+		<figure class="floatleft">
+			<img src="assets/200005_3.png" width="197" height="492" alt="ZU STARKE Quantisierung erzeugt die vom JPEG-Verfahren bekannten Block-Artefakte.">
+			<figcaption><span>ZU STARKE</span> Quantisierung erzeugt die vom JPEG-Verfahren bekannten Block-Artefakte.</figcaption>
+		</figure>
+		<p>Da Sie eine Quantisierung durchgeführt haben, können Sie die Originaldaten nicht mehr exakt rekonstruieren. Aber je nach Quantisierungs&shy;matrix erhalten Sie eine relativ gute Näherung davon.</p>
+		<p>Dazu lesen Sie alle Daten, die Sie von einem Block gespeichert haben. Den Rest des Blocks füllen Sie mit Nullen auf. Anschließend bringen Sie alle Werte wieder in die richtige Reihenfolge, die Sie durch die Zick-Zack-Transformation durcheinander&shy;gebracht haben.</p>
+		<p>Nun müssen Sie die Quantisierung rückgängig machen. Dieser Vorgang heißt Normalisierung. Dabei multiplizieren Sie die gelesenen Werte mit dem entsprechenden Eintrag der Quantisierungs&shy;matrix <i>Q</i>. Achten Sie darauf, dass Sie dieselbe Matrix wie beim Quantisieren verwenden. Sie erhalten die Frequenz&shy;koeffizienten, die Ihnen eine DCT geliefert hat. Darauf setzen Sie die IDCT an, um wieder die Pixeldaten zu bekommen:
+		<img class="math" alt="idct" src="assets/200005_5.png" width="360" height="188"></p>
+		<p>Speziell die IDCT können Sie durch mathematische Umformungen so gestalten, dass sie leichter zu berechnen ist. Den Code finden Sie auf der Heft-CD. Durch die IDCT kennen Sie die Pixel&shy;intensitäten, die denen des Originalbildes – je nach Quantisierung – mehr oder weniger gleichen. Was bei einer übertriebenen Quantisierung passiert, sehen Sie im Bild am rechten Rand.</p>
+		<p>Verfahren Sie mit jedem der YIQ-Kanäle wie beschrieben, und komprimieren Sie diese separat. Den <i>I</i>- und den <i>Q</i>-Kanal (Chrominanz-Werte) können Sie stärker quantisieren. Bei der JPEG-Kompression wird die Auflösung dieser Kanäle sogar halbiert oder geviertelt. Dadurch erreichen Sie höhere Kompressions&shy;raten und sind fast an der Leistungs&shy;fähigkeit von JPEG angelangt.</p>
+	</section>
+
+	<footer>
+		<p>Rüdiger Pein</p>
+		<p>© 2000 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Weiterführende Literatur:</b></p>
+		<p class="footnote">Salomon, David: Data Compression — The Complete Reference, Springer Verlag 1997, ISBN 0-38798280-9, etwa 80 Mark</p>
+		<p class="footnote">Nelson, Mark / Gailly, Jean-Loup: The Data Compression Book, M&amp;T Books 1996, ISBN 1-55851-434-1, etwa 75</p>
+		<p class="footnote">Mark Foley, van Dam, Feiner, Hughes, Phillips: Grundlagen der Computergrafik, Addison Wesley 1994, ISBN 3-89319-647-1, etwa 100 Mark </p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200004.html">4/2000</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200006.html">6/2000</a>
+	</nav>
+</body>

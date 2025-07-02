@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Beethoven aus Bits und Bytes (PC Underground, PC Magazin 3/2002)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;3/2002. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200202.html">2/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200204.html">4/2002</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Non Photorealistic Rendering</h2>
+		<h1>Beethoven aus <span class="highlight">Bits</span> und <span class="highlight">Bytes</span></h1>
+		<p class="summary">Bringen Sie Ihre Grafikkarte mit OpenGL dazu, Bilder in Echtzeit darzustellen, die <span class="highlight">wie handgemalt</span> aussehen. Die Grundlagen dazu lernen Sie in diesem Artikel kennen!</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200203_1.png" width="178" height="236" alt="DAS CARTOON-Rendering-Verfahren stellt die Beethoven-Büste vor.">
+			<figcaption><span>DAS CARTOON</span>-Rendering-Verfahren stellt die Beethoven-Büste vor.</figcaption>
+		</figure>
+		<p>In den bisherigen PC-Underground-Artikeln über 3D-Grafik&shy;programmierung haben Sie sich immer bemüht, möglichst realistische Berechnungen und Darstellungen durchzuführen. Das Ziel ist es, die Realität treffend nachzuahmen. Diesem Ziel streben Sie auch in dieser Ausgabe nach. Doch diesmal handelt es sich nicht um natürliche Phänomäne, sondern um handge&shy;zeichnete Grafiken, wie Sie sie aus Zeichentrick&shy;filmen (Cartoons) kennen. Damit steigen Sie in die Grundlagen des 3D-Cartoon-Renderings ein.</p>
+		<p>Das Cartoon-Rendering ist eines der Gebiete, die unter dem Begriff Non-Photorealistic Rendering (NPR) zusammen&shy;gefasst werden. Andere Themen von NPR sind, mit Hilfe von 3D-Hardware Schwarzweiß zu illustrieren, den Eindruck von Wasserfarben zu vermitteln oder Maltechniken mit Pinselstrichen nachzuahmen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200203.zip">💾 200203.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Inking</h2>
+		<figure class="floatright">
+			<img src="assets/200203_2.png" width="300" height="334" alt="BEETHOVEN muss sich mit den Kanten des Inking begnügen.">
+			<figcaption><span>BEETHOVEN</span> muss sich mit den Kanten des Inking begnügen.</figcaption>
+		</figure>
+		<p>Die erste Technik, die wir Ihnen hier vorstellen, ist das so genannte Inking. Dieser Begriff (ink: Tinte) bezeichnet, wie Sie die Randlinien einer Comicfigur oder eines Objekts bestimmen. Der Begriff Painting bezeichnet, wie Sie das durch Linien begrenzte Innere füllen oder färben. Damit folgt das Painting dem Inking.</p>
+		<p>Mit diesen beiden Techniken können Sie herkömmliche 3D-Modelle darstellen, wie Sie sie mit Milkshape 3D, 3D-Studio Max, Lightwave und anderen Modelling-Programmen geschaffen haben. Das Resultat unseres Beispiel&shy;programms dieser Ausgabe kann sich sehen lassen! Für das Inking benötigen Sie außer der Liste der Knoten und Dreiecke des 3D-Modells noch eine Liste mit allen Kanten. Verwenden Sie folgende Daten&shy;strukturen für ein 3D-Modell:</p>
+		<pre><code>
+// ein Knoten
+typedef struct
+{
+	GLfloat x, y, z;
+} VERTEX3D;
+
+// Fläche (3 Indizes + Normale)
+typedef struct
+{
+	GLint a, b, c;
+	VERTEX3D normal;
+} FACE;
+
+// Kante
+typedef struct
+{
+	GLint a, b;
+	int boundary;
+	int poly[2];
+} EDGE;
+
+VERTEX3D *pVertexList;
+VERTEX3D *pNormalList;
+EDGE *pEdgeList;
+EDGE *pRenderEdge;
+FACE *pFaceList;
+
+int nVertices,
+	nFaces,
+	nEdges,
+	nRenderEdges;
+		</code></pre>
+		<p>Die <i>pVertexList</i> und die <i>pFaceList</i> erhalten Sie aus den Daten der 3D-Modelle.</p>
+		<p>Auf der Heft-CD finden Sie neben dem Beispiel&shy;programm, das diese Daten einliest, einige 3D-Modelle im ASCII Format. Sie berechnen selbst die Normalen der Dreiecks&shy;flächen, der Knoten und die Kantenliste. Beginnen Sie zunächst mit den Dreiecks&shy;normalen. Diese Routine verwendet überladene Operatoren für die Vektorrechnung, die Sie in der Datei <i>VERTEX3DOP.h</i> finden:</p>
+		<pre><code>
+for(i = 0; i &lt; nFaces; i++)
+{
+	VERTEX3D *a1, *a2, *a3;
+	VERTEX3D a, b;
+	// Eckpunkte des Dreiecks
+	a1=&amp;pVertexList[pFaceList[i].a];
+	a2=&amp;pVertexList[pFaceList[i].b];
+	a3=&amp;pVertexList[pFaceList[i].c];
+	// zwei Kanten des Dreiecks
+	a = *a2 - *a1;
+	b = *a3 - *a1;
+	// Normale durch Kreuzprodukt
+	// der Kanten bestimmen
+	pFaceList[i].normal = a ^ b;
+	// und normalisieren
+	~pFaceList[i].normal;
+}
+		</code></pre>
+		<p>Die Normalen an den Vertices (Knoten) erhalten Sie, indem Sie jeweils den Summenvektor der Normalen aller Dreiecke nehmen, an denen der betrachtete Vertex beteiligt ist. Diesen Summenvektor müssen Sie anschließend normalisieren:</p>
+		<pre><code>
+for(i = 0; i &lt; nVertices; i++)
+	pNormalList[i].x =
+	pNormalList[i].y =
+	pNormalList[i].z = 0.0f;
+
+for(i = 0; i &lt; nFaces; i++)
+{
+	pNormalList[pFaceList[i].a]+=
+		pFaceList[i].normal;
+	pNormalList[pFaceList[i].b]+=
+		pFaceList[i].normal;
+	pNormalList[pFaceList[i].c]+=
+		pFaceList[i].normal;
+}
+
+for(i = 0; i &lt; nVertices; i++)
+	~pNormalList[i];
+		</code></pre>
+		<p>Als nächstes sind die Kanten des 3D-Objekts an der Reihe. Sie benötigen eine Liste, in der jede Kante nur einmal vorkommt. Eine Kante ist entweder eine Randkante, oder sie wird von zwei Dreiecken geteilt. Diese Unterscheidung werden Sie später noch benötigen, um festzustellen, welche Kanten Sie beim Inking zeichnen.</p>
+		<p>Legen Sie zwei Kantenlisten an. Die ers-te (<i>pEdgeList</i>) enthält alle Kanten, jede nur einmal. Die zweite Liste (<i>pRenderEdge</i>) ist zu Beginn leer. In dieser Liste werden für jedes gerenderte Bild die Kanten eingetragen, die beim Inking gezeichnet werden sollen. Bauen Sie wie folgt die Kantenliste auf:</p>
+		<pre><code>
+// genug Speicherplatz
+pEdgeList = new EDGE[nFaces * 3];
+pRenderEdge = new EDGE[nFaces * 3];
+nEdges = 0;
+
+// Makro
+#define ADDEDGE2LIST(pp,aa,bb) \
+	low = min(aa, bb); \
+	high = max(aa, bb); \
+	found = 0; \
+	for(j = 0; j &lt; nEdges; j++) \
+		if(pEdgeList[j].a==low &amp;&amp; \
+			pEdgeList[j].b == high) \
+		{ \
+			found = 1; break; \
+		} \
+
+	if (!found) \
+	{ \
+		pEdgeList[nEdges].a =low; \
+		pEdgeList[nEdges].b = high; \
+		pEdgeList[nEdges].poly[0] = pp; \
+		pEdgeList[nEdges++].boundary = 1; \
+	} else \
+	{ \
+		pEdgeList[j].poly[1] = pp; \
+		pEdgeList[j].boundary++; \
+	}
+
+// alle Kanten in die Liste übernehmen
+for(i = 0; i &lt; nFaces; i++)
+{
+	int low, high, found, j;
+	ADDEDGE2LIST(i,
+		pFaceList[i].a, pFaceList[i].b);
+	ADDEDGE2LIST(i,
+		pFaceList[i].a, pFaceList[i].c);
+	ADDEDGE2LIST(i,
+		pFaceList[i].b, pFaceList[i].c);
+}
+		</code></pre>
+		<p>An dieser Stelle haben Sie alle Vorbereitungen für die Daten getroffen, welche der Kanten des 3D-Objekts (aus einer bestimmten Perspektive betrachtet) für das Inking wichtig sind. Diese Aufgabe wird als <i>Silhouette Edge Detection</i> bezeichnet. Außer der Silhouette des 3D-Objekts gibt es noch zwei weitere Arten von Kanten, die für die Darstellung relevant sind: diejenigen, die sich am Rand des Dreiecksnetzes befinden und solche, an denen die Oberfläche des Dreiecks&shy;gitters einen starken Knick hat.</p>
+		<p>Die Berechnungen der Silhouette sind abhängig von der Blickrichtung und Betrachter&shy;position. Deshalb müssen Sie für jedes Frame (jedes gerenderte Bild) neu rechnen. Die Randkanten haben Sie bereits bestimmt, als Sie die Kanten aufgelistet haben: Sie sind nur Teil eines Dreiecks. Diese Definition lässt sich erweitern: Dazu legen Sie fest, dass es sich bei einer inneren Kante (die Teil zweier Dreiecke ist) um eine Randkante handelt. Das heißt, dass die benachbarten Dreiecke dort unterschied&shy;liche Material&shy;definitionen, Textur&shy;koordinaten oder Normalen besitzen. Diese Betrachtung ist später leicht in die Berechnung einzubauen.</p>
+		<p>Die Kriterien für eine Kante mit dem Index <i>i</i>, die beim Inking zu zeichnen ist, sind hier aufgeführt:<br>
+		• Die Kante ist Randkante, dann ist <i>pEdgeList[ i ].boundary=1</i><br>
+		• Handelt es sich um eine innere Kante, dann ist <i>(pEdgeList[ i ].boundary=2</i>). Hier befindet sie sich an einem starkem Knick der Oberfläche. Der Winkel überschreitet zwischen den Normalen der benachbarten Dreiecke eine vorher festgelegte Schwelle. Die Verweise auf die Nachbar&shy;dreiecke haben Sie in der Kantenstruktur gespeichert.<br>
+		• Die Kante ist Teil der Silhouette. Dann ist <i>pEdgeList[ i ].boundary= 2</i> und eine der Normalen der benachbarten Dreiecke zeigt zum Betrachter hin, die andere weg. Für diese Berechnung benötigen Sie die Blickrichtung des Betrachters. Diese Information finden Sie bei OpenGL in der Modelview Matrix. Hier die Berechnungen in C-Syntax:</p>
+		<pre><code>
+nRenderEdges = 0;
+for (i = 0; i &lt;nEdges; i++)
+{
+	int add2List = 0;
+
+	// Randkante ?
+	if(pEdgeList[i].boundary == 1)
+		add2List = 1;
+
+	if(pEdgeList[i].boundary == 2)
+	{
+		// Nachbardreiecke und Normalen
+		int p1 = pEdgeList[i].poly[0];
+		int p2 = pEdgeList[i].poly[1];
+		VERTEX3D *n1 = &amp;pFaceList[p1].normal,
+			*n2 = &amp;pFaceList[p2].normal;
+
+		// Auf Knick in der Oberfläche prüfen
+		// Skalarprodukt ist Cosinus des
+		// Winkels zwischen den Normalen
+		float dot = *n1 * *n2;
+		// 0.4 -&gt;arccos(0.4)=66 Grad
+		if(dot &lt; 0.4f)
+			add2List = 1;
+
+		// Kante der Silhoutte ?
+		//ein Vertex der Kante als Bezug
+		VERTEX3D *vertex = &amp;pVertexList[pEdgeList[i].a];
+
+		// Blickrichtung !
+		float matrix[16];
+		glGetFloatv(GL_MODELVIEW_MATRIX, matrix);
+		VERTEX3D viewVector;
+		viewVector.x = matrix[0 + 2];
+		viewVector.y = matrix[4 + 2];
+		viewVector.z = matrix[8 + 2];
+		~viewVector;
+
+		// Test, ob unterschiedliche
+		// Richtung der Normalen bzgl.
+		// der Blickrichtung
+		float dot1 = viewVector * *n1;
+		float dot2 = viewVector * *n2;
+		if((dot1*dot2) <= 0.00000001f)
+			add2List = 1;
+	}
+
+	// Hinzufügen, wenn eins der
+	// Kriterien erfüllt ist
+	if(add2List)
+		pRenderEdge[nRenderEdges++] =
+			pEdgeList[i];
+}
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200203_3.png" width="528" height="235" alt="BEETHOVEN mit den drei Rendering-Optionen unseres Beispielprogramms">
+			<figcaption><span>BEETHOVEN</span> mit den drei Rendering-Optionen unseres Beispielprogramms</figcaption>
+		</figure>
+		<p>Jetzt müssen Sie die gewonnenen Ergebnisse, also die Kanten, auf den Bildschirm bringen. Um die Linien, die nicht sichtbar sein sollten, weil sie durch die Oberfläche des 3D-Objekts verdeckt wären, unsichtbar zu machen, zeichnen Sie die Dreiecks&shy;flächen des Objekts, allerdings in der Hintergrund&shy;farbe und geringfügig vom Betrachter weg verschoben. Wenn Sie die Flächen des Objekts einfärben wollen, können Sie auch jede andere Farbe wählen. Der Zweck ist, den Z-Buffer (Tiefenpuffer) mit Werten zu füllen, so dass Kanten auf der Rückseite des Objekts nicht gezeichnet werden:</p>
+		<pre><code>
+glDisable(GL_BLEND);
+glDisable(GL_LIGHTING);
+glColor3ub(255, 255, 255);
+glEnable(GL_POLYGON_OFFSET_FILL);
+glPolygonOffset(1.0f, 5.0f);
+glBegin(GL_TRIANGLES);
+
+for(i = 0; i &lt; nFaces; i++)
+{
+	FACE *f = &amp;pFaceList[i];
+	glVertex3fv(&amp;pVertexList[f-&gt;a]);
+	glVertex3fv(&amp;pVertexList[f-&gt;b]);
+	glVertex3fv(&amp;pVertexList[f-&gt;c]);
+}
+
+glEnd();
+glDisable(GL_TEXTURE_2D);
+glDisable(GL_POLYGON_OFFSET_FILL);
+		</code></pre>
+		<p>Zeichnen Sie die Kanten. Außerdem sollten Sie, falls Sie den optionalen Anti-Aliasing-Teil verwenden, nochmals gesondert die Vertices als Punkte zeichnen. So vermeiden Sie Lücken in den Linienzügen. Beachten Sie, dass das Anti-Aliasing auf älteren 3D-Karten eventuell nicht unterstützt wird – oder sehr langsam ist.</p>
+		<p>Gleiches gilt übrigens auch für den Schalter <i>GL_POLYGON_SMOOTH</i>. Diesen sollten Sie standardmäßig mit <i>glDisable(...)</i> ausschalten, weil Treiber wie von GeForce diesen aktivieren. Mit dem Code zeichnen Sie die Linien:</p>
+		<pre><code>
+glDepthFunc(GL_LEQUAL);
+
+// Linienfarbe und -dicke wählen
+glColor3ub(0, 0, 0);
+glLineWidth(2);
+glPointSize(2);
+
+// –optional–
+// anti-aliasing
+glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+glEnable(GL_LINE_SMOOTH);
+glEnable(GL_POINT_SMOOTH);
+// –optional ende–
+
+glBegin(GL_LINES);
+for(i = 0;i &lt; nRenderEdges; i++)
+{
+	EDGE *e = &amp;pRenderEdge[i];
+	glVertex3fv(&amp;pVertexList[e-&gt;a]);
+	glVertex3fv(&amp;pVertexList[e-&gt;b]);
+}
+glEnd();
+
+glDepthFunc(GL_LESS);
+glBegin(GL_POINTS);
+for(i = 0; i &lt; nRenderEdges; i++)
+{
+	EDGE *e = &amp;pRenderEdge[i];
+	glVertex3fv(&amp;pVertexList[e-&gt;a]);
+	glVertex3fv(&amp;pVertexList[e-&gt;b]);
+}
+glEnd();
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Painting</h2>
+		<p>Nun können Sie die relevanten Kanten herausfinden und zeichnen. Füllen Sie im nächsten Schritt die Flächen aus. Auch hier greift der Artikel eine wichtige Methode von vielen heraus, um das Non-Photorealistic Rendering zu programmieren. In Cartoons ist oft zu beobachten, dass die Oberflächen der Objekte zwar schattiert werden, aber nur sehr wenige Farben zeigen, meist nur zwei bis drei: eine für im Schatten befindliche Teile, die Grundfarbe und eventuell noch eine Farbe für Highlights.</p>
+		<figure class="floatright">
+			<img src="assets/200203_4.png" width="256" height="249" alt="DIE SCHATTIERUNG der Oberflächen definieren Sie mit einer einfachen Textur.">
+			<figcaption><span>DIE SCHATTIERUNG</span> der Oberflächen definieren Sie mit einer einfachen Textur.</figcaption>
+		</figure>
+		<p>Wie simulieren Sie diesen Effekt mit Ihrer 3D-Hardware? Die Beleuchtung berechnen Sie selbst. Es genügt nicht, wenn Sie die Farben der Flächen oder Vertices bestimmen und an OpenGL weitergeben. Verwenden Sie Flatshading, bekommt jedes Dreieck eine eigene Farbe: Doch damit werden die Dreiecks&shy;grenzen selbst sichtbar. Oder Sie verwenden Gouraud-Shading, womit Sie Farbüberläufe auf einzelnen Dreiecken erhalten, obwohl Sie die Zahl der Farben reduzieren wollten. Die Lösung liegt im Texture-Mapping. Legen Sie in einem Bildbearbeit&shy;ungsprogramm Ihrer Wahl eine Textur an.</p>
+		<p>In dieser wenig spektakulär wirkenden Textur sehen Sie untereinander waagrecht vier frei definierte Farbübergänge, die aus drei Farbstufen bestehen. Sie können auch zwei oder mehr als drei Farben verwenden. Damit berechnen Sie die Beleuchtung für jeden Vertex. Den Helligkeits&shy;wert, den Sie erhalten, verwenden Sie als Texture-Mapping-Koordinate für die waagrechte Komponente. Die Farbe der Oberfläche, also welchen der Farbverläufe Sie wollen, bestimmen Sie mit der anderen, der vertikalen Komponente. Rendern Sie die Flächen des 3D-Modells statt einfarbig mit dieser Textur.</p>
+		<p>Zunächst müssen Sie für das 3D-Objekt eine weitere Liste speichern. Darin speichern Sie die Textur&shy;koordinaten:</p>
+		<pre><code>
+float *pTexCoordList = new float[2 * nVertices];
+		</code></pre>
+		<p>Die Textur (auf der Heft-CD) laden Sie über die <i>PCUTexture</i>-Wrapper-Klasse. Damit laden Sie <i>bmp</i>-Dateien einfacher als OpenGL Texturen:</p>
+		<pre><code>
+PCUTexture *colors = new PCUTexture();
+colors-&gt;loadBMP("texture.bmp");
+		</code></pre>
+		<p>Wenn Sie eine geladene Textur in OpenGL verwenden wollen, wählen Sie sie mit <i>colors-&gt;select()</i> aus.</p>
+		<p>Sie berechnen die Beleuchtung, bevor Sie die Dreiecke zeichnen. Dazu müssen Sie die Normalen der Vertices aus dem Objectspace (das lokale Koordinaten&shy;system des 3D-Modells) in den Worldspace transformieren. Der Worldspace ist das Koordinaten&shy;system, in dem alle 3D-Modelle und der Betrachter platziert werden. Diese Transformation nehmen Sie mit der inversen Matrix zur Modelview Matrix vor. Anschließend berechnen Sie den Helligkeits&shy;wert eines Vertex aus dem Skalarprodukt der trans&shy;formierten Normalen und einer festgelegten Lichtrichtung.</p>
+		<pre><code>
+MATRIX44 modelview, invmodel;
+
+// Matrix holen...
+glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
+// ... und invertieren
+InverseMatrixAnglePreserving(modelview, invmodel);
+
+// Beleuchtungsberechnung
+for(i = 0; i &lt; nVertices; i++)
+{
+	// Normale holen
+	VERTEX3D *n = &amp;pNormalList[i];
+	// in Worldspace transformieren
+	VERTEX3D tn;
+	tn.x = *n * *(VERTEX3D*)&amp;invmodel[0];
+	tn.y = *n * *(VERTEX3D*)&amp;invmodel[4];
+	tn.z = *n * *(VERTEX3D*)&amp;invmodel[8];
+	~tn;
+
+	// Lichtrichtung
+	VERTEX3D lightDir = { 0.0f, 1.0f, 1.0f };
+	// normalisieren
+	~lightDir;
+
+	// Helligkeit berechnen
+	float light = lightDir * tn;
+	if(light &lt; 0.1)
+		light = 0.1f;
+	if(light &gt; 0.9f)
+		light = 0.9f;
+
+	// Texturekoordinaten speichern
+	// Helligkeit
+	pTexCoordList[i * 2 + 0] = light;
+	// Farbverlauf wählen
+	pTexCoordList[i * 2 + 1] = texOffset;
+}
+		</code></pre>
+		<p>Aktivieren Sie das Textur-Mapping, um die Dreiecke zu zeichnen, und übergeben Sie die Textur&shy;koordinaten an OpenGL:</p>
+		<pre><code>
+glEnable(GL_TEXTURE_2D);
+colors-&gt;select();
+
+glBegin(GL_TRIANGLES);
+for(i = 0; i &lt; nFaces; i++)
+{
+	FACE *f = &amp;pFaceList[i];
+	glTexCoord2fv(&amp;pTexCoordList[f-&gt;a * 2]);
+	glVertex3fv(&amp;pVertexList[f-&gt;a]);
+	glTexCoord2fv(&amp;pTexCoordList[f-&gt;b * 2]);
+	glVertex3fv(&amp;pVertexList[f-&gt;b]);
+	glTexCoord2fv(&amp;pTexCoordList[f-&gt;c * 2]);
+	glVertex3fv(&amp;pVertexList[f-&gt;c]);
+}
+glEnd();
+
+glDisable(GL_TEXTURE_2D);
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200203_5.png" width="739" height="517" alt="SIE RENDERN die Flächen der Ameisen mit der Schattierung aus dem Bild auf S. 213.">
+			<figcaption><span>SIE RENDERN</span> die Flächen der Ameisen mit der Schattierung aus dem Bild auf S. 213.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Alternative Techniken</h2>
+		<p>Die Techniken, die Sie in diesem Artikel kennengelernt haben, bilden die Grundlage für das Inking und Painting.</p>
+		<p>Das auf Kanten basierende Inking ist eine Software-Lösung und daher portierbar. Die Kanten&shy;detektion der Silhouette ist von jedem Blickwinkel aus betrachtet korrekt. Die Schwelle für Knicke der Oberfläche ist frei wählbar. Die 3D-Hardware macht mit ihrem Z-Buffer die Kanten für Sie sichtbar. Der Nachteil ist der beträchtliche Rechenaufwand, der erforderlich ist, um die Kanten zu bestimmen.</p>
+		<p>Einen ganz anderen Ansatz verfolgt die nächste Technik, die Sie in <i>Cartoon-Rendering</i> von Sim Dietrich finden. Sie erhalten das Dokument unter der URL <a href="https://developer.nvidia.com/view.asp?IO=Cartoon_Rendering_GeForce_256" rel="external nofollow noreferrer">http://developer.nvidia.com/view.asp?IO=Cartoon_Rendering_GeForce_256</a></p>
+		<p>Das Verfahren berechnet mit der Hardware für jeden Pixel das Skalarprodukt aus der Normalen des Pixels und der Viewspace Position. Mit Hilfe einer gewählten Schwelle lässt sich feststellen, ob ein Pixel zur Silhouette gehört.</p>
+		<p>Der Vorteil dieser Methode liegt im Geschwindigkeits&shy;gewinn, also einer besseren Performanz auf der heutigen 3D-Hardware. Die Darstellung ist aber weniger genau. Um Knicke in der Objekt&shy;oberfläche zu gestalten, bedarf es aufwändiger Rechen&shy;verfahren.</p>
+		<p>Sie berechnen mit Vertex-Shadern Textur&shy;koordinaten aus der Beleuchtung des 3D-Objekts. Somit können Sie diese Aufgabe der Hardware überlassen. Wenn Sie zusätzlich zur Schattierung eine weitere Textur für Ihr 3D-Objekt verwenden wollen, müssen Sie hierzu allerdings auf die zweite Texturestage ausweichen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2002 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote">Interessantes zur 3D-Programmierung finden Sie auf den folgenden Websites:</p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.3dcafe.com" rel="external nofollow noreferrer">www.3dcafe.com</a>  viele freie 3D-Modelle</p>
+		<p class="footnote">Sim Dietrich, NVidia Corporation <a href="https://developer.nvidia.com/view.asp?IO=Cartoon_Rendering_GeForce_256" rel="external nofollow noreferrer">http://developer.nvidia.com/view.asp?IO=Cartoon_Rendering_GeForce_256</a></p>
+		<p class="footnote">Advanced Rendering Techniques Using OpenGL, SIGGRAPH 99 Course Notes</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200202.html">2/2002</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200204.html">4/2002</a>
+	</nav>
+</body>

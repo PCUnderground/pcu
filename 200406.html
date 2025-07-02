@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Schnell zur Schönschrift (PC Underground, PC Magazin 6/2004)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;6/2004. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200404.html">4/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200408.html">8/2004</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Das GDI+-Subsystem</h2>
+		<h1>Schnell zur <span class="highlight">Schönschrift</span></h1>
+		<p class="summary">GDI+, das neue Subsystem von Windows XP, vereinfacht und beschleunigt die <span class="highlight">Programmierung von Bildschirm- und Drucker&shy;ausgaben</span>. Im Artikel lesen Sie, wie Sie GDI+ in eigenen Applikationen mit Gewinn einzusetzen.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200406_1.png" width="254" height="304" alt="GDI+: Unser Beispielprogramm stellt eine Dialogbox mit einer Animation dar, die Sie mit wenigen Zeilen programmieren.">
+			<figcaption><span>GDI+:</span> Unser Beispielprogramm stellt eine Dialogbox mit einer Animation dar, die Sie mit wenigen Zeilen programmieren.</figcaption>
+		</figure>
+		<p>Das Window-GDI+-Subsystem von Windows XP und Windows Server 2003 ist für die Darstellung bzw. Ausgabe auf dem Bildschirm und Druckern verantwortlich. Sie greifen hierbei auf die Nachfolge API zu GDI (Windows Graphics Device Interface) über C++-Klassen zu, die bereits in älteren Windows-Versionen zur Verfügung standen.</p>
+		<p>Zwecks Abwärts&shy;kompatibilität unterstützen Windows XP/Server 2003 auch das bisherige GDI Interface, doch GDI+ können Sie leichter und schneller für neue Applikationen verwenden. Die Dienste von GDI+ lassen sich in drei große Bereiche unterteilen.<br>
+		● Der erste Punkt ist 2D-Vektor-Grafik. Damit ist das Zeichnen von Primitiven, wie Linien, Kurven etc., gemeint, die durch eine Menge von Punkten in einem Koordinaten&shy;system definiert sind, z.B. wird eine Linie durch Start- und Endpunkt definiert. GDI+ stellt Klassen zur Verfügung, die die Information über die Primitive selbst enthalten, Klassen, die speichern, wie die Primitive gezeichnet werden sollen, und Klassen, die das Zeichnen an sich übernehmen. So zeichnen Sie z.B. ein Rechteck mit der <i>Rect</i>-Klasse, speichern Dimension und Position per <i>Pen</i>-Klasse und Sie legen Linienfarbe, -dicke und -stil per <i>Graphics</i>-Klasse fest.<br>
+		● Bild&shy;bearbeitung ist der zweite Aufgaben&shy;bereich, der durch GDI+ abgedeckt wird. Darunter fällt die Verwaltung und das Zeichnen von Bitmaps, wofür eine Reihe von Klassen und Methoden zur Verfügung stehen. Außerdem wird die Funktionalität zum Laden und Speichern von Bitmaps in verschiedenen Formaten, wie z.B. JPG, PNG, BMP, bereitgestellt.<br>
+		● Der dritte und letzte Bereich ist die Typographie, also die Darstellung von Text mit verschiedenen Schriftarten, -größen und Attributen. Hierzu zählt z.B. auch die Textdar&shy;stellung mit Subpixel-Antialiasing für TFT-Bildschirme.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200406.zip">💾 200406.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Die Klassenstruktur</h2>
+		<p>Das C++-Interface von GDI+ besteht aus etwa 40 Klassen, zahlreichen <i>Enumerations</i> und wenigen <i>Structures</i>. Weiterhin gibt es noch eine kleine Zahl von Funktionen, die nicht <i>Member</i> einer Klasse sind. Die Klasse <i>Graphics</i> ist gleichsam der Kernpunkt des GDI+-Interface: Hier finden Sie die Methoden, die Linien, Kurven, Bilder und Text zeichnen. Wie bereits erwähnt, ist die Graphics Klasse auf die Informationen aus anderen Klassen angewiesen, um z.B. Linien mit einer bestimmten Farbe (Pen) zu zeichnen. Es gibt Klassen, die primär als Datencontainer dienen, wie z.B. die <i>Rect-, Point</i> und <i>Size</i> Klasse, und für verschiedene Zwecke eingesetzt werden. Andere sind spezielle Hilfsklassen, wie z.B. die <i>BitmapData</i> Klasse, die Bildattribute und -daten für die <i>Bitmap</i> Klasse speichert, die wiederum Methoden zur Bild&shy;manipulation bereitstellt.</p>
+		<p>Zu GDI+ gehören aber auch einige Funktionen, die nicht Bestandteil einer Klasse sind. Die beiden wichtigsten Funktionen sind <i>GdiplusStartup</i>, die Sie vor einem anderen GDI+-Befehl aufrufen müssen, und <i>GdiplusShutdown</i>, die Sie verwenden, wenn Sie alle GDI+-Aufrufe abgeschlossen haben.</p>
+	</section>
+
+	<section>
+		<h2>GDI+ Step by Step</h2>
+		<p>Schrittweise demonstrieren wir Ihnen die Verwendung der wichtigsten GDI+-Funktionen anhand eines einfachen Beispiels. Unser Beispiel&shy;programm öffnet eine modale Dialogbox, deren <i>Window Procedure</i> beim Empfang einer <i>WM_PAINT</i> Nachricht unsere GDI+-Kommandos abarbeitet, um eine einfache Animation darzustellen.</p>
+		<p>Mit einem Timer – gesetzt beim Empfang der <i>WM_INITDIALOG</i> Nachricht – wird das Neuzeichnen des Dialoginhalts regelmäßig mit <i>InvalidateRect(...)</i> erzwungen. Beim Start des Programms initialisieren Sie zunächst GDI+ und erzeugen die Dialogbox:</p>
+		<pre><code>
+GdiplusStartupInput gdipStartupInput;
+		</code></pre>
+		<p>Das zurück&shy;gelieferte <i>gdiplusToken</i> übergeben Sie bei Programmende wieder:</p>
+		<pre><code>
+GdiplusShutdown(gdiplusToken);
+		</code></pre>
+		<p>Widmen Sie sich also nun der <i>WM_PAINT</i>-Behandlung. Um auf einen <i>Device</i> Kontext zu zeichnen, müssen Sie dazu ein Graphics Objekt erzeugen. Dieses Objekt speichert alle Attribute für ein Device und die Attribute der Primitive, die Sie zeichnen:</p>
+		<pre><code>
+Graphics graphics(hdc);
+		</code></pre>
+		<p>Da Sie, um Flackern zu vermeiden, nicht direkt in den Dialog zeichnen wollen, legen Sie ein Bitmap mit der richtigen Größe an und verwenden dieses später zum Zeichnen – dazu benötigen Sie ein Graphics Objekt, das mit dem Bitmap assoziiert ist:</p>
+		<pre><code>
+RECT rect;.....
+		</code></pre>
+		<p>Zum Einstieg zeichnen Sie eine Linie in das Bitmap. Dazu benötigen Sie einen <i>Pen</i>, der Farbe und Strichstärke der Linie speichert. Anschließend können Sie mit der <i>Graphics::DrawLine</i>-Methode die Linie von <i>(0,0)</i> nach <i>(77,44)</i> zeichnen:</p>
+		<pre><code>
+Pen p(Color(alpha, red, green, blue));
+graph-&gt;DrawLine(&amp;pen, 0, 0, 77, 44);
+		</code></pre>
+		<p>Um das Ergebnis zu sehen, müssen Sie das Bitmap noch auf den <i>Device Context</i> der Dialogbox kopieren. Um ein Bitmap auf ein Graphics Objekt zu zeichnen (und um nichts anderes handelt es sich hier), verwenden Sie folgenden Aufruf, wobei das <i>Rectangle</i> den zu zeichnenden Bereich angibt:</p>
+		<pre><code>
+graphics.DrawImage(&amp;bmp, rect);
+		</code></pre>
+		<p>Abschließend deklarieren Sie den Client-Bereich der Dialogbox, d.h. die Region des Bildschirms, die Sie aufgrund der <i>WM_PAINT</i>-Nachricht aktualisieren sollten:</p>
+		<pre><code>
+ValidateRect(hDlg, &amp;rect);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200406_3.jpg" width="301" height="258" alt="Neue Fähigkeiten: GradientBrush mit Farbverlauf und Cardinal Splines mit GraphicsPath">
+			<figcaption><span>Neue Fähigkeiten:</span> <i>GradientBrush</i> mit Farbverlauf und <i>Cardinal Splines</i> mit <i>GraphicsPath</i></figcaption>
+		</figure>
+		<p>Das Beispiel&shy;programm setzt noch weitere Grafik&shy;funktionen ein: Wie Sie vielleicht bemerkt haben, haben wir den Hintergrund des Bitmaps gar nicht gelöscht. Der Inhalt ist also undefiniert. Zum Löschen des Bildhinter&shy;grundes zeichnen Sie ein Rechteck in der gewünschten Farbe. Um Flächen einzufärben, verwenden Sie keinen <i>Pen</i>, sondern einen so genannten <i>Brush</i>. Ein <i>Brush</i> ist ein Füllmuster, das eine einzelne Farbe, einen Farbverlauf oder eine Textur enthalten kann.</p>
+		<p>Um den Hintergrund einfarbig zu kolorieren, legen Sie einen <i>SolidBrush</i> an und rufen damit die <i>FillRectangle</i> Methode des Graphics Objektes auf:</p>
+		<pre><code>
+SolidBrush brush(Color(255, 0, 0, 0));
+graph-&gt;FillRectangle(&amp;brush, rect);
+		</code></pre>
+		<p>Wenn Sie den Hintergrund mit einem Farbverlauf füllen möchten, ist das für GDI+ kein Problem. Sie tauschen lediglich den <i>Brush</i> aus und verwenden statt einem <i>SolidBrush</i> einen <i>LinearGradientBrush</i>. Das folgende Beispiel (Quellcode Heft-CD) erzeugt einen Farbverlauf von halb-transparentem Gelb zu opakem Blau, der diagonal (45 Grad Rotation) verläuft:</p>
+		<pre><code>
+LinearGradientBrush ...
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200406_4.jpg" width="744" height="544" alt="TextureBrush: Diese Beispieltextur verwendet Brush mit WrapMod Optionen.">
+			<figcaption><span>TextureBrush:</span> Diese Beispieltextur verwendet <i>Brush</i> mit <i>WrapMode</i> Optionen.</figcaption>
+		</figure>
+		<p>Die dritte hier vorgestellte Variante ist der <i>TextureBrush</i>. Dem Konstruktor dieser Klasse übergeben Sie ein Image Objekt. Ein Image Objekt stellt Methoden zur Verfügung, um Bitmaps und Vektorgrafik zu laden und zu speichern. Die Bilddaten werden dabei im Objekt gehalten und mit einer Reihe von Methoden können Sie auf Attribute zugreifen. Die Image Klasse kann auch Bilddateien verschieden&shy;ster Formate wie <i>BMP, ICON, GIF, JPEG, PNG, TIFF</i> lesen. Dazu verwenden Sie diese Klasse auch, wenn Sie wie im Beispiel einen <i>TextureBrush</i> anlegen. Laden Sie damit eine Bilddatei und übergeben Sie das Image dem <i>Brush</i>-Konstruktor:</p>
+		<pre><code>
+Image image(L"./data/image.jpg");
+		</code></pre>
+		<p>Der Wert des zweiten Parameters des Konstruktor (Quellcode auf der Heft-CD) gibt an, dass das Bild beim Füllen einer Fläche gekachelt wird, wobei verschiedene Optionen ein abwechselungs&shy;reiches Bild ergeben.</p>
+		<p>Sowohl der <i>LinearGradientBrush</i> als auch der <i>TextureBrush</i> bieten Trans&shy;formationen an, d.h. der <i>Brush</i> kann verschoben, skaliert oder rotiert werden. Dazu speichern diese Klassen intern eine Transformations&shy;matrix, die Sie direkt angeben oder modifizieren können. Die Matrix definiert eine affine Abbildung, speichert diese aber in einer 3x3-Matrix, von der die dritte Zeile immer die Werte <i>(0,0,1)</i> enthält. Mit der Methode <i>ResetTransform</i> setzen Sie die Abbildung zurück. Anschließend können Sie z.B. die <i>RotateTransform(30.0f, MatrixOrderPrepend)</i>, eine Rotations&shy;abbildung, erzeugen und mit der bereits gespeicherten verknüpfen. Der zweite Parameter gibt an, dass die Multiplikation der Rotations&shy;matrix links an die bereits gespeicherten stattfindet.</p>
+		<p>Beachten Sie, dass die Matrix&shy;multiplikation nicht kommutativ ist und dass sich Abbildungen anschaulich von rechts nach links aufbauen. Um die Matrix am rechten Rand zu multiplizieren, verwenden Sie den Parameter <i>MatrixOrderAppend</i>.</p>
+		<p>Die letzte hier vorgestellte Funktionalität des Graphics Objektes ist die Textausgabe. Als erstes benötigen Sie ein <i>FontFamily</i> Objekt, das eine Gruppe von Schriftarten mit demselbem Aussehen aber unterschied&shy;lichem Stil repräsentiert:</p>
+		<pre><code>
+FontFamily fontFamily(L"Arial");
+		</code></pre>
+		<p>Jetzt benötigen Sie noch ein Font Objekt, das die Familie wie Schriftgröße, Art und Stil beinhaltet, um den Text auszugeben. So erhalten Sie einen Arial-Font der Größe 35 in kursiver Fettschrift:</p>
+		<pre><code>
+Font font(&amp;fontFamily, 35,
+	FontStyleItalic | FontStyleBold,
+	UnitPixel);
+		</code></pre>
+		<p>Schließlich speichern Sie noch die Position in einer <i>PointF</i> Klasse und geben per Graphics Objekt den Text aus:</p>
+		<pre><code>
+PointF position(5.0f, 55.0f);...
+		</code></pre>
+	</section>
+
+	<aside>
+		<h2>Installation des Platform SDK und der Redistributables</h2>
+		<div>
+			<p>Um das Beispiel&shy;programm zu kompilieren, benötigen Sie die GDI+-Headerdateien und Libraries. Diese sind Bestandteil des Microsoft SDK (Platform SDK). Sie finden online eine Anleitung zur Installation: <a href="https://www.microsoft.com/msdownload/platformsdk/sdkupdate" rel="external nofollow noreferrer">www.microsoft.com/msdownload/platformsdk/sdkupdate</a>.</p>
+			<p>Auf der Webseite finden Sie mehrere SDKs zur Auswahl. GDI+ ist Teil des Core SDK, das Sie auf Ihrem Rechner installieren können, indem Sie den Instruktionen folgen. Anschließend müssen Sie nur noch die <i>Include</i> und <i>Library</i> Pfade Ihres C++-Compilers anpassen. Bei Visual C++ 6.0 finden Sie diese Einstellungen unter <i>Tools/Optionen</i>, bei Visual Studio .NET unter <i>Extras/Optionen</i> im Unterpunkt <i>Projects/VC++ Verzeichnisse</i>.</p>
+			<p>Wenn Sie in einer Ihrer Applikationen GDI+ verwenden und diese auf einem älteren System wie Windows 2000 laufen lassen wollen, müssen Sie die notwendigen DLLs mit Ihrem Programm mitliefern. Die dazu notwendigen Dateien sind im <i>Platform SDKRedistributable: GDI+ RTM</i> Paket enthalten, das Sie unter folgender URL finden können: <a href="https://www.microsoft.com/downloads/" rel="external nofollow noreferrer">www.microsoft.com/downloads/</a>.</p>
+		<figure class="large">
+			<img src="assets/200406_2.jpg" width="464" height="335" alt="Platform SDK: Mit der Online Installation erhalten Sie Headerdateien und Bibliotheken, um GDI+-Applikationen zu entwickeln.">
+			<figcaption><span><i>Platform SDK</i>:</span> Mit der Online Installation erhalten Sie Headerdateien und Bibliotheken, um GDI+-Applikationen zu entwickeln.</figcaption>
+		</figure>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Speichern mit der Image Klasse</h2>
+		<p>Wie erwähnt, laden und speichern Sie per <i>Image</i> Bilddateien in verschieden&shy;sten Formaten. Als erstes legen Sie ein <i>IStream</i> Objekt an, welches Sie in den Bibliotheken des Platform SDK finden (Kasten), um Daten im Hauptspeicher ablegen und auslesen zu können.</p>
+		<pre><code>
+IStream *stream;...
+		</code></pre>
+		<p>Als nächstes wählen Sie den <i>Encoder</i> mit einer Hilfsfunktion aus der MSDN Library, um dessen entsprechende <i>Class ID</i> auszulesen:</p>
+		<pre><code>
+CLSID jpegClsid;....
+		</code></pre>
+		<p>Diese – im Source Code in der MSDN Library enthaltene – Funktion enumeriert alle installierten Encoder und sucht anhand des übergebenen Bezeichner-Strings die entsprechende Class ID heraus. Diese übergeben Sie später an die Bitmap oder Image Klasse für das Encoding des Bildes. Nachdem Sie die Class ID bekommen haben, legen Sie noch die Kompressions&shy;parameter für das JPEG-Encoding fest. Diese speichern Sie in der <i>EncoderParameters</i> Klasse (ein Container für <i>EncodeParameter</i> Objekte). Jeder Eintrag besteht aus einem Identifier (z.B. <i>EncoderQuality</i>), dem Typ der Variablen (<i>EncoderParameterValueTypeLong</i>), Anzahl der Werte und der Adresse des Wertes:</p>
+		<pre><code>
+EncoderParameters enc;....
+		</code></pre>
+		<p>Damit können Sie das Bitmap bereits kodieren lassen und die resultierenden Daten in den Stream schreiben:</p>
+		<pre><code>
+graph-&gt;Save(stream, &amp;jpegClsid,
+	&amp;encoderParameters);
+		</code></pre>
+		<p>Per <i>Seek</i>-Kommando erfragen Sie die Größe der Bilddatei, die sich im Speicher des Streams befindet:</p>
+		<pre><code>
+ULARGE_INTEGER compressedSize;....
+		</code></pre>
+		<p>Eine Methode, die Daten zu speichern, ist, Speicher außerhalb dieses Streams zu allokieren, die Daten dort hin zu kopieren und mit beliebigen Datei&shy;funktionen zu schreiben:</p>
+		<pre><code>
+FILE *f = fopen("bild.jpg", "wb");..
+		</code></pre>
+		<p>Mit den GDI+-Funktionen der Image Klasse können Sie somit auch sehr einfach Bildformate konvertieren, indem Sie Bilddateien laden und mit der gerade vorgestellten Methode in einem anderen Format speichern. Oder Sie verwenden den obigen Code, um Fensterinhalte als Bilddateien abzulegen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2004 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200404.html">4/2004</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200408.html">8/2004</a>
+	</nav>
+</body>

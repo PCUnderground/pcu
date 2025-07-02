@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Spiel-Szene (PC Underground, PC Magazin 11/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;11/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200110.html">10/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200112.html">12/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Animierte Modelle mit Milkshape 3D</h2>
+		<h1><span class="highlight">Spiel-Szene</span></h1>
+		<p class="summary">Um Spielfiguren zu entwickeln, animieren Sie Ihre Milkshape-3D-Polygonmodelle mit <span class="highlight">realistischen Knochensystemen</span>.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Den 3D-Modellen, die Sie in der letzten Ausgabe von PC Underground (10/01, S. 238) geschaffen haben, fehlt noch ein Knochengerüst. In diesem Beitrag zeigen wir Ihnen, wie Sie mit Milkshape Ihre 3D-Modelle mit Hilfe von Knochen&shy;systemen (Bone Systems) realistisch animieren und in eigene Spiele einbauen.</p>
+		<figure class="floatright">
+			<img src="assets/200111_1.jpg" width="473" height="353" alt="DAS KNOCHENSKELETT des Ego-Shooters Unreal Tournament">
+			<figcaption><span>DAS KNOCHENSKELETT</span> des Ego-Shooters Unreal Tournament</figcaption>
+		</figure>
+		<p>Beim Modellieren eines humanoiden Lebewesens bilden Sie ein Knochenskelett nach. Dieses enthält nicht so viele Knochen wie das menschliche Skelett. Im Egoshooter <i>Unreal Tournament</i> finden Sie ein Skelett, das etwa 40 Knochen enthält.</p>
+		<p>Bauen Sie das 3D-Modell (Dreiecke) auf. Die Form des Modells sollte sich den Gegebenheiten des möglichst genau gebildeten Skeletts anpassen. Gehen Sie vor, wie in der letzten Ausgabe beschrieben: Texturieren Sie das 3D-Modell.</p>
+		<p>Jedem Vertex des Modells weisen Sie einen Knochen zu, mit dem er assoziiert ist. Die Bewegung dieses Knochens wirkt sich auf den Vertex und damit assoziierte Vertizes aus. Sie müssen bei der Animation des 3D-Modells nur das Skelett animieren, das Modell passt sich den Bewegungen an. Sie können so Animationen, die Sie einmal auf Basis des Skeletts angelegt haben, für mehrere 3D-Modelle verwenden.</p>
+		<p>Das Skelett ist hierarchisch aufgebaut: Knochen können anderen Knochen untergeordnet sein. So bewegen sich der Unterarm und alle daran befestigten Knochen mit, wenn das Modell den Oberarm bewegt. Diese Animations&shy;technik heißt <i>Skeletal Animation</i>. Auf Grund der Rechenleistung heutiger Hardware hat sie in nahezu allen modernen Spielen Einzug gehalten. Ihre Vorteile: Sie können Animationen wieder&shy;verwenden, verschiedene Animation überblenden und überlagern.</p>
+		<p>So animieren Sie zwei Abläufe unterschied&shy;lich voneinander: In der ersten Animation lassen Sie eine Spielfigur laufen. Die zweite beschreibt eine Drehung des Kopfes zur Seite. Die Spielfigur kann gehend den Kopf zur Seite drehen.</p>
+		<p>Für diese Animations&shy;technik gibt es Hardware, die über 30000 Mark kostet. Diese Motion&shy;capturing-Systeme bauen grob ein Skelett und versehen eine Person, von der Sie Bewegungen aufzeichnen wollen, mit Sensoren oder Marken. Anschließend zeichnet der Computer anhand der Sensoren oder Kamerabilder die Bewegungs&shy;abläufe auf und speichert diese für Ihr Skelett. So erreichen Studios realistische Bewegungen in Perfektion.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200111.zip">💾 200111.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Ein Roboterarm entsteht</h2>
+		<figure class="floatright">
+			<img src="assets/200111_2.jpg" width="473" height="330" alt="UNSER ROBOTERARM besteht aus fünf Bones und sechs Joints.">
+			<figcaption><span>UNSER ROBOTERARM</span> besteht aus fünf Bones und sechs Joints.</figcaption>
+		</figure>
+		<p>Anhand eines Roboterarms erkennen Sie die hierarchische Animation, und Sie überschauen die Anzahl der Knochen (Bones) – in diesem Fall der Armteile. Der Roboterarm soll komplett drehbar sein, zwei Armsegmente und eine Greifhand besitzen.</p>
+		<p>Sie benötigen fünf Knochen. Diese sind in Milkshape 3D durch Joints (Verbindungs&shy;stücke/Gelenke) definiert. Ein Bone beginnt und endet in einem Joint.</p>
+		<p>Sie legen Joints an, indem Sie im Model-Tab von Milkshape 3D das <i>Joint-Tool</i> wählen, und die Joints in den <i>Modelling</i>-Fenstern per Mausklick positionieren. Milkshape 3D erzeugt automatisch einen Bone zwischen einem neu eingefügten und dem letzten Joint. Wenn Sie an einem Joint einen zweiten Bone befestigen wollen, dann wählen Sie den entsprechenden Joint im <i>Joints-Tab</i>. Er wird dann rot dargestellt. Die schon daran befindlichen Bones sind grün zu erkennen.</p>
+		<figure class="floatright">
+			<img src="assets/200111_3.jpg" width="473" height="330" alt="AN EINEM JOINT können Sie mehrere Bones befestigen.">
+			<figcaption><span>AN EINEM JOINT</span> können Sie mehrere Bones befestigen.</figcaption>
+		</figure>
+		<p>Im nächsten Schritt modellieren Sie den Roboterarm. Das Beispiel begnügt sich mit einfachen Zylindern und einer Kugel, die grob die Form gestalten. Sie haben nun die Möglichkeit das Aussehen des Roboters nach Ihren Vorstellungen zu verfeinern.</p>
+		<figure class="floatright">
+			<img src="assets/200111_4.jpg" width="473" height="330" alt="WEISEN SIE allen Vertizes einen Bone zu.">
+			<figcaption><span>WEISEN SIE</span> allen Vertizes einen Bone zu.</figcaption>
+		</figure>
+		<p>Weisen Sie den Vertizes der Zylinder jeweils einen Bone zu. Dazu markieren Sie die Vertizes mit dem <i>Select-Tool</i> aus dem <i>Model-Tab</i>. Wählen Sie im <i>Joints-Tab</i> den <i>Joint</i> und damit alle daran befestigten (unter&shy;geordneten) <i>Bones</i> aus, und klicken Sie auf den <i>Assign</i>-Button. Beachten Sie folgende Punkte:<br>
+		•Beginnen Sie in der Hierarchie ganz oben, und arbeiten Sie sich nach unten durch. Das vereinfacht die Zuweisungen. Beim Roboterarm fällt die Entscheidung, welche Vertizes welchen Bones zugeordnet werden sollen, leicht, weil Sie die 3D-Teile des Arms der Reihe nach anlegen. Bei einem Low-Polygon-Modell eines Menschen sind eventuell mehrere Versuche nötig, um das beste Ergebnis zu erzielen. Das 3D-Modell soll möglichst genau entlang dem Skelett verlaufen. Weisen Sie alle Vertizes zu. Um herauszufinden, welche Sie noch nicht bearbeitet haben, deselektieren Sie zunächst alle eventuell markierten Vertizes. Wenn Sie auf den <i>Select unassigned</i> (<i>SelUnAssigned</i>) Button klicken, markiert Milkshape 3D alle diese Vertices für Sie. Analog bewirkt der <i>Select Assigned</i> (<i>SelAssigned</i>) Button, dass alle Vertices, die mit dem gerade gewählten Bone assoziiert sind, sichtbar werden.</p>
+	</section>
+
+	<section>
+		<h2>Skelett animieren</h2>
+		<p>Animieren Sie das Skelett. Aktivieren Sie im Menü die Funktion <i>ShowKeyframer</i>. Im unteren Teil des Programm&shy;fensters erscheinen eine Zeitachse und diverse Buttons. Mit dem <i>Anim</i>-Button aktivieren Sie die Animations&shy;modellierung.</p>
+		<p>Beim Keyframing legen Sie die Stellung der Gelenke, also die Position und Drehung der Joints, nur für bestimmte Zeitpunkte fest. Die Positionen und Winkel zwischen den angegebenen Zeitpunkten bestimmt das Animations&shy;programm durch Interpolation.</p>
+		<p>Mit dem Schieberegler wählen Sie einen Zeitpunkt (ein <i>Frame</i>), für den Sie einen Animations&shy;schritt festlegen wollen. Mit den Optionen <i>Select</i>, <i>Move</i> und <i>Rotate</i> aus dem <i>Model-Tab</i> können Sie den Roboterarm in jede mögliche Position bringen. Wenn Ihnen das Resultat zusagt, speichern Sie das Frame mit dem Menüpunkt <i>Animate/Set Keyframe</i> oder mit der Tasten&shy;kombination <i>[Strg-K]</i>.</p>
+		<p>Wenn Sie alle Keyframes festgelegt haben, können Sie die fertige Animation mit dem <i>Play</i>-Button oder durch Bewegung des Schiebereglers auf der Zeitachse ansehen und überprüfen. Wenn Sie Ihre Arbeit als <i>MS3D</i>-Datei speichern, werden alle <i>Bone</i>- und <i>Keyframing</i>-Informationen automatisch mit abgelegt.</p>
+	</section>
+
+	<section>
+		<h2>Animationen in eigenen Programmen</h2>
+		<p>Das Beispiel&shy;programm der letzten Ausgabe las die Vertex-, Polygon- und Material-Informationen von <i>MS3D</i>-Dateien aus. Diese Informationen erschienen in den Dateien immer in der gleichen Reihenfolge. Ebenso verhält es sich mit Animations&shy;daten, die den Materialdaten folgen. Zuerst finden Sie die <i>Frames per Second</i>, das in Milkshape 3D ausgewählte Frame und die Gesamtzahl der Frames in der <i>MS3D</i>-Datei:</p>
+		<pre><code>
+float fAnimationFPS;
+float fCurrentTime;
+int iTotalFrames;
+		</code></pre>
+		<p>Als nächstes finden Sie den 16-Bit-Wert <i>unsigned word</i>, der die Anzahl der Joints im Skelett angibt:</p>
+		<pre><code>word nJoints;</code></pre>
+		<p>Um die Animations&shy;daten einzulesen, definieren Sie folgende Strukturen:</p>
+		<pre><code>
+typedef struct
+{
+	float time;
+	float rotation[3];
+} MS3D_KEYFRAME_ROT;
+
+typedef struct
+{
+	float time;
+	float position[3];
+} MS3D_KEYFRAME_POS;
+
+typedef struct
+{
+	byte flags;
+	char name[32];
+	char parentName[32];
+	float rotation[3];
+	float position[3];
+	word nKeyFramesRot;
+	word nKeyFramesPos;
+	MS3D_KEYFRAME_ROT *keyFramesRot;
+	MS3D_KEYFRAME_POS *keyFramesPos;
+} MS3D_JOINT;
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200111_5.png" width="806" height="625" alt="UNSER EIGENER Milkshape-3D-Animationsplayer">
+			<figcaption><span>UNSER EIGENER</span> Milkshape-3D-Animationsplayer</figcaption>
+		</figure>
+		<p>Die Strukturen <i>MS3D_KEYFRAME_</i> <i>ROT</i> und <i>MS3D_KEYFRAME_POS</i> enthalten die Rotation oder Position eines Joints für ein Keyframe. Diese Werte werden in einem Array der <i>MS3D_</i> <i>JOINT</i>-Struktur gespeichert. Diese Struktur enthält außer Flags deren Namen und den Namen des in der Hierarchie höheren Joints (<i>parentName</i>). Außerdem sind die initiale Position und Rotation gespeichert. Die Daten lesen Sie in der Reihenfolge, die Sie in der <i>MS3D_JOINT</i>-Struktur finden, aus der <i>MS3D</i>-Datei aus.</p>
+	</section>
+
+	<aside>
+		<h2>SPIEL-PROJEKTE UND LINKS</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Spiel</th><th>Link</th><th>Genre</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>Die Germanen</td><td><a href="https://www.bigbytesoftware.de" rel="external nofollow noreferrer">www.bigbytesoftware.de</a></td><td>3D-Strategie</td></tr>
+					<tr><td>Operation Red Falcon</td><td><a href="https://www.operationredfalcon.com" rel="external nofollow noreferrer">www.operationredfalcon.com</a></td><td>Halflife Mod</td></tr>
+					<tr><td>SCS</td><td><a href="https://www.nirwana-games-development.4d2.de" rel="external nofollow noreferrer">www.nirwana-games-development.4d2.de</a></td><td>Weltraum Shooter</td></tr>
+					<tr><td>Takatis</td><td><a href="https://www.poke53280.de.vu" rel="external nofollow noreferrer">www.poke53280.de.vu</a></td><td>2D Shoot’Em’Up</td></tr>
+					<tr><td>Tank Hunter</td><td><a href="https://www.stefanzerbst.de" rel="external nofollow noreferrer">www.stefanzerbst.de</a></td><td>Ego Shooter</td></tr>
+					<tr><td>VVL Extreme</td><td><a href="https://www.cwr-spiele.de" rel="external nofollow noreferrer">www.cwr-spiele.de</a></td><td>Ego Shooter</td></tr>
+					<tr><td>Weststorm</td><td><a href="https://www.banshee-interactive.de" rel="external nofollow noreferrer">www.banshee-interactive.de</a></td><td>3D-Shooter</td></tr>
+					<tr><td>DUSMANIA2001</td><td><a href="https://www.xenoage.de/dusmania2001/" rel="external nofollow noreferrer">www.xenoage.de/dusmania2001/</a></td><td>Berichte zur DUS</td></tr>
+					<tr><td>Hobby-Spieleentwickler</td><td><a href="https://www.untergrund-spiele.4players.de" rel="external nofollow noreferrer">www.untergrund-spiele.4players.de</a></td><td>Portal</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Erste Positionierung der Bones</h2>
+		<p>Nachdem Sie alle Daten aus der <i>MS3D</i>-Datei gelesen haben, müssen Sie die Vertizes entsprechend der initialen Position und Rotation der zugehörigen Bones transformieren. Auf Grund der zusammen&shy;gesetzten Rotation und Translation (Verschiebung) und des hierarchischen Aufbaus der Animation setzen Sie Matrizen ein. Speichern Sie für jeden Bone mehrere Matrizen. Diese umfassen die Zwischen&shy;ergebnisse, die relative Transformation eines Bones sowie die absolute:</p>
+		<pre><code>
+typedef float MATRIX[4][4];
+
+typedef struct
+{
+	MATRIX mRelative;
+	MATRIX mAbsolute;
+	MATRIX mRelativeFinal;
+	MATRIX mFinal;
+} BONE;
+
+pBone = new BONE[nJoints];
+		</code></pre>
+		<p>Die initiale Positionierung berechnen Sie für jeden Bone. Die folgende Routine geht davon aus, dass in der Bone-Liste die Hierarchie absteigend ist. Das heißt, entweder ist ein Joint Beginn eines Knochens, oder das in der Hierarchie nächsthöhere Joint, mit dem es einen Bone bildet, ist vorher in der Liste enthalten.</p>
+		<p>Für jeden Joint berechnen Sie die Rotations&shy;matrix (<i>createRotationMatrix(...)</i>) und fügen die Translation hinzu, die sich bei einer 4x4-Matrix in der rechten Spalte befindet. Die Matrixroutinen finden Sie in der Datei <i>matrix.h</i> und in fast jeder mathematischen Formelsammlung:</p>
+		<pre><code>
+for(i = 0; i &lt; nJoints; i++)
+{
+	MS3D_JOINT *bone = &amp;pJoint[i];
+	createRotationMatrix(pBone[i].mRelative,
+		bone-&gt;rotation[0]);
+
+	// Translation
+	pBone[i].mRelative[0][3] = bone-&gt;pos[0];
+	pBone[i].mRelative[1][3] = bone-&gt;pos[1];
+	pBone[i].mRelative[2][3] = bone-&gt;pos[2];
+		</code></pre>
+		<p>Jetzt suchen Sie den in der Hierarchie nächsthöheren Joint. Beginnt mit dem aktuellen Joint ein Knochenstrang, werden Sie keinen <i>Parent Bone</i> finden, womit Sie die oben berechnete Transformations&shy;matrix speichern. Wenn Sie einen <i>Parent Bone</i> finden, müssen Sie dessen Transformations&shy;matrix mit der Matrix des aktuellen Bones multiplizieren und speichern:</p>
+		<pre><code>
+// nächsthöheren Joint suchen
+nParentBone = -1;
+for(int j = 0; j &lt; nJoints; j++)
+	if(strcmp(pJoint[j].name, bone-&gt;parentName) == 0)
+	{
+		nParentBone = j;
+		break;
+	}
+
+if(nParentBone != -1)
+{
+	// Parent Bone gefunden
+	pBone[i].mAbsolute = pBone[i].mRelative *
+		pBone[nParentBone].mAbsolute);
+	pBone[i].mFinal = pBone[i].mAbsolute;
+} else
+{
+	// kein Parent Bone
+	pBone[i].mAbsolute = pBone[i].mRelative;
+	pBone[i].mFinal = pBone[i].mRelative;
+}
+		</code></pre>
+		<p>Transformieren Sie alle Vertizes mit der inversen Transformations&shy;matrix des assoziierten Bones. Es ist nicht notwendig, aufwändige mathematische Verfahren zur Matrix&shy;inversion anzuwenden, da es sich beim Rotationsteil um eine <i>orthogonale</i> 3x3-Matrix handelt. Bei dieser ist die transponierte Matrix gleich der inversen. Die Verschiebung können Sie invertieren, indem Sie vor der Rotation die Verschiebung negiert anwenden:</p>
+		<pre><code>
+for(int j = 0; j &lt; nVertices; j++)
+{
+	MS3D_VERTEX *pV = &amp;pVertex[j];
+	if(pV-&gt;boneId != -1)
+	{
+		MATRIX *a = &amp;pBone[pV-&gt;boneId].mAbsolute;
+		pV-&gt;vertex[0] -= a[0][3];
+		pV-&gt;vertex[1] -= a[1][3];
+		pV-&gt;vertex[2] -= a[2][3];
+		invrotate(temp,
+			pBone[pV-&gt;boneId].mAbsolute,
+			pV-&gt;vertex);
+
+		pV-&gt;vertex = temp;
+	}
+}
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Animationframe berechnen</h2>
+		<p>Berechnen Sie die Transformations&shy;matrizen für ein bestimmtes Animations-Frame. Dabei gehen Sie in etwa so vor wie bei der Initialisierung. Zunächst haben Sie ein Frame, also eine Zeit, angegeben. Behandeln Sie wieder einen Joint nach dem anderen. Für jeden Joint haben Sie die Arrays</p>
+		<pre><code>
+MS3D_KEYFRAME_ROT *keyFramesRot;
+MS3D_KEYFRAME_POS *keyFramesPos;
+		</code></pre>
+		<p>gespeichert, in denen die Zeitpunkte, die Rotations- oder Positions&shy;informationen abgelegt sind. Suchen Sie für jeden Joint jeweils die nächsten <i>Keyframe</i>-Informationen, die vor und nach dem gewünschten Frame liegt. Dadurch haben Sie ein Zeitintervall gegeben und können die Werte interpolieren, wie Sie sie an Hand der Positions&shy;berechnung sehen:</p>
+		<pre><code>
+MS3D_KEYFRAME_POS
+	*pLastPositionKey = NULL,
+	*pThisPositionKey = NULL;
+
+for(j = 0; j &lt; nPositionKeyCount; j++)
+{
+	pPositionKey = &amp;bone-&gt;keyFramesPos[j];
+	if (pPositionKey-&gt;time >= frame)
+	{
+		pThisPositionKey = pPositionKey;
+		break;
+	}
+	pLastPositionKey = pPositionKey;
+}
+
+// Position interpolieren
+d = pThisPositionKey-&gt;time -
+	pLastPositionKey-&gt;time;
+s = (frame - pLastPositionKey-&gt;time) / d;
+vPos = pLastPositionKey-&gt;position +
+	(pThisPositionKey-&gt;position -
+	pLastPositionKey-&gt;position) * s;
+		</code></pre>
+		<p>Mit der berechneten Rotation und Translation erzeugen Sie wieder die relative Transformations&shy;matrix. Wenn der gerade betrachtete Joint an einem hierarchisch höher angesiedelten Joint befestigt ist, berück&shy;sichtigen Sie wieder dessen Transformation, genau wie bei der Initialisierung. Zuletzt wenden Sie die berechneten Transformationen auf die Vertizes an: Sie erhalten genau die Animation, die Sie vorher in Milkshape 3D angelegt haben! Um bei der Animation die korrekte Beleuchtung der 3D-Objekte zu gewährleisten, müssen Sie die Normalen transformieren. Wenden Sie nur die Rotation auf die Normalen&shy;vektoren an, nicht die Translation: Verwenden Sie in <i>matrix.h</i> die Funktion <i>rotate(...)</i> und nicht <i>transform(...)</i>.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200110.html">10/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200112.html">12/2001</a>
+	</nav>
+</body>

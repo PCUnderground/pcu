@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Kein Licht ohne Schatten (PC Underground, PC Magazin 3/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;3/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200302.html">2/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200304.html">4/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Dynamische Texturen mit P-Buffers</h2>
+		<h1><span class="highlight">Kein Licht</span> ohne Schatten</h1>
+		<p class="summary">Viele <span class="highlight">Techniken der Computergrafik</span> wie das Rendering von Schatten oder prozedurale Texturen benötigen dynamisch erzeugte Texturen. Wir zeigen, wie Sie dynamische Texturen in OpenGL effizient rendern.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>3D-Engines und Computerspiele enthalten oft dynamisch erzeugte (gerenderte) Texturen. Mit dieser Technik können Sie Shadow Maps, Feedback-Effekte, Impostors, Dynamische Cube/Environment Maps und viele andere Dinge darstellen.</p>
+		<p>In dieser Ausgabe lernen Sie P-Buffers kennen und erfahren, wie Sie diese effizient einsetzen. Ein P-Buffer ist ein <i>OffScreen</i> (nicht sichtbarer) Pixel Buffer, der einen eigenen OpenGL-Kontext besitzt. Zu einem Kontext gehören alle Einstellungen der OpenGL States wie Matrizen, Material&shy;parameter, Lichtquellen und Texturen.</p>
+		<p>Der Vorteil eines P-Buffers ist, dass seine Auflösung und sein Pixel-Format unabhängig vom aktuellen Darstellungs&shy;modus sind. Hingegen ist der On-Screen-Buffer, also der normale Rendering Buffer, an die Bildschirm-Auflösung und -Farbtiefe gebunden.</p>
+		<p>In einen P-Buffer können Sie genauso rendern wie in einen On-Screen-Buffer und dazugehörigen OpenGL-Kontext. Um P-Buffers zu verwenden, muss Ihre OpenGL-Implementation die Erweiterung <i>WGL_ARB_pixel_format</i> und <i>WGL_ARB_pbuffer</i> unterstützen.</p>
+	</section>
+
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200303.zip">💾 200303.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Einen P-Buffer anlegen</h2>
+		<p>Zunächst benötigen Sie die Zeiger auf die Funktionen, welche die erwähnten OpenGL Extensions definieren. Diese Zeiger holen Sie sich mit dem Befehl <i>wglGetProcAdress</i> während der Initialisierung. Die benötigten Funktionen finden Sie in der Tabelle auf Seite 170.</p>
+		<p>Nun legen Sie den P-Buffer an. Weil ein Programm mehrere P-Buffers einsetzen kann, definieren Sie eine Klasse, die Ihnen Arbeit abnimmt und alle benötigten Informationen speichert:</p>
+		<pre><code>
+class CPBuffer
+{
+private:
+	HPBUFFERARB hPBuffer;
+	HDC hDC;
+	HGLRC hRC;
+
+	// Größe
+	int sizeX, sizeY;
+	// Texture
+	GLuint textureID;
+	// Status
+	int exists;
+public:
+	CPBuffer(int _x, int _y, HDC hDC);
+	~CPBuffer();
+
+	int bind();
+	int release();
+	int makeCurrent();
+	GLuint getTexID() { return textureID; };
+};
+		</code></pre>
+		<p>Den schwierigsten Teil stellt der Konstruktor dar, der den P-Buffer erzeugt. Zunächst müssen Sie festlegen, welches Pixel-Format der P-Buffer hat. Bei dieser Klasse legen Sie immer einen Buffer mit folgenden Parametern (mit Null terminiert) an, die Sie beliebig für jeden einzelnen P-Buffer modifizieren können:</p>
+		<pre><code>
+hPBuffer = NULL;
+sizeX = _x;
+sizeY = _y;
+int pfAttribute[] =
+{
+	// Verwendung von OpenGL
+	WGL_SUPPORT_OPENGL_ARB, TRUE,
+	WGL_DRAW_TO_PBUFFER_ARB, TRUE,
+
+	// P-Buffer als Texture
+	WGL_BIND_TO_TEXTURE_RGBA_ARB, TRUE,
+
+	// RGBA 8888 Format
+	WGL_RED_BITS_ARB, 8,
+	WGL_GREEN_BITS_ARB, 8,
+	WGL_BLUE_BITS_ARB, 8,
+	WGL_ALPHA_BITS_ARB, 8,
+
+	// &gt;16 Bit Z-Buffer
+	WGL_DEPTH_BITS_ARB, 16,
+
+	// kein Double Buffer
+	WGL_DOUBLE_BUFFER_ARB, FALSE, 0
+};
+		</code></pre>
+		<p>Dann überprüfen Sie, ob ein solches Format unterstützt wird. Mit <i>wglChoosePixelFormatARB</i> können Sie eine Liste von Pixel-Formaten anfordern, mit der sie die notwendigen Parameter am besten an Ihren Programmlauf anpassen. Wollen Sie nur ein Format erhalten, verwenden Sie den Aufruf</p>
+		<pre><code>
+int pixelFormat, nFormat = 0;
+wglChoosePixelFormatARB(
+	hDC, pfAttribute, NULL, 1,
+	&amp;pixelFormat, &amp;nFormat);
+
+if(nFormat == 0)
+	kein passendes Format !
+		</code></pre>
+		<p>Ist das Pixel-Format bestimmt, können Sie die Verwendung des P-Buffers festlegen. Um ihn als dynamische 2D-Textur zu verwenden, definieren Sie folgendes Parameter-Array:</p>
+		<pre><code>
+int pbAttribute[] =
+{
+	// Texture Format RGBA 8888
+	WGL_TEXTURE_FORMAT_ARB,
+	WGL_TEXTURE_RGBA_ARB,
+
+	// 2D Texture
+	WGL_TEXTURE_TARGET_ARB,
+	WGL_TEXTURE_2D_ARB, 0
+};
+		</code></pre>
+		<p>und erzeugen den P-Buffer:</p>
+		<pre><code>
+hPBuffer = wglCreatePbufferARB(
+	_hDC, pixelFormat,
+	sizeX, sizeY, pbAttribute);
+
+hDC = wglGetPbufferDCARB(hPBuffer);
+hRC = wglCreateContext(hDC);
+
+if(!hPBuffer)
+	P-Buffer nicht ok !
+		</code></pre>
+		<p>Zuletzt überprüfen Sie, ob der P-Buffer korrekt angelegt wurde, indem Sie seine Größe mit der gewünschten – gegeben durch die Konstruktor&shy;parameter <i>_x</i> und <i>_y</i> – vergleichen:</p>
+		<pre><code>
+int __x, __y;
+wglQueryPbufferARB(hPBuffer,
+	WGL_PBUFFER_WIDTH_ARB, &amp;__x);
+wglQueryPbufferARB(hPBuffer,
+	WGL_PBUFFER_HEIGHT_ARB, &amp;__y);
+
+if(!(__x == sizeX &amp;&amp; __y == sizeY))
+	Größe nicht ok !
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Rendering mit P-Buffers</h2>
+ 		<p>Um in den P-Buffer rendern zu können, müssen Sie dessen Kontext als den aktuellen <i>OpenGL Rendering Context</i> wählen. Zu einem OpenGL-Kontext gehören alle Einstellungen zu Matrizen, Kamera, Texturen, Lichtquellen etc.</p>
+ 		<p>Die Einstellungen für den P-Buffer können und müssen unabhängig vom normalen (sichtbaren) Rendering-Kontext gesetzt werden. Befehle, die solche OpenGL States modifizieren, werden immer auf den aktuell gewählten Kontext angewendet. Den Kontext eines P-Buffers wählen Sie mit der Methode <i>makeCurrent()</i> der obigen Klasse aus. Diese sieht wie folgt aus:</p>
+		<pre><code>
+int CPBuffer::makeCurrent()
+{
+	// P-Buffer angelegt ?
+	if (!exists) return 0;
+
+	// Auswählen
+	if(!wglMakeCurrent(hDC, hRC))
+		return 0;
+
+	return 1;
+}
+		</code></pre>
+		<p>Wenn Sie diese Methode aufrufen, beziehen sich alle darauf folgenden OpenGL-Aufrufe nur noch auf den P-Buffer. Diesen können Sie mit <i>glClear(...)</i> löschen und rendern. Um auf den normalen On-Screen-Kontext zurückzukommen, rufen Sie die <i>wglMakeCurrent</i>-Funktion mit dem Device Context und dem OpenGL Rendering Context auf, den Sie für das normale OpenGL-Fenster erzeugt haben. Diese Initialisierung übernimmt der OpenGL Framework Code für Sie.</p>
+	</section>
+
+	<aside>
+		<h2>FUNKTIONEN VON WGL_ARB_PIXEL_FORMAT UND WGL_ARB_PBUFFER</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Funktion</th><th>Erläuterung</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>wglChoosePixelFormatARB</td><td>Abfrage/Auswahl eines Pixel-Formats</td></tr>
+					<tr><td>wglCreatePbufferARB</td><td>Erzeugen eines Pixel-Buffers, liefert Handle zurück</td></tr>
+					<tr><td>wglGetPbufferDCARB</td><td>Erzeugt ein Device Context für einen P-Buffer</td></tr>
+					<tr><td>wglReleasePbufferDCARB</td><td>Gibt obigen Device Context wieder frei</td></tr>
+					<tr><td>wglDestroyPbufferARB</td><td>Zerstört P-Buffer</td></tr>
+					<tr><td>wglQueryPbufferARB</td><td>Abfrage von Breite/Höhe des P-Buffers und ob der P-Buffer nach einer Änderung der Bildschirm&shy;auflösung noch existiert</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Dynamische Texturen</h2>
+		<figure class="large">
+			<img src="assets/200303_1.jpg" width="941" height="457" alt="KOPIEREN SIE DEN P-BUFFER-INHALT über den Systemspeicher in eine Textur.">
+			<figcaption><span>KOPIEREN SIE DEN P-BUFFER-INHALT</span> über den Systemspeicher in eine Textur.</figcaption>
+		</figure>
+		<p>Die bisher vorhandene Funktionalität erlaubt es Ihnen, einen P-Buffer mit beliebigem Format anzulegen und etwas darauf zu rendern. Jetzt können Sie dessen Inhalt als Textur für den On-Screen-Context verwenden. Allerdings müssen Sie den Inhalt des P-Buffers in den Systemspeicher kopieren und als Textur wieder dem anderen Kontext übergeben. Der Ablauf laut der Darstellung des vorigen Bilds entspricht dann dem Code:</p>
+		<pre><code>
+// Initialisierung
+CPBuffer *pBuffer = new pBuffer(512, 512, hDC);
+pBuffer-&gt;makeCurrent();
+
+... // Rendern auf den P-Buffer
+
+// kopieren des P-Buffer Inhalts
+GLubyte data[512 * 512 * 4];
+glReadPixels(0, 0, 512, 512,
+	GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+// On-Screen Context
+wglMakeCurrent(os_hDC, os_hRC);
+
+// Texture generieren &amp; upload
+glGenTextures(1, &amp;tID);
+glBindTexture(GL_TEXTURE_2D, tID);
+glTexImage2D(GL_TEXTURE_2D, 0,
+	GL_RGBA, 512, 512, 0, GL_RGBA,
+	GL_UNSIGNED_BYTE, data);
+		</code></pre>
+		<p>Diese Vorgehensweise ist nicht sehr schnell. Mit dem <i>glReadPixels</i>- und dem <i>glTexImage2D</i>-Befehl kopieren Sie Daten aus dem Speicher der Grafikkarte und anschließend wieder hinein. Diesen Aufwand können Sie vermeiden.</p>
+		<p>Mit OpenGL können Sie die Display Lists und Texturen für verschiedene Rendering Contexts gemeinsam nutzen. Diese Variante gestattet es Ihnen, eine Textur anzulegen und in diese direkt den Inhalt des P-Buffers mit <i>glCopyTexSubImage2D</i> zu kopieren.</p>
+		<p>Die Contexts müssen die Texturen gemeinsam nutzen. So aktivieren Sie diese:</p>
+		<pre><code>
+if(wglShareLists(os_hDC, pBuffer-&gt;hDC))
+	//ok-&gt; gemeinsame Nutzung
+		</code></pre>
+		<p>Das Äquivalent zum obigen Code-Ausschnitt für dynamische Texturen ist dadurch vereinfacht und schneller:</p>
+		<pre><code>
+// Initialisierung
+CPBuffer *pBuffer = ...;
+glGenTextures(1, &amp;tID);
+glBindTexture(GL_TEXTURE_2D, tID);
+glTexImage2D(GL_TEXTURE_2D, 0,
+	GL_RGBA, 512, 512, 0, GL_RGBA,
+	GL_UNSIGNED_BYTE, data);
+
+// P-Buffer füllen
+pBuffer-&gt;makeCurrent();
+// Texture kopieren
+glBindTexture(GL_TEXTURE_2D, tID);
+glCopyTexSubImage2D(GL_TEXTURE_2D,
+	0, 0, 0, 0, 0, 512, 512);
+
+// On-Screen Context
+wglMakeCurrent(os_hDC, os_hRC);
+		</code></pre>
+		<p>In der obigen Variante ist immer noch der <i>glCopyTexSubImage2D</i>-Funktions&shy;aufruf enthalten, der den P-Buffer-Inhalt in eine Textur kopiert.</p>
+		<p>Doch warum muss er kopiert werden, schließlich befindet er sich schon im Speicher der Grafikkarte und könnte gleich als Textur verwendet werden? Die Antwort: Er muss nichts kopiert werden, sofern Ihre Grafikkarte die Erweiterung <i>WGL_ARB_render_texture</i> unterstützt.</p>
+		<figure class="large">
+			<img src="assets/200303_2.jpg" width="941" height="297" alt="KOPIEREN SIE DEN P-BUFFER-INHALT mit Shared Textures.">
+			<figcaption><span>KOPIEREN SIE DEN P-BUFFER-INHALT</span> mit Shared Textures.</figcaption>
+		</figure>
+		<p>Die P-Buffer-Klasse enthält noch zwei nicht spezifizierte Methoden, die genau für diesen Zweck gedacht sind. Es ist nämlich möglich, den P-Buffer an eine Textur eines anderen Kontexts zu binden. Das bedeutet, der Inhalt der Textur muss nicht vom Systemspeicher oder einem OpenGL-Kontext kopiert werden, sondern ist automatisch der Inhalt des P-Buffers.</p>
+		<p>Das Anbinden erfolgt mit der <i>bind()</i>-Methode:</p>
+		<pre><code>
+int CPBuffer::bind()
+{
+	if(!exists) return 0;
+
+	if(!wglBindTexImageARB(hPBuffer,
+		WGL_FRONT_LEFT_ARB))
+			return 0;
+
+	return 1;
+}
+		</code></pre>
+		<p>Genauso müssen Sie die Verbindung einer Textur wieder aufheben können, weil Sie sonst den Inhalt des P-Buffers nicht weiter modifizieren können:</p>
+		<pre><code>
+int CPBuffer::release()
+{
+	if (!exists) return 0;
+
+	if(!wglReleaseTexImageARB(hPBuffer,
+		WGL_FRONT_LEFT_ARB))
+			return 0;
+
+	return 1,
+}
+		</code></pre>
+		<p>Mit diesen Methoden sieht die Rendering-Schleife nun folgendermaßen aus:</p>
+		<pre><code>
+// Initialisierung
+CPBuffer *pBuffer = ...;
+glGenTextures(1, &amp;tID);
+glBindTexture(GL_TEXTURE_2D, tID);
+glTexImage2D(GL_TEXTURE_2D, 0,
+	GL_RGBA, 512, 512, 0, GL_RGBA,
+GL_UNSIGNED_BYTE, data);
+
+// P-Buffer füllen
+pBuffer-&gt;makeCurrent();
+
+// Texture kopieren
+glBindTexture(GL_TEXTURE_2D, tID);
+pBuffer-&gt;bind();
+
+// On-Screen Context
+wglMakeCurrent(os_hDC, os_hRC);
+
+//Zeichen: P-Buffer als Textur
+
+pBuffer-&gt;release();
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Mipmapping</h2>
+		<p>Um Aliasing-Effekte für klein dargestellte Texturen zu vermeiden, verwenden Sie Mipmaps, also verkleinerte Abbilder von Texturen. Für Ihre statischen Texturen können Sie diese im Normalfall selbst erzeugen und an OpenGL übergeben, oder Sie gebrauchen <i>gluBuild2DMipmaps(...)</i> anstelle von <i>glTexImage2D(...)</i>. </p>
+		<p>Beide Varianten sind allerdings nicht so effizient wie die der Grafik-Hardware. Wenn diese die Erweiterung <i>SGIS_generate_mipmap</i> unterstützt, können Sie Mipmap-Stufen von Texturen dynamisch erzeugen lassen. Eine solche Textur legen Sie folgendermaßen an:</p>
+		<pre><code>
+glGenTextures(1, &amp;tID);
+glBindTexture(GL_TEXTURE_2D, tID);
+// Texture Filter
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_MIN_FILTER,
+	GL_LINEAR_MIPMAP_NEAREST);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_MAG_FILTER,
+	GL_LINEAR);
+
+// Mipmap Generierung ein !
+glTexParameteri(GL_TEXTURE_2D,
+	GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
+glTexImage2D(GL_TEXTURE_2D, 0,
+	GL_RGBA, 512, 512, 0, GL_RGBA,
+	GL_UNSIGNED_BYTE, data);
+		</code></pre>
+		<p>Dieser Weg steht Ihnen sogar bei einem dynamisch gebundenen P-Buffer offen. Nachdem Sie Ihre Textur entsprechend programmiert haben, müssen Sie bei der Anlage des P-Buffers vorsorglich ausreichend Speicher für die Mipmaps reservieren. Dazu erweitern Sie die <i>pbAttribute</i>-Parameterliste (vor der Null&shy;terminierung) um das folgenden Attribut:</p>
+		<pre><code>
+WGL_MIPMAP_TEXTURE_ARB, GL_TRUE
+		</code></pre>
+		<p>P-Buffers müssen sich mit dem Frame Buffer, Texturen und Display Lists den Speicher der Grafikkarte teilen. Deshalb sollten Sie sich bei Texturen mit zu üppig dimensionierten Auflösungen und Farbtiefen zurückhalten. Andernfalls begrenzen Sie Ihre Render-Performance rapide. Oft genügt ein einziger P-Buffer, den Sie mehrfach pro Renderpass verwenden. Unter Umständen benötigen Sie für den P-Buffer gar keinen zugehörigen Z-Buffer und können so weiteren Speicher sparen.</p>
+	</section>
+
+	<section>
+		<h2>Beispiel für P-Buffers</h2>
+		<p>Setzen Sie dynamische Texturen ein, um Schatten darzustellen. Aus der PC-Underground-Serie kennen Sie schon einige Schatten-Rendering-Techniken.</p>
+		<p>Hier lernen Sie eine einfache Shadow-Map-Technik und deren Umsetzung mit P-Buffers kennen. Einfach bedeutet in diesem Fall, dass Objekte sich nicht selbst beschatten können und dass der Schatten eines Objekts (der auf alle anderen Objekte der Szene geworfen wird) in einer Textur gespeichert ist.</p>
+		<figure class="floatright">
+			<img src="assets/200303_3.jpg" width="250" height="256" alt="DER HELLIGKEITSVERLAUF einer Punktlichtquelle">
+			<figcaption><span>DER HELLIGKEITSVERLAUF</span> einer Punktlichtquelle</figcaption>
+		</figure>
+		<p>Dazu legen Sie einen P-Buffer mit der oben vorgestellten Klasse an. Wenn Sie die Performance steigern wollen, können Sie sogar den Z-Buffer weglassen.</p>
+		<p>Die Lichtquelle ist durch ihre Position und die Lichtrichtung gegeben bzw. durch einen Punkt im Raum, in dessen Richtung sie scheint. Um den Schatten eines Objekts bezüglich dieser Punkt&shy;lichtquelle darzustellen, benötigen Sie diesen in Form einer Textur. Setzen Sie dazu die Kamera des P-Buffer-Kontexts auf die Position der Lichtquelle und der entsprechenden Richtung, und erzeugen Sie eine projektive Abbildung in der Projection Matrix:</p>
+		<pre><code>
+pBuffer-&gt;makeCurrent();
+// Transformation Lichtquelle
+glMatrixMode(GL_PROJECTION);
+glPushMatrix();
+glLoadIdentity();
+gluPerspective(80.0f, 1.0f, 1.0f, 500.0f);
+glMatrixMode(GL_MODELVIEW);
+glPushMatrix();
+glLoadIdentity();
+gluLookAt(lightPosition[0],
+	lightPosition[1],
+	lightPosition[2 ], 0, 0, 0,
+	0, 1, 0);
+		</code></pre>
+		<p>Wenn Ihre Lichtquelle einen Helligkeits&shy;verlauf im Lichtkegel besitzen soll, können Sie diesen in einer Textur wie im Bild oben angeben.</p>
+		<figure class="floatright">
+			<img src="assets/200303_4.jpg" width="250" height="256" alt="EINE SHADOW MAP für einen Würfel">
+			<figcaption><span>EINE SHADOW MAP</span> für einen Würfel</figcaption>
+		</figure>
+		<p>Zeichnen Sie diesen Helligkeits&shy;verlauf zunächst gestreckt über den P-Buffer. Anschließend färben Sie das Schatten werfende Objekt schwarz. Dadurch erhalten Sie die Shadow Map des Objekts, welches Sie im Beispiel des nächsten Bildes betrachten können.</p>
+		<p>Beim Rendering des eigentlichen Bildes im On-Screen Buffer projizieren Sie die Shadow Map auf alle Schatten empfangenden Objekte der Szene. Zunächst setzen Sie die Kamera&shy;parameter:</p>
+		<pre><code>
+wglMakeCurrent(os_hDC, os_hRC);
+// normale Kameratransformation
+...
+glBindTexture(GL_TEXTURE_2D, pBuffer-&gt;getTexID());
+pBuffer-&gt;bind();
+		</code></pre>
+		<p>Anschließend verwenden Sie die OpenGL-Textur-Koordinaten&shy;generierung. Diese berechnet für Sie aus den Vertex&shy;koordinaten der Objekte die Textur&shy;koordinaten bezüglich der Shadow Map. Im ersten Schritt reichen Sie die Welt&shy;koordinaten mit <i>glTexGen*(...)</i>-Befehlen direkt als Textur&shy;koordinaten durch. In der Textur-Matrix befinden sich die Transformation und Projektion der Koordinaten, die identisch zu den Lichtquellen-Transformationen sind:</p>
+		<pre><code>
+float genS[]= { 1.0, 0.0, 0.0, 0.0 };
+float genT[]= { 0.0, 1.0, 0.0, 0.0 };
+float genR[]= { 0.0, 0.0, 1.0, 0.0 };
+float genQ[]= { 0.0, 0.0, 0.0, 1.0 };
+// analog für T, R, Q (HEFT-CD)
+		</code></pre>
+		<p>Jetzt rendern Sie die Schatten empfangenden Objekte mit den folgenden Textur-Parametern:</p>
+		<pre><code>
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//...
+glColor4ub(255, 255, 255, 255);
+renderShadowReceiver();
+		</code></pre>
+		<p>Zum Abschluss zeichnen Sie noch das Schatten werfende Objekt und erhalten ein Resultat, wie Sie es im Bild sehen.</p>
+		<figure class="large">
+			<img src="assets/200303_5.jpg" width="640" height="480" alt="UNSER BEISPIELPROGRAMM mit Shadow Maps in P-Buffers">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> mit Shadow Maps in P-Buffers</figcaption>
+		</figure>
+		<p>Die P-Buffer-Klasse gestattet also nicht nur einfaches Handling verschiedener RenderTargets, sondern bietet auch einen sehr performanten Zugang, dynamische Texturen zu erzeugen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Weiterführende Websites</b></p>
+		<p class="footnote"><a href="https://www.dachsbacher.de/pcu" rel="external nofollow noreferrer">www.dachsbacher.de/pcu</a></p>
+		<p class="footnote"><a href="https://www.nvidia.com" rel="external nofollow noreferrer">www.nvidia.com</a></p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200302.html">2/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200304.html">4/2003</a>
+	</nav>
+</body>

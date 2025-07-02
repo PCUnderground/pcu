@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Kleine Schritte zur großen Grafik (PC Underground, PC Magazin 7/2003)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;7/2003. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200306.html">6/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200308.html">8/2003</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Direct-3D-9</h2>
+		<h1>Kleine Schritte zur <span class="highlight">großen Grafik</span></h1>
+		<p class="summary">Die Direct-3D-Komponente des vor kurzem vorgestellten DirectX 9 bietet <span class="highlight">eine einheitliche Schnittstelle</span>, um Grafik&shy;beschleuniger zu programmieren.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<figure class="floatright">
+			<img src="assets/200307_1.jpg" width="421" height="460" alt="Schichtenmodell: Die Bestandteile beim Rendering von 3D-Objekten.">
+			<figcaption><span>Schichtenmodell:</span> Die Bestandteile beim Rendering von 3D-Objekten.</figcaption>
+		</figure>
+		<p>Das vor kurzem erschienene DirectX 9 enthält – neben den aktualisierten Komponenten DirectSound, DirectMusic etc. – auch ein überarbeitetes Direct3D-Interface, das die neueste Grafikhardware nutzen kann. Grund genug, Direct3D9 einen Platz in der Reihe der PC-Underground-Artikel zu reservieren.</p>
+		<p>Wir zeigen Ihnen in dieser Ausgabe, wie Sie Direct3D9 sowohl für eine Fenster- als auch Vollbild-Anwendung korrekt initialisieren und verwenden. Damit legen Sie die Grundlage für weitere Programme und Grafikeffekte.</p>
+		<p>Für eine Direct3D-Anwendung benötigen Sie zunächst ein normales Windows-Fenster. Dieses können Sie mit den MFC (Microsoft Foundation Classes) anlegen, wenn Sie nicht einfach die Win32-API verwenden wollen. Wir haben den zweiten Weg gewählt, da dieser einfacher zu überschauen ist und weniger Overhead verursacht. Somit entsteht ein einfaches Framework für Direct3D-Anwendungen.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200307.zip">💾 200307.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Fenster auf</h2>
+		<p>Wir zeigen Ihnen hier die vollständige <i>WinMain</i>-Funktion des Programms, in der Sie zunächst eine eigene Fensterklasse anlegen. Dazu füllen Sie die Felder der <i>WNDCLASSEX</i>-Struktur aus. Darin sind alle Informationen über den Stil, Cursor, Icon usw. der Fensterklasse enthalten. Unter anderem müssen Sie auch einen Zeiger auf die Window-Prozedure angeben. Diese Funktion bearbeitet alle Nachrichten wie Mausklicks und Tastatur&shy;eingaben, die an ein Fenster verschickt werden. Das Beispiel&shy;programm fragt diesen Klick auf den <i>Schliessen</i>-Button des Fensters oder ein Drücken der <i>[Esc]</i>-Taste ab und verschickt gegebenenfalls eine <i>WM_QUIT</i>-Nachricht. Die Fensterklasse registrieren Sie dann mit <i>RegisterClassEx</i>:</p>
+ 		<pre><code>
+int WINAPI WinMain(HINSTANCE hInst,
+	HINSTANCE hPrevInst, LPSTR commandLine,
+	int commandShow)
+{
+	WNDCLASSEX wndClass;
+	MSG msg;
+
+	// wndClass Struktur ausfüllen
+	wndClass.lpszClassName = "PCUvsD3D9";
+	wndClass.lpfnWndProc = WindowProc;
+	...
+
+	// Fensterklasse registrieren
+	if(RegisterClassEx(&amp;wndClass) == 0)
+		return E_FAIL;
+</code></pre>
+		<p>Wenn die Fensterklasse registriert ist, erzeugen Sie Ihr Direct3D-Fenster und bringen es auf den Bildschirm:</p>
+		<pre><code>
+gHWND = CreateWindowEx(NULL, "PCUvsD3D9",
+	"Direct3D9",
+	WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+	0, 0, 640, 480, NULL, NULL, hInst,
+	NULL);
+
+	if(gHWND == NULL)
+		return E_FAIL;
+
+	ShowWindow(gHWND, commandShow);
+	UpdateWindow(gHWND);
+		</code></pre>
+		<p>Mit den folgenden Direct3D-Programmteilen verbinden Sie drei Funktionen, die initialiseren, rendern und die Ressourcen freigeben: <i>initialize3D(), render3D() und shutdown3D()</i>. Diese finden Sie im letzten Teil der <i>WinMain</i>-Funktion, die fortwährend die Rendering-Funktion aufruft, bis Sie das Programm beenden:</p>
+		<pre><code>
+	// Initialisierung
+	initialize3D();
+
+	ZeroMemory(&amp;msg, sizeof(msg));
+
+	// render3D(), bis zum Programmende
+	while(msg.message != WM_QUIT)
+	{
+		if(PeekMessage(&amp;msg, NULL,
+			0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&amp;msg);
+			DispatchMessage(&amp;msg);
+		} else
+			render3D();
+	}
+
+	// und aufräumen
+	shutdown3d();
+
+	UnregisterClass("MY_WINDOWS_CLASS",
+		wndClass.hInstance);
+
+	return msg.wParam;
+}
+		</code></pre>
+		<p>Die obige <i>WinMain</i>-Funktion erzeugt ein Fenster. Für eine Vollbild-Anwendung ist an dieser Stelle nur ein anderer <i>CreateWindowEx</i>-Aufruf notwendig:</p>
+		<pre><code>
+gHWND = CreateWindowEx(NULL, "PCUvsD3D9",
+	"Direct3D9",
+	WS_POPUP | WS_SYSMENU | WS_VISIBLE,
+	0, 0, 640, 480, NULL, NULL, hInst, NULL);
+		</code></pre>
+		<figure class="large">
+			<img src="assets/200307_2.jpg" width="800" height="252" alt="Rendering Pipeline: Nach diesem Schema arbeitet jeder Grafikbeschleuniger. Das aktuelle DirectX9 bleibt allerdings nur der neuesten Grafikhardware vorbehalten.">
+			<figcaption><span>Rendering Pipeline:</span> Nach diesem Schema arbeitet jeder Grafikbeschleuniger. Das aktuelle DirectX9 bleibt allerdings nur der neuesten Grafikhardware vorbehalten.</figcaption>
+		</figure>
+	</section>
+
+	<section>
+		<h2>Direct3D im Fenster</h2>
+		<p>Bei der Initialisierung von Direct3D mit der jeweiligen <i>init3d()</i>-Funktion sind die Unterschiede von Fenster- und Vollbild-Betrieb schon größer. Deshalb initialisieren Sie zuerst Direct3D für den Fenstermodus und anschließend für Vollbild&shy;anwendungen.</p>
+		<p>Als erstes erzeugen Sie sich mit <i>Direct3DCreate9(...)</i> eine Instanz eines <i>IDirect3D</i>-Objekts. Der Parameter lautet dabei immer <i>D3D_SDK_VERSION</i>. Dies dient dazu, für das Rendering Direct3D-Objekte zu erzeugen, deren Fähigkeiten auszulesen, Grafikmodi aufzulisten und die Parameter einzustellen. Achten Sie darauf, Fehler abzufragen, um einen Programm&shy;absturz zu vermeiden. In unserem Beispielcode übernimmt dies die fiktive Funktion <i>error()</i>:</p>
+		<pre><code>
+LPDIRECT3D9 pD3D = NULL;
+LPDIRECT3DDEVICE9 pD3DDevice = NULL;
+
+pD3D = Direct3DCreate9(D3D_SDK_VERSION);
+
+if(pD3D == NULL)
+	error();
+		</code></pre>
+		<p>Da Sie im Fensterbetrieb keinen neuen Grafikmodus festlegen, lesen Sie die Parameter des aktuellen aus. Diese sind neben Breite, Höhe und Bildwieder&shy;holfrequenz ein Format-Parameter, alles verpackt in eine <i>D3DDISPLAYMODE</i>-Struktur. Der Format-Parameter enthält z.B. die Farbtiefe.</p>
+		<pre><code>
+D3DDISPLAYMODE dm;
+
+if(FAILED(
+	pD3D-&gt;GetAdapterDisplayMode(
+		D3DADAPTER_DEFAULT, &amp;dm)))
+	error();
+		</code></pre>
+		<p>Jetzt prüfen Sie, ob das Direct3D-Gerät (Standard Device, identifiziert durch <i>D3DADAPTER_DEFAULT</i>) die Programm&shy;anforderungen erfüllen kann wie z.B. eine bestimmte Z-Buffer-Genauigkeit. Solche Format bezogenen Details fragen Sie mit <i>CheckDeviceFormat</i> ab:</p>
+		<pre><code>
+HRESULT hr;
+
+hr = pD3D-&gt;CheckDeviceFormat(
+	D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+	dm.Format, D3DUSAGE_DEPTHSTENCIL,
+	D3DRTYPE_SURFACE, D3DFMT_D16);
+
+if(hr == D3DERR_NOTAVAILABLE)
+	error();
+		</code></pre>
+		<p>Der zweite Parameter (<i>D3DDEVTYPE_HAL</i>) steht für ein Hardware beschleunigtes Direct3D-Device. Sie könnten ihn z.B. durch <i>D3DDEVTYPE_REF</i> ersetzen, um den Software Referenz Rasterizer zu verwenden.</p>
+		<p>Die Fähigkeiten einer Grafikkarte, die so genannten <i>Caps</i> (Capabilities) fassen Sie in einer <i>D3DCAPS9</i>-Struktur zusammen. Darin sind alle Features enthalten, deren umfangreiche Liste im DirectX9-SDK dokumentiert ist.</p>
+		<pre><code>
+D3DCAPS9 caps;
+if(FAILED(pD3D-&gt;GetDeviceCaps(
+	D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+	&amp;caps))
+	error();
+		</code></pre>
+		<p>Die weiterhin benötigten Caps beschreiben, ob die Grafikkarte Vertex Processing (also Transformation, Beleuchtung usw.) in Hard- oder Software ausführt. Diese Information verwenden Sie, um die <i>Behaviour Flags</i> zu setzen:</p>
+		<pre><code>
+DWORD flags;
+
+if(caps.VertexProcessingCaps != 0)
+	flags |= D3DCREATE_HARDWARE_VERTEXPROCESSING;
+else
+	flags |= D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+		</code></pre>
+		<p>Als letzte Aufgabe der Initialisierung erzeugen Sie das Direct3D-Device. Dazu benötigen Sie noch die so genannten <i>Presentation Parameters</i>. Diese beschreiben z.B. die Anzahl der Backbuffers und deren Format oder das Z-Buffer-Format. Im Falle des Fenster&shy;betriebs, müssen Sie nicht alle Parameter setzen:</p>
+		<pre><code>
+D3DPRESENT_PARAMETERS pp;
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Direct3D-Vollbild</h2>
+		Die Initialisierung eines Vollbild-Direct3D-Modus unterscheidet sich prinzipiell in einem Punkt: Sie sind nicht darauf angewiesen, den gerade aktuellen Grafikmodus des Desktops zu verwenden, sondern Sie können sich einen Modus aussuchen. Dazu fordern Sie eine Liste aller unterstützten Grafikmodi an, die eine <i>D3DDISPLAYMODE</i>-Struktur beschreibt. Die Anzahl der Modi (hier mit 32-Bit-Farbtiefe, bestimmt durch <i>D3DFMT_</i> <i>X8R8G8B8</i>):
+		<pre><code>
+int nMaxModes = pD3D-&gt;GetAdapterModeCount(
+	D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8);
+		</code></pre>
+		<p>Jetzt überprüfen Sie alle <i>nMaxModes</i>, bis Sie einen gewünschten gefunden haben. Hierzu prüfen Sie für jeden Modus die Breite, Höhe, Bildwieder&shy;holfrequenz und die Format-Flags:</p>
+		<pre><code>
+D3DDISPLAYMODE dm;
+bool foundMode = false;
+....
+if(foundMode == false)
+	// kein passender Modus gefunden
+	exit();
+		</code></pre>
+		<p>Der letzte Aspekt, den Sie beim Vollbild&shy;betrieb noch beachten müssen, ist die Abfrage, ob für den gewählten Grafikmodus Hardware-Beschleunigung zur Verfügung steht. Die ersten beiden Parameter bezeichnen dabei wie gehabt das Direct3D-Device, gefolgt von den Formaten für Frame- und Back-Buffer und einem <i>FALSE</i> für Nicht-Fenster-Betrieb.</p>
+		<pre><code>
+if(FAILED(pD3D-&gt;CheckDeviceType(
+	D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+	D3DFMT_X8R8G8B8...
+		</code></pre>
+		<p>Der Rest der Initialisierung, d.h. die Überprüfung der Caps, machen Sie so wie zuvor beschrieben.</p>
+	</section>
+
+	<section>
+		<h2>Direct3D-Shutdown</h2>
+		<p>Der Vollständig&shy;keit halber zeigen wir Ihnen an dieser Stelle, wie Sie Direct3D wieder korrekt verlassen. Dies beschränkt sich lediglich auf zwei Aufrufe, die das Direct3D-Device und Objekt freigeben:</p>
+		<pre><code>
+void shutdown3D()
+		</code></pre>
+		<p>Nach der Initialisierung können Sie sich nun endlich der Rendering Schleife Ihres Programms widmen, die Sie in der <i>render3D()</i>-Funktion implementieren. Diese ist fest nach Schema aufgebaut: Als erstes löschen Sie den Frame-, Depth- und/oder Stencil-Buffer, je nach dem, was Sie für das Device angefordert haben. Wenn Sie jeweils den ganzen Buffer löschen wollen, sind die ersten beiden Parameter <i>0</i> bzw. <i>NULL</i>. Welcher Buffer betroffen ist, legen Sie im dritten Parameter durch eine <i>Oder</i>-Verknüpfung der <i>D3DCLEAR</i>-Flags fest.</p>
+		<p>Die Farb-, Tiefen- und Stencil-Werte, welche die Buffers beschreiben, bilden die letzten drei Parameter:</p>
+		<pre><code>
+pD3DDevice-&gt;Clear(0, NULL,
+	D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER,
+	D3DCOLOR_COLORVALUE(0, 1, 0, 1), 1.0f, 0);
+		</code></pre>
+		<p>Alle folgenden Rendering-Vorgänge befinden sich zwischen den <i>BeginScene</i>- und <i>EndScene</i>-Aufrufen:</p>
+		<pre><code>
+pD3DDevice-&gt;BeginScene();
+// Rendering !
+pD3DDevice-&gt;EndScene();
+		</code></pre>
+		<p>Zuletzt bringen Sie den Inhalt des Backbuffers, also das Resultat des Renderings auf den Bildschirm. Da Sie auch hier jeweils den ganzen Buffer sehen wollen, sind alle Parameter <i>NULL</i>:</p>
+		<pre><code>
+pD3DDevice-&gt;Present (NULL, NULL, NULL, NULL);
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Transformationen</h2>
+		<p>Für das Rendering benötigen Sie Trans&shy;formationen, die Sie über die <i>SetTransform</i>-Methode Ihres Direct3D-Device setzen. Es gibt eine Transformation (definiert durch eine 4x4 Matrix) für die 3D-2D-Projektion (<i>D3DTS_PROJECTION</i>), eine Kamera-Abbildung (<i>D3DTS_</i> <i>VIEW</i>) und die so genannte World-Transformation (<i>D3DTS_WORLD</i>), die die Transformation eines Objektes in den World Space angibt.</p>
+		<p>Zwar gibt es mehrere dieser World Matrizen, um Vertex Blending bei Animationen zu verwenden, doch bleibt das für unseren Einsatz zunächst nebensächlich. Die Trans&shy;formationen bilden nur einen kleinen Teil der Rendering Pipeline und sind für die <i>Fixed Function-Pipeline</i> relevant. Dieser Teil übernimmt die normale Trans&shy;formations- und Beleuchtungs&shy;berechnung.</p>
+		<p>Um solche Trans&shy;formationen elegant zu handhaben, verwenden Sie am besten die Direct3D-Erweitungen (<i>D3DX</i>). <i>D3DX</i> sammelt umfangreiche Direct3D-Hilfsroutinen für vielfältige Zwecke wie für Mathematik und Texturen. Darin ist u.a. der <i>D3DXMATRIX</i>-Typ definiert, der eine 4x4-Matrix darstellt. Außerdem verfügen Sie damit über zahlreiche Methoden, um Matrizen zu erzeugen und zu berechnen. Um eine Matrix für eine perspek&shy;tivische Abbildung zu erhalten, platzieren Sie die folgenden Code-Fragment in der Render-Schleife:</p>
+		<pre><code>
+D3DXMATRIX mProjection;
+		</code></pre>
+		<p>Für die World Matrizen können Sie z.B. die Funktionen <i>D3DXMatrixTranslation /</i> <i>D3DXMatrixRotationAxis</i> verwenden, um Abbildungen zu verschieben oder zu drehen. Die Kamera-Matrix erzeugen Sie intuitiv mit <i>D3DXMatrixLookAtLH</i>.</p>
+	</section>
+
+	<section>
+		<h2>Rendering Primitive</h2>
+		<p>Jetzt haben Sie eine vollständige Umgebung geschaffen, um geometrische Primitive zu rendern. Damit sind Punkte, Linien, Dreiecke usw. gemeint. Die von Direct3D unterstützten Primitive sehen Sie im Bild.</p>
+		<figure class="large">
+			<img src="assets/200307_4.jpg" width="654" height="347" alt="Auswahl: Die Direct3D-Rendering Primitive berechnen Sie mit vergleichsweise einfacher Matrizen-Mathematik.">
+			<figcaption><span>Auswahl:</span> Die Direct3D-Rendering Primitive berechnen Sie mit vergleichsweise einfacher Matrizen-Mathematik.</figcaption>
+		</figure>
+		<p>Am besten rendern Sie mit den so genannten Vertex Buffers. Unter einem Vertex Buffer können Sie sich einen Speicher&shy;bereich vorstellen, der nur Vertex Daten wie z.B. die Eckpunkte eines Dreiecksnetzes und damit assoziierte Daten enthält. Das Format der Vertices kann dabei sehr unterschied&shy;lich sein: untrans&shy;formiert, transformiert, beleuchtet oder nicht, mit oder ohne Textur-Koordinaten usw. Das Format beschreiben Sie über das <i>Flexible Vertex Format</i> (FVF). Die möglichen Vertex-Attribute sehen Sie in der Tabelle.</p>
+		<p>Um einen Vertex Buffer anzulegen, legen Sie zunächst das Format fest und erzeugen entsprechende Daten (hier zum Beispiel mit einem konstanten Array), indem Sie eine Vertex-Struktur und die dazugehörigen <i>FVF</i>-Flags (eine Kombination der <i>D3DFVF</i>-Konstanten) definieren:</p>
+		<pre><code>
+#define FVF_VERTEX3D (D3DFVF_XYZ | D3DFVF_DIFFUSE)
+		</code></pre>
+		<p>Während der Initialisierung von Direct3D erzeugen Sie den Vertex Buffer:</p>
+		<pre><code>
+LPDIRECT3DVERTEXBUFFER9 pDreieckVB;
+		</code></pre>
+		<p>Der erste Parameter gibt die Größe des Vertex Buffers in Bytes an. Mit dem zweiten Parameter können Sie so genannte <i>D3DUSAGE</i>-Parameter spezifizieren, z.B. um den Vertex Buffer <i>write-only</i> zu deklarieren. Sie sollten die Fähigkeiten eines Vertex Buffers immer so weit wie möglich einschränken, um eine größtmögliche Performance zu erzielen! Der nächste Parameter gibt Auskunft über das <i>FVF</i>, gefolgt von einer <i>D3DPOOL</i>-Konstante, die bestimmt, in welchem Speicher&shy;bereich (z.B. Haupt-oder Grafikkarten-Speicher) der Vertex Buffer abgelegt wird. Wenn Sie dafür die Funktion <i>D3DPOOL_MANAGED</i> wählen, können Sie nichts falsch machen: Direct3D kümmert sich um die Daten, platziert Sie am sinnvollsten und behält ein Backup im Systemspeicher. Der vorletzte Parameter ist ein Zeiger auf das Vertex Buffer Interface, das mit dem Vertex Buffer assoziiert ist. Der letzte Parameter ist immer <i>NULL</i>.</p>
+		<p>Nun können Sie Ihre Daten in den Vertex Buffer kopieren. Dazu müssen Sie diesen verschließen (lock). Sie erhalten einen Zeiger auf einen Speicher&shy;bereich, in den Sie die Daten schreiben:</p>
+		<pre><code>
+VERTEX3D *pData = NULL;
+		</code></pre>
+		<p>Nachdem Sie die obigen Schritte während der Initialisierung vorgenommen haben, können Sie in der Render-Schleife das Dreieck auf den Bildschirm bringen. Dazu müssen Sie Direct3D zwei Dinge – jeweils vor dem Rendering-Kommando – mitteilen: Wo sind die Daten, also welcher Vertex Buffer wird gerade verwendet, und welches Format haben die Daten?</p>
+		<p>Das Rendering Kommando lautet dann für ein Primitiv ab der Position <i>0</i> im Vertex Buffer:</p>
+		<pre><code>
+pD3DDevice-&gt;DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
+		</code></pre>
+		<p>In der <i>shutdown3D()</i>-Funktion geben Sie die Ressourcen des Vertex Buffers bei Programmende wieder frei. Dies muss erfolgen, bevor Sie das Direct3D-Device freigeben:</p>
+		<pre><code>
+pDreieckVB-&gt;release();
+		</code></pre>
+	</section>
+
+	<section>
+		<h2>Render States</h2>
+		<figure class="floatright">
+			<img src="assets/200307_3.jpg" width="544" height="445" alt="Render States: einfaches Modifizieren des Rendering">
+			<figcaption><span>Render States:</span> einfaches Modifizieren des Rendering</figcaption>
+		</figure>
+		<p>Wie Sie vielleicht von OpenGL wissen, gibt es eine riesige Anzahl von so genannten Render States: Zustände bzw. Variablen, deren Wert das Rendering beeinflusst. Zum Beispiel <i>Culling Modi</i>, Z-Buffer oder Alpha Tests, Beleuchtungs&shy;parameter usw. Alle diese Einstellungen sind in Direct3D in der <i>SetRenderState</i>-Methode des Direct3D-Device Objektes zusammen&shy;gefasst. Diese Methode akzeptiert zwei Parameter: Der erste gibt an, welchen <i>State (D3DRS</i>-Konstante) Sie modifizieren wollen, gefolgt von einem Wert. Dieser kann dabei entweder ein numerischer Wert oder eine vordefinierte Konstante sein. Sämtliche Render States listet wiederum das DirectX-SDK auf.</p>
+		<p>Unser Beispiel&shy;programm verwendet die Render States z.B., um zwischen dem Rendering von ausgefüllten Dreiecken und Dreieckskanten zu wählen:</p>
+		<pre><code>
+// ausgefüllt
+pD3DDevice-&gt;SetRenderState(
+	D3DRS_FILLMODE, D3DFILL_SOLID);
+pD3DDevice-&gt;SetRenderState(.....
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200307_5.jpg" width="502" height="440" alt="Alpha Blending: Farbeffekte durch Akkumulation der Farbwerte">
+			<figcaption><span>Alpha Blending:</span> Farbeffekte durch Akkumulation der Farbwerte</figcaption>
+		</figure>
+		<p>Mit den Render States für Alpha Blending erzeugt unser Beispiel&shy;programm weitere interessante Effekte.</p>
+		<p>Ein Direct3D-Device kann sich entweder im <i>Betriebs&shy;zustand</i> oder im <i>Lost State</i> befinden. Letzteres tritt z.B. ein, wenn einer Vollbild-Anwendung der Fokus (z.B. durch Drücken von <i>Alt-Tab</i>) entzogen wird oder auch durch Power Management Funktionen. Im Lost State haben Rendering Kommandos keinen Effekt, obwohl Sie <i>D3D_OK</i> als Rückgabewert liefern. Der Lost State ist nur am <i>D3DERR_DEVICELOST</i>-Rückgabewert der <i>Present(...)</i>-Methode zu erkennen.</p>
+	</section>
+
+	<section>
+		<h2>Lost Devices</h2>
+		<p>Dieses Ereignis müssen Sie in Ihrem Programm abfragen und warten, bis das Device wiederher&shy;gestellt werden kann. Anschließend sind alle Ressources im Video-Speicher freizugeben und neu zu erzeugen. Der benötigte Programmcode für die Wiederher&shy;stellung ist dabei ähnlich oder sogar identisch, um Vertex Buffers und anderer Ressourcen zu initialisieren. Dieser Vorgang ist aber nicht notwendig, wenn Sie die Ressourcen mit <i>D3DPOOL_MANAGED</i> angelegt haben. Deshalb können wir die detaillierte Behandlung der Lost Devices zunächst außen vor lassen.</p>
+		<p>Mit dem Beispiel&shy;programm haben Sie so die Grundlagen geschaffen, um saubere Direct3D-Programme zu entwickeln, die die Leistung Ihrer Grafikkarte ausschöpfen können. Es dient als Basis für weitere PC-Underground-Programme, welche Sie schrittweise ausbauen.</p>
+	</section>
+
+	<aside>
+		<h2>Flexible Vertex-Formats</h2>
+		<div>
+			<table>
+				<thead>
+					<tr><th>Vertex-Attribut</th><th>transformierte/untransformiert Vertices</th><th>Daten</th></tr>
+				</thead>
+				<tbody>
+					<tr><td>Vertex Position</td><td>✔ / ✔</td><td>X, Y, Z (Float)</td></tr>
+					<tr><td>RHW</td><td>✔ / -</td><td>RHW (Float)</td></tr>
+					<tr><td>Blending Gewichte</td><td>✔ / ✔</td><td>1, 2 oder 3 Floats/DWORD</td></tr>
+					<tr><td>Vertex Normale</td><td>- / ✔</td><td>Nx, Ny, Nz (Float)</td></tr>
+					<tr><td>Vertex Punktgröße</td><td>✔ / ✔</td><td>1 Float</td></tr>
+					<tr><td>Farbe Diffus</td><td>✔ / ✔</td><td>RGBA (DWORD)</td></tr>
+					<tr><td>Farbe Spekular</td><td>✔ / ✔</td><td>RGBA (DWORD)</td></tr>
+					<tr><td>8x Textur Koordinaten</td><td>✔ / ✔</td><td>1 bis 4 Floats</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</aside>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2003 WEKA Computerzeitschriften Verlag</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200306.html">6/2003</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200308.html">8/2003</a>
+	</nav>
+</body>

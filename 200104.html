@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>3D-Landschaft im Eigenbau (PC Underground, PC Magazin 4/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;4/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200103.html">3/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200105.html">5/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Genesis-Projekt: Landschaften rendern mit OpenGL</h2>
+		<h1>3D-Landschaft im <span class="highlight">Eigenbau</span></h1>
+		<p class="summary">3D-Spiele entführen den Spieler in virtuelle Landschaften. Lesen Sie, wie Sie von den <span class="highlight">Erfahrungen eines Spieleprogrammierers</span> profitieren können.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Die Spielewelten von <i>Drakan</i> und <i>Warcraft III</i> beeindrucken durch ihre Landschaften. Wir führen Ihnen vor, wie Sie diese mit Hilfe von OpenGL darstellen.</p>
+		<p>Kommerzielle 3D-Engines, die auf die Darstellung von Landschaften ausgerichtet sind, können Sie in vielen Echtzeit-Strategie&shy;spielen bewundern. In diesem Projekt lernen Sie alle nötigen Methoden und Algorithmen kennen, um eine vollwertige 3D-Landschafts-Engine zu schreiben.</p>
+	</section>
+
+	<section>
+		<p>Landschaften stellen Sie im Allgemeinen mit vielen Polygonen dar, die Sie der 3D-Hardware übergeben. Dazu müssen Sie die zu verwendende 3D-API (OpenGL) kennen und wissen, wie Sie Daten für den 3D-Beschleuniger aufbereiten und an diesen übergeben. Algorithmen setzen Sie ein, um die Polygonlast einzuschränken – selbst wenn Sie eine 3D-Grafikkarte haben, die mit sehr vielen Polygonen pro Sekunde fertig wird. Wenn Sie die 3D-Engine in einem Computerspiel einsetzen, hat der Rechner noch weit mehr zu tun, als nur die Landschaft zu rendern.</p>
+	</section>
+
+	<aside>
+		<h2>DAS GENESIS-PROJEKT</h2>
+		<div>
+			<p>Unser Genesis-Projekt gliedert sich in folgende drei Teile, die Sie von den OpenGL-Grundlagen bis zum Einsatz praxis&shy;tauglicher Algorithmen führen.</p>
+			<br>
+			<p class="highlight2"><b>Teil 1:</b> Landschaften rendern mit OpenGL</p>
+			<p><b>Teil 2:</b> Eigene Landschafts&shy;daten generieren</p>
+			<p><b>Teil 3:</b> Methoden des Landschafts-Texturierens und Spezialeffekte</p>
+			<br>
+			<p>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200104.zip">💾 200104.zip</a>.</p>
+		</div>
+	</aside>
+
+	<section>
+		<h2>Die OpenGL-API</h2>
+		<p>Verknüpfen Sie die Ausgabe von OpenGL mit einem Windows-Fenster. Um es anzulegen, registrieren Sie eine Fensterklasse mit <i>RegisterClass(</i> <i>CONST WNDCLASS *lpWndClass)</i> und erzeugen ein Fenster zum Beispiel mit der Funktion <i>CreateWindowEx(...)</i>.</p>
+		<p>Die im Folgenden verwendeten Funktionen befinden sich in <i>user32.lib</i> und <i>opengl32.lib</i>, die Sie in Ihr Projekt einfügen. Die Definitionen der Funktions&shy;rümpfe stehen in <i>windows.h</i> oder <i>wingdi.h</i>. Um auf die Client Area eines Windows-Fensters zu zeichnen, benötigen Sie den <i>Device Context</i>. Diesen bekommen Sie mit</p>
+		<pre><code>hDC = GetDC(hWND);</code></pre>
+		<p>Für OpenGL brauchen Sie ein bestimmtes Pixelformat für Ihr Fenster: OpenGL benötigt nicht nur einen Speicher&shy;bereich für die Farbwerte, sondern zwei Buffers (einer wird dargestellt, der andere solange bearbeitet), zusätzlich einen Z-Buffer, der die Tiefen&shy;information enthält. Je nach Wunsch und Bedarf können Sie weitere anfordern wie zum Beispiel <i>Accumulation</i>- oder <i>Stencil</i>-Buffers. Geben Sie beim Pixelformat auch die gewünschte Farbtiefe an. Da Sie die Angaben machen, ohne zu wissen, ob die gerade verwendete Hardware diese unterstützt, müssen Sie die <i>PIXELFORMATDESCRIPTOR</i>-Struktur ausfüllen. Damit kann Windows das bestmögliche, vorhandene Pixelformat wählen:</p>
+		<pre><code>
+static PIXELFORMATDESCRIPTOR pfd =
+{
+	//Größe PixelFormatDescriptor
+	sizeof(PIXELFORMATDESCRIPTOR),
+	// Version
+	1,
+	// Format muß Fenster, OpenGL
+	// DoubleBuffering unterstützen
+	PFD_DRAW_TO_WINDOW |
+	PFD_SUPPORT_OPENGL |
+	PFD_DOUBLEBUFFER,
+	// RGBA Pixel
+	PFD_TYPE_RGBA,
+	// Farbtiefe
+	bits,
+	0, 0, 0, 0, 0, 0,
+	// kein Alpha Buffer
+	0,
+	0,
+	// kein Accumulation Buffer
+	0,
+	0, 0, 0, 0,
+	// 16 Bit Z-Buffer
+	16,
+	// kein Stencil Buffer
+	0,
+	// kein Auxiliary Buffer
+	0,
+	PFD_MAIN_PLANE, 0, 0, 0, 0
+};
+
+// suche optimales Pixelformat
+int PixelFormat = ChoosePixelFormat(hDC, &amp;pfd);
+
+//dieses für Device Context:
+SetPixelFormat(hDC, PixelFormat, &amp;pfd);
+		</code></pre>
+		<p>Erzeugen Sie einen <i>OpenGL Rendering Context</i> : Damit können Sie auf den Device Context Ihres Fensters (also im Fenster) rendern. Dieser Rendering Context verwendet das Pixelformat, das Sie soeben festgelegt haben.</p>
+		<pre><code>HGLRC hRC = wglCreateContext(hDC);</code></pre>
+		<p>Mit dem folgenden Aufruf aktivieren Sie den Rendering Context. Dabei wirken sich alle OpenGL-Aufrufe Ihres Programms auf die Client Area Ihres Fensters aus.</p>
+		<pre><code>wglMakeCurrent(hDC, hRC);</code></pre>
+		<p>Mit OpenGL-Befehlen können Sie etwas in Ihrem Fenster darstellen. So deaktivieren Sie den Rendering Context:</p>
+		<pre><code>
+// deaktivieren
+wglMakeCurrent(NULL, NULL);
+// ... und löschen
+wglDeleteContext(hRC);
+		</code></pre>
+		<p>OpenGL verwendet die eingestellte Auflösung und Farbtiefe des Bildschirms. Wenn Sie Ihre OpenGL-Anwendung im Vollbild und nicht im Fenster laufen lassen wollen, stellen Sie die Auflösung und Farbtiefe unter Windows ein, bevor Sie das Fenster erzeugen und den Rendering Context anlegen. Dazu verwenden Sie folgende Codezeilen:</p>
+		<pre><code>
+DEVMODE screenRes;
+memset(&amp;screenRes, 0, sizeof(screenRes));
+screenRes.dmSize = sizeof(screenRes);
+
+// Breite
+screenRes.dmPelsWidth = 640;
+// Höhe
+screenRes.dmPelsHeight = 480;
+// Farbtiefe
+screenRes.dmBitsPerPel = 32;
+screenRes.dmFields =
+	DM_BITSPERPEL |
+	DM_ PELSWIDTH |
+	DM_PELSHEIGHT;
+	ChangeDisplaySettings(&amp;screenRes, CDS_FULLSCREEN);
+		</code></pre>
+		<p class="tip">Überprüfen Sie bei der Initialisierung die Rückgabewerte der Funktionen, und fangen Sie eventuelle Fehler ab. Im Quellcode zu dieser Ausgabe ist das berücksichtigt.</p>
+	</section>
+
+	<section>
+		<h2>Geometrische Objekte zeichnen</h2>
+		<p>Nach der erfolgreichen Initialisierung können Sie zeichnen. Dazu müssen Sie in Ihr Programm zwei OpenGL-Header-Dateien einbinden:</p>
+		<pre><code>
+#include &lt;gl/gl.h&gt;
+#include &lt;gl/glu.h&gt;
+		</code></pre>
+		<p>Bevor Sie zu rendern beginnen, müssen Sie den Colorbuffer, der die Farbwerte enthält, löschen. Dazu legen Sie einmalig die Hintergrund&shy;farbe mit Rot-, Grün-, Blau- und Alpha-Werten fest. Alle Werte liegen im Bereich zwischen <i>0.0</i> und <i>1.0</i>:</p>
+		<pre><code>glClearColor(0.0f, 0.0f, 0.0f, 0.0f);</code></pre>
+		<p>Außerdem löschen Sie den Z-Buffer. Dieser enthält für jeden Pixel den Abstand zwischen Betrachter und dem gerenderten Objekt an der entsprechenden Stelle. OpenGL führt beim Rendern diesen Vergleich durch und aktualisiert den Z-Buffer:</p>
+		<pre><code>
+zeichne Pixel an (x,y) mit Abstand. z
+wenn z &lt; als Z-Buffer-Wert bei (x, y)
+	dann setze Pixel im Colorbuffer
+setze Z-Buffer bei (x, y) auf Wert z
+		</code></pre>
+		<p>Genauso wie die Farbe bestimmen Sie einen Wert, mit dem Sie den Z-Buffer beim Löschen füllen:</p>
+		<pre><code>glClearDepth(1.0);</code></pre>
+		<p>Sie können auch einen anderen Wert wählen und den Vergleich (kleiner als) durch einen anderen ersetzen:</p>
+		<pre><code>glDepthFunc(GLenum func);</code></pre>
+		<p>Bevor Sie einen neuen Frame (Bild) zeichnen wollen, löschen Sie zuvor den Colorbuffer und den Z-Buffer mit</p>
+		<pre><code>glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);</code></pre>
+		<p>In OpenGL gibt es einige Zustands&shy;variablen, die das Rendern beeinflussen. Einen Zustand setzen Sie mit der Funktion</p>
+		<pre><code>glEnable(...)</code></pre>
+		<p>Sie deaktivieren den Zustand mit</p>
+		<pre><code>glDisable(...)</code></pre>
+		<p>Als Parameter bekommen diese Funktionen vordefinierte Konstanten. Schreiben Sie beispielsweise, um den Z-Buffer zu aktivieren:</p>
+		<pre><code>glEnable(GL_DEPTH_TEST);</code></pre>
+		<p>Wenn Sie geometrische Objekte zeichnen wollen, legen Sie zuerst deren Farbe fest. Dazu stehen folgende Befehle zur Verfügung:</p>
+		<pre><code>
+glColor{3,4}{b,d,f,i,s,ub,ui,us}
+	[v](TYPE colors);
+		</code></pre>
+		<p>OpenGL stammt noch aus der Zeit, als C statt C++ verwendet wurde. In C gibt es keine überladenen Funktionen (namensgleiche Funktionen, die unterschied&shy;liche Typen von Parametern entgegennehmen). Deshalb gibt es für jeden Parametertyp eine eigene Funktion.</p>
+		<p>So arbeitet die Syntax:<br>
+		• Der Befehl heißt <i>glColor</i>.<br>
+		• Das nächste Zeichen ist eine <i>3</i> oder eine <i>4</i> – je nachdem, ob Sie nur Rot-, Grün- und Blau-Werte oder zusätzlich noch einen Alpha-Wert übergeben wollen.<br>
+		• Eine der Kennungen aus der nächsten geschweiften Klammer gibt den Typ an, zum Beispiel <i>f</i> für Float oder <i>i</i> für Integer.<br>
+		• Optional können Sie dem Befehlsnamen noch ein <i>v</i> anhängen. Das bedeutet, dass Sie einen Pointer auf <i>3</i> oder <i>4</i> Variablen Ihres Typs angeben und nicht die Variablen selbst übergeben. Verwenden Sie folgende Variante:</p>
+		<pre><code>glColor3f(rot, grün, blau);</code></pre>
+		<figure class="floatright">
+			<img src="assets/200104_1.png" width="614" height="683" alt="DIE GEOMETRISCHEN PRIMITIVE von OpenGL">
+			<figcaption><span>DIE GEOMETRISCHEN PRIMITIVE</span> von OpenGL</figcaption>
+		</figure>
+		<p>Zeichnen Sie geometrische Primitive: Punkte, Linien, Dreiecke, Vierecke und Polygone. Dazu zählen auch Triangle Strips (Streifen aus Dreiecken). Der Vorteil daran ist, dass Sie weniger Vertices (Knoten- bzw. Eckpunkte) pro Dreieck angeben müssen, als wenn Sie einzelne Dreiecke zeichnen. Damit können Sie die Ausgabe beschleunigen.</p>
+		<p>Bevor Sie zeichnen, rufen Sie</p>
+		<pre><code>glBegin(...)</code></pre>
+		<p>auf. Als Parameter übergeben Sie eine Konstante, die festlegt, was OpenGL zeichnen soll. Jeden Programmblock, in dem Sie etwas zeichnen, beenden Sie mit einem Aufruf von</p>
+		<pre><code>glEnd(...)</code></pre>
+		<p>Sie haben auch zwei Blöcke, wenn Sie erst Dreiecke und anschließend Linien zeichnen wollen. Innerhalb der Blocks übergeben Sie die Vertices an OpenGL. Dazu verwenden Sie</p>
+		<pre><code>glVertex{234}{sifd}[v](TYPE coords);</code></pre>
+		<p>Als Beispiel zeichnen Sie ein weißes Dreieck:</p>
+		<pre><code>
+glColor3f(1.0f, 1.0f, 1.0f);
+glBegin(GL_TRIANGLES);
+glVertex2f(0.0f, 0.0f);
+glVertex2f(1.0f, 0.0f);
+glVertex2f(0.0f, 1.0f);
+glEnd();
+		</code></pre>
+		<p>OpenGL ist eine <i>State Machine</i>: Es gibt Zustände, die Sie an- und ausschalten oder ändern und die so lange gelten, bis Sie geändert werden. Einer dieser Zustände ist die Farbe. Im obigen Beispiel sehen Sie einen Aufruf von <i>glColor*</i>. Wenn Sie für die Eckpunkte jeweils andere Farben einstellen wollen, müssen Sie vor jeden Aufruf von <i>glVertex*</i> einen <i>glColor*</i>-Aufruf schreiben.</p>
+		<p>Wenn Sie alles gezeichnet haben und das neue Bild im Fenster sehen wollen, teilen Sie das OpenGL mit, indem Sie <i>glFlush()</i> oder <i>glFinish()</i> aufrufen. Vertauschen Sie den Arbeits- und Darstellungs-Colorbuffer Ihres Device-Contexts:</p>
+		<pre><code>SwapBuffers(hDC)</code></pre>
+		<p>Für Sie ist vor allem das Rendern von Polygonen, insbesondere von Dreiecken interessant, wenn Sie Landschaften (3D-Objekte) darstellen wollen. Polygone zeichnen Sie für gewöhnlich so, dass Sie die Pixel innerhalb der Polygonkanten setzen. Sie können aber auch nur den Rand oder die Eckpunkte zeichnen lassen. Das können Sie für Vorder- und Rückseite separat angeben:</p>
+		<pre><code>
+//Vorderseite ausfüllen
+glPolygonMode(GL_FRONT,GL_FILL);
+// Rückseite, nur Rand
+glPolygonMode(GL_BACK,GL_LINE);
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200104_3.png" width="538" height="446" alt="VORNE ODER HINTEN? Die Richtung der Normalen entscheidet: Backface Culling in OpenGL.">
+			<figcaption><span>VORNE ODER HINTEN?</span> Die Richtung der Normalen entscheidet: Backface Culling in OpenGL.</figcaption>
+		</figure>
+		<p>Wo ist vorne und wo hinten? Die Computergrafik folgt der Konvention, Eckpunkte, die Sie im Polygon von vorne sehen, gegen den Uhrzeigersinn anzugeben. Diesen Test führt OpenGL durch. 3D-Modelle lassen sich so konstruieren, dass alle Polygone Ihrer Außenseite dieser Konvention folgen. Wenn Sie sich Polygongitter in Form einer Kugel vorstellen, sehen Sie immer nur die Polygone, die mit ihrer Vorderseite zu Ihnen zeigen. Alle anderen sind verdeckt und müssen nicht gezeichnet werden. Das können Sie OpenGL überlassen. Legen Sie zuerst fest, ob Sie mit oder gegen die Konvention arbeiten. Beachten Sie, dass Sie diese Entscheidung konsequent durchhalten:</p>
+		<pre><code>
+// entsprechend der Konvention
+glFrontFace(GL_CCW);
+// oder entgegen
+glFrontFace(GL_CW);
+		</code></pre>
+		<p>Anschließend teilen Sie OpenGL mit, dass es Polygone, deren Rückseite sichtbar sind, nicht zeichnen soll:</p>
+		<pre><code>glCullFace(GL_BACK);</code></pre>
+		<p>Dieses Backface Culling müssen Sie noch aktivieren:</p>
+		<pre><code>glEnable(GL_CULL_FACE);</code></pre>
+	</section>
+
+	<section>
+		<h2>Transformationen und Kamera-Einstellungen</h2>
+		<figure class="large">
+			<img src="assets/200104_2.png" width="1219" height="223" alt="DIE TRANSFORMATIONEN, die ein Vertex über sich ergehen lassen muss">
+			<figcaption><span>DIE TRANSFORMATIONEN</span>, die ein Vertex über sich ergehen lassen muss</figcaption>
+		</figure>
+		<p>Mit den bisher verwendeten Befehlen können Sie zwar geometrische Primitive zeichnen, diese befinden sich aber noch nicht im drei&shy;dimensionalen Raum. Bei 3D-Grafiken geben Sie nicht nur die 3D-Objekte in Form der Primitive an, sondern müssen noch andere Parameter festlegen. Dazu gehören Lage und Position der Objekte und die Einstellungen (Trans&shy;formationen) der virtuellen Kamera, mit der Sie die Szene fotografieren.</p>
+		<p>Trans&shy;formationen beschreiben Sie mathematisch mit einer Matrix. Eine Matrix ist zunächst eine Tabelle mit Zahlenwerten. Wenn Sie diese Werte geeignet wählen, beschreiben die Matrizen eine Drehung oder eine Projektion, wenn Sie mit einem Vektor (zum Beispiel einem Vertex) multipliziert werden. Sie können die Trans&shy;formationen hintereinander ausführen, indem Sie das Ergebnis einer Transformation als Vektor für die nächste verwenden. Weniger Rechenzeit kostet es, die Matrizen miteinander zu multiplizieren. Als Ergebnis erhalten Sie eine Matrix, die alle Trans&shy;formationen zusammen beschreibt. Diese Matrix-Matrix- und Matrix-Vektor-Multi&shy;plikationen übernimmt OpenGL für Sie.</p>
+		<p>Im Bild oben sehen Sie die Transformations&shy;schritte, die ein Vertex durchlaufen muss, den Sie angeben, bis die 2D-Koordinaten innerhalb des Fensters berechnet werden. Dort tauchen die Begriffe <i>ModelView</i>- und <i>Projection</i>-Matrix auf. Diese beiden Matrizen verwaltet OpenGL in einem Stack. Sie übernehmen die Funktionen einer echten Kamera:<br>
+		• Das Aufstellen der Kamera in der Szene entspricht der <i>Viewing Transformation</i>.<br>
+		• Sie platzieren die Objekte der <i>Modelling Transformation</i>.<br>
+		• Die Wahl der Kameralinse und den Zoomfaktor steuern sie über die <i>Projection Matrix</i>.<br>
+		• Die <i>Viewport Transformation</i> skaliert die projezierten Koordinaten auf die Größe des Windows-Fensters.<br>
+		• Die <i>Modelling-</i> und <i>Viewing-Transformation</i> zusammen ergeben die <i>ModelView Matrix</i>.</p>
+		<p>Indem Sie die Matrizen in einem Stack verwalten, können Sie hierarchische 3D-Modelle einfacher gestalten und eleganter mit Matrizen umgehen. Aus einem Stack können Sie Elemente <i>pushen</i> (hinzufügen) und <i>poppen</i> (herunternehmen). Wenn Sie den <i>Push</i>-Befehl</p>
+		<pre><code>glPushMatrix()</code></pre>
+		<p>aufrufen, wird die oberste Matrix auf dem Stack kopiert und nochmals auf den Stack gepackt.</p>
+		<pre><code>glPopMatrix()</code></pre>
+		<p>entfernt die oberste Matrix. Der Befehl</p>
+		<pre><code>glLoadIdentity()</code></pre>
+		<p>überschreibt die oberste Matrix mit der Einheitsmatrix. Nun stellen Sie eine virtuelle Kamera auf, wobei der Befehl</p>
+		<pre><code>gluPerspective(...)</code></pre>
+		<p>Ihnen viel Arbeit abnimmt. Wählen Sie die <i>Kameralinse</i>:</p>
+		<pre><code>
+// Projection Matrix wählen
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+
+// Öffnungswinkel, Aspectratio..
+gluPerspective(45.0f, width/height, 1.01f, 1000.0f);
+
+// Breite und Höhe des Fensters
+glViewport(0,0,width,height);
+		</code></pre>
+		<p>Beschreiben Sie die 3D-Szene. Platzieren Sie die Kamera:</p>
+		<pre><code>
+glMatrixMode(GL_MODELVIEW);
+glLoadIdentity();
+
+// Abstand vom Objekt
+glTranslatef(0.0f, 0.0f, -80.0f);
+		</code></pre>
+		<p>Der Befehl</p>
+		<pre><code>glTranslatef(...)</code></pre>
+		<p>erzeugt eine Matrix, die eine Verschiebung (eine Translation) enthält, und multipliziert die oberste Matrix auf dem Stack mit dieser Matrix.</p>
+		<p class="tip">ACHTUNG! Die Reihenfolge der Trans&shy;formationen, die ein Vertex durchläuft, ist umgekehrt zu der Reihenfolge, die Sie im Programmcode angeben.</p>
+		<p>Es gibt noch weitere Befehle für Trans&shy;formationen:</p>
+		<pre><code>
+//Winkeldrehung um x, y, z
+glRotatef(GLfloat angle, GLfloat x,
+	GLfloat y, GLfloat z)
+		</code></pre>
+		<p>und</p>
+		<pre><code>
+//Skalierung in x, y, z Richtung
+glScalef(GLfloat x, GLfloat y, GLfloat z);
+		</code></pre>
+		<p>Das folgende Beispiel zeigt die Reihenfolge der Trans&shy;formationen auf:</p>
+		<pre><code>
+glPushMatrix();
+glTranslatef(2, 0, 0);
+glRotatef(45, 1, 1, 0);
+drawCube();
+glPopMatrix();
+		</code></pre>
+		<p>Damit drehen Sie den Würfel zuerst und verschieben ihn dann. Achten Sie auf die umschließenden Befehle</p>
+		<pre><code>
+glPushMatrix()
+...
+glPopMatrix()
+		</code></pre>
+		<p>Diese gewährleisten, dass der Matrixstack nach dem Zeichnen und Transformieren des Würfels genauso wie vorher hinterlassen wird. Das ist wichtig, wenn Sie viele 3D-Objekte unabhängig voneinander bewegen wollen.</p>
+	</section>
+
+	<section>
+		<h2>Licht an!</h2>
+		<figure class="floatright">
+			<img src="assets/200104_4.png" width="648" height="507" alt="UNSER BEISPIELPROGRAMM in Aktion: beleuchtete, animierte 3D-Modelle mit Flat- oder Gouraud Shading">
+			<figcaption><span>UNSER BEISPIELPROGRAMM</span> in Aktion: beleuchtete, animierte 3D-Modelle mit Flat- oder Gouraud Shading</figcaption>
+		</figure>
+		<p>Nun können Sie Ihre 3D-Objekte und Ihre virtuelle Kamera beliebig im Raum platzieren. Leider erscheinen die Objekte noch einfarbig und fade. Es fehlt Licht!</p>
+		<p>In OpenGL gibt es drei Arten von Licht:<br>
+		• Das ambiente Licht ist der Teil des Lichts, der durch die Umgebung so sehr gestreut ist, dass seine Richtung nicht mehr auszumachen ist.<br>
+		• Das diffuse Licht ist deutlich heller. Es kommt von einer Lichtquelle, trifft auf eine Oberfläche und wird dort in alle Richtungen gestreut.<br>
+		• Die Specular (spiegelnde) Reflexion entsteht etwa dadurch, dass Sie ein Spiegelbild der Lichtquelle wahrnehmen.</p>
+		<p>In OpenGL geben Sie für jede Lichtquelle, wovon Sie mehrere gleichzeitig verwenden können, Position, Farbe und Intensität des emittierten Lichts an. Dazu verwenden Sie</p>
+		<pre><code>
+glLight{i,f}[v](GLenum light,
+	GLenum pname, TYPE param);
+		</code></pre>
+		<p>Als Beispiel setzen Sie eine Lichtquelle ein:</p>
+		<pre><code>
+// Parameter setzen
+GLfloat lAmbient[] = { 0.0, 0.0, 0.0, 1.0 };
+GLfloat lDiffuse[] = { 1.0, 1.0, 1.0, 1.0 };
+GLfloat lSpecular[] = { 1.0, 1.0, 1.0, 1.0 };
+GLfloat lPosition[] = { 1.0, 1.0, 1.0, 0.0 };
+glLightfv(GL_LIGHT0,GL_AMBIENT, lAmbient);
+glLightfv(GL_LIGHT0,GL_DIFFUSE, lDiffuse);
+glLightfv(GL_LIGHT0,GL_SPECULAR, lSpecular);
+glLightfv(GL_LIGHT0,GL_POSITION, lPosition);
+
+// Beleuchtungsberechnung an
+glEnable(GL_LIGHTING);
+// diese Lichtquelle anschalten
+glEnable(GL_LIGHT0);
+
+// Schattierung der Polygone
+glShadeModel(GL_FLAT);
+		</code></pre>
+		<p>Zur Beleuchtungs&shy;berechnung braucht OpenGl außer den Koordianten der Eckpunkte der 3D-Objekte noch die Oberflächen&shy;normalen.</p>
+		<p>Die Oberflächen&shy;normalen erhalten Sie entweder aus einem 3D-Modelling-Programm, wenn Sie damit Ihre 3D-Objekte gestalten, oder Sie berechnen sie selbst. Dazu verwenden Sie das Kreuzprodukt zweier Vektoren. Für ein Dreieck berechnen Sie die Normale wie folgt:</p>
+		<pre><code>
+// Die Vertices des Dreiecks
+GLfloat v0 = { 0.0f, 0.0f, 0.0f }
+GLfloat v1 = { 1.0f, 1.0f, 0.0f }
+GLfloat v2 = { 3.0f, 0.0f, 1.0f }
+GLfloat a[3], b[3], n[3];
+a[0] = v1[0] - v0[0];
+a[1] = v1[1] - v0[1];
+a[2] = v1[2] - v0[2];
+b[0] = v2[0] - v0[0];
+b[1] = v2[1] - v0[1];
+b[2] = v2[2] - v0[2];
+
+// Normale n
+n[0] = a[1] * b[2] - b[1] * a[2];
+n[1] = a[2] * b[0] - b[2] * a[0];
+n[2] = a[0] * b[1] - b[0] * a[1];
+		</code></pre>
+		<p>Die Normale übergeben Sie an OpenGL mit dem Befehl</p>
+		<pre><code>
+glNormal3{b, d, f, i, s}[v](TYPE coords);
+		</code></pre>
+		<p>In unserem Fall verwenden Sie die Parameter</p>
+		<pre><code>glNormal3fv(n)</code></pre>
+		<p>Eine angegebene Normale wird so lange jedem Vertex zugewiesen, bis Sie eine andere angegeben haben (genau wie bei <i>glColor*</i>). Sie können auch für jeden Vertex eine Normale angeben. Diese Vertex-Normalen erhalten Sie, indem Sie die Normalen aller Dreiecke, an denen ein Vertex beteiligt ist, mitteln. Damit erhalten Sie unter OpenGL das <i>Gouraud Shading</i>: Diese berechnet die Beleuchtung an jedem Eckpunkt eines Dreiecks und interpoliert die Farbwerte linear. Damit wirken die Objekte visuell runder als bei dem <i>Flat Shading</i>. Das <i>Gouraud Shading</i> aktivieren Sie mit <i>glShadeModel (GL_</i> <i>SMOOTH)</i>.</p>
+		<p>Wenn Sie 3D-Objekte beleuchten wollen, müssen Sie den Oberflächen ein Material zuweisen. Dahinter verbirgt sich <i>nur</i> eine Farbe – aber jeweils eine für den ambienten, diffusen und spekulären Teil des Lichts. Ein Material definieren Sie wie folgt:</p>
+		<pre><code>
+GLfloat mAmbient[] = { 1.0f, 1.0f, 1.0f };
+GLfloat mDiffuse[] = { 1.0f, 1.0f, 0.0f };
+glMaterialfv(GL_FRONT, GL_AMBIENT, mAmbient);
+glMaterialfv(GL_FRONT, GL_DIFFUSE, mDiffuse);
+		</code></pre>
+		<p>In der nächsten Ausgabe werden Sie erste Landschafts&shy;daten generieren und darstellen.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur</b></p>
+		<p class="footnote">Jackie Neider, Tom Davis, Mason Woo: OpenGL Programming Guide, The Official Guide to Learning OpenGL, Release 1</p>
+		<p class="footnote">Burg, Haf, Wille: Höhere Mathematik für Ingenieure, Band 2 Lineare Algebra, ISBN 3-519-22956-0</p>
+		<p class="footnote">Bronstein, Semendjajew, Musiol, Mühlig: Taschenbuch der Mathematik, ISBN 3-8171-2002-8</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200103.html">3/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200105.html">5/2001</a>
+	</nav>
+</body>

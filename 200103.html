@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Mathematik ausgereizt (PC Underground, PC Magazin 3/2001)</title>
+</head>
+<body>
+	<div class="credits">
+		<h2>Dieser Artikel erschien erstmals im PC&nbsp;Magazin&nbsp;3/2001. Die Wieder&shy;veröffentlichung erfolgt mit freundlicher Genehmigung der <a rel="external nofollow noreferrer" href="https://wekanet.de">WEKA&nbsp;Media&nbsp;Publishing&nbsp;GmbH</a>.</h2>
+	</div>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200102.html">2/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200104.html">4/2001</a>
+	</nav>
+
+	<article>
+	<header>
+		<h2>Bézier- und Spline-Flächen</h2>
+		<h1>Mathematik <span class="highlight">ausgereizt</span></h1>
+		<p class="summary">Hinter den reizenden Kurven virtueller Gestalten und hinter malerischen, <span class="highlight">blühenden Landschaften</span> verbirgt sich simple Mathematik.</p>
+	</header>
+
+	<section>
+		<h3>Carsten Dachsbacher</h3>
+		<p>Mit dem mathematischen Handwerkszeug aus PC Underground 01/01 (ab S. 258) zaubern Sie Bézier- und Spline-Flächen auf Ihren Bildschirm. Diese Art der Repräsentation von 3D-Modellen findet man in Computer&shy;spielen: in Torbögen, Brunnen&shy;schächten, Säulen oder Landschaften. Sie können damit auch Modelle aus gewölbten Flächen präsentieren.</p>
+	</section>
+
+	<aside>
+		<h2>QUELLTEXTE</h2>
+		<div>Die Quelltexte zu diesem Artikel finden Sie in der Datei  <a href="200103.zip">💾 200103.zip</a>.</div>
+	</aside>
+
+	<section>
+		<h2>Tensor-Produkt-Flächen</h2>
+		<p>Aus parametrischen Kurven können Sie mit dem Tensor-Produkt-Ansatz Flächen zusammensetzen. Dazu benötigen Sie zwei Kurven:
+		<img class="math" src="assets/200103_9.png" width="152" height="110" alt="Zwei Kurven"></p>
+		<p>Der Tensor-Produkt-Ansatz fasst beide Kurven unter einer Doppelsumme zusammen:
+		<img class="math" src="assets/200103_10.png" width="219" height="57" alt="Doppelsumme"></p>
+		<p>Wenn Sie die Terme in der obigen Formel anders klammern, lässt sich die Tensor-Produkt-Fläche als Kurve auf einer Kurve deuten. Sie berechnen den Funktionswert der einen Kurve (innere Klammer) und verwenden das Ergebnis als Stützpunkt für die zweite Kurve (äußere Summe).
+		<img class="math" src="assets/200103_11.png" width="233" height="181" alt="Tensor-Produkt-Fläche"></p>
+		<p>Der Term <i>dij</i> fasst die Stützpunkte der Tensor-Produkt-Fläche zusammen. Allerdings haben Sie für die Fläche nicht <i>(m+n+2)</i>, sondern <i>(m+1)*(n+1)</i> Stützpunkte. Das gibt Ihnen mehr Freiheit, die Fläche zu modellieren.</p>
+		<p>Welche Basis&shy;funktionen (Bézier oder Spline) Sie verwenden, ist aus mathematischer Sicht nicht festgelegt. Praktiker kombinieren immer zwei Basis&shy;funktionen gleichen Typs.</p>
+	</section>
+
+	<section>
+		<h2>TP-Bézier-Patch</h2>
+		<p>Von einem TP-Bézier-Patch spricht man, wenn Sie für beide Basis&shy;funktionen Bézier-Kurven wählen. Diese Variante besitzt Eigenschaften, die Sie beim Modellieren und beim Rendering nutzen können.</p>
+		<p>TP-Bézier-Patches und andere TP-Flächen haben ein zwei&shy;dimensionales Parameter&shy;gebiet. Ein Punkt auf der Fläche hängt von zwei Koordinaten ab. Diese und das Kontroll&shy;polygonnetz definieren die Fläche.</p>
+		<p>Der TP-Bézier-Patch hat von den zwei&shy;dimensionalen Bézier-Kurven die Eigenschaft <i>konvexe Hülle</i> geerbt. Das bedeutet, dass die konvexe Hülle mit allen Knoten des Kontrollnetzes auch den TP-Bézier-Patch enthält. Wie sich die Kurve in den Start- und Endpunkten tangentiell an das Kontroll&shy;polygon legt, so verhält sich die Fläche an den Eckpunkten des Kontrollnetzes. Anders ausgedrückt: Bei Bézier-Kurven endet die Kurve im ersten und letzten Kontrollpunkt und verläuft tangentiell am Kontroll&shy;polygon. Ein TP-Bézier-Patch verläuft durch die Eckpunkte des Kontrollnetzes und dort tangentiell am Kontrollnetz. Daraus ergibt sich die Normale der Fläche an <i>b00</i>:
+		<img class="math" src="assets/200103_12.png" width="192" height="38" alt="Normale"></p>
+		<p>Die wichtigste Eigenschaft für den Einsatz der Bézier-Patches in der 3D-Grafik ist die Affine Invarianz. Eine affine Transformation setzt sich aus Rotation und Translation (Verschiebung) zusammen. Mit dieser Eigenschaft können Sie die Fläche über die Punkte des Kontrollnetzes rotieren und verschieben und mit den gleichen Algorithmen neu auswerten. Wäre diese Eigenschaft nicht gegeben, würde die Fläche bei solchen Aktionen ihre Gestalt verändern.</p>
+		<p>Eine Eigenschaft der Kurven überträgt sich allerdings nicht auf den TP-Bézier-Patch: die Variation Diminishing Property. Die parametrische Fläche kann daher mehr Wölbungen oder Beulen aufweisen als die Basis&shy;funktionen.</p>
+		<figure class="floatright">
+			<img src="assets/200103_1.png" width="538" height="288" alt="DAS PARAMETERGEBIET und das Kontrollpolygon eines TP-Bézier-Patches">
+			<figcaption><span>DAS PARAMETERGEBIET</span> und das Kontrollpolygon eines TP-Bézier-Patches</figcaption>
+		</figure>
+		<p>Die Algorithmen, die Sie bereits für den Kurvenfall kennengelernt haben, wie de Casteljau-Algorithmen zum Beispiel Unterteilung, Graderhöhung und die Konstruktion stetiger Übergänge, können Sie direkt von den Kurven auf die Flächen übertragen. Dies führt Ihnen unser Beitrag anhand des de Casteljau-Algorithmus vor. Dieser verwendet die Darstellung eines TP-Bézier-Patches als Kurve auf einer Kurve. Es bietet sich also an, zuerst die eine Kurve (die innere Klammer in der obigen Formel) mit dem de-Casteljau-Algorithmus auszuwerten. Damit erhalten Sie die Stützpunkte der zweiten Kurve, die Sie auch wieder auswerten. Wie Sie aus der vorigen Definition der TP-Flächen entnehmen, liefert jede Reihenfolge der Auswertungen, also <i>u/v</i> oder <i>v/u</i>, dasselbe Ergebnis. Eine Darstellung der Auswertungs&shy;pyramiden des de-Casteljau-Algorithmus bei einem bikubischen TP-Bézier-Patch (in beiden Basis&shy;funktionen kommen Terme bis zur dritten Potenz vor) finden Sie im Bild unten.</p>
+	</section>
+
+	<section>
+		<h2>3x3-TP-Bézier-Patch</h2>
+		<p>Mit bikubischen TP-Bézier-Patches lassen sich viele interessante Modelle konstruieren. Diese setzen sich meist aus mehreren Patches zusammen; dadurch können Sie 3D-Modelle mit zahlreichen Details versehen. Sie werten aus Basis&shy;funktionen – durch geeignete Verfahren und unter Berück&shy;sichtigung eines Spezialfalls – noch schneller aus.</p>
+		<p>Der Spezialfall hier ist zum einen, dass Sie bikubische TP-Bézier-Patches betrachten, und zum anderen, dass Sie darauf 81 regelmäßig verteilte Punkte auswerten wollen – also die Fläche zu einem 9 x 9-Polygongitter tessellieren. Das heisst, Sie wandeln die Fläche in Polygone, zumeist Dreiecke, um.</p>
+		<p>Dazu nutzen Sie <i>Central Differencing</i>: Die Randkurven einer Bézier-Fläche sind Bézier-Kurven. Diese Randkurven können Sie sukzessive am Mittelpunkt und über die Fläche hinweg unterteilen. So berechnen Sie den Mittelpunkt einer Bézier-Kurve: Als erstes betrachten Sie eine Randkurve. Diese schreiben Sie als Taylor-Reihe. Dabei handelt es sich um die Darstellung einer Funktion durch eine Summe über ihre Ableitungen. In der folgenden Formel ist <i>Fi(u)</i> die i-te Ableitung der Funktion. Der Wert der Formel ist ein Punkt in der Nähe von <i>u</i>, also <i>du</i> entfernt.
+		<img class="math" src="assets/200103_13.png" width="202" height="66" alt="Summe der Ableitungen"></p>
+		<p>Da Sie kubische Basis&shy;funktionen betrachten, können Sie diese (mit den zunächst unbekannten Parametern <i>a, b,</i> <i>c, d</i>) und ihre Ableitungen wie folgt aufschreiben:
+		<img class="math" src="assets/200103_14.png" width="185" height="164" alt="Ableitungen der kubischen Basisfunktionen"></p>
+		<p>Ab der vierten Ableitung sind bei einer kubischen Funktion alle Ableitungen gleich Null. Weil die Taylor-Reihe keine Summe bis unendlich enthält, lässt sie sich leicht aufschreiben:
+		<img class="math" src="assets/200103_15.png" width="231" height="96" alt="Taylor-Reihe"></p>
+		<p>Für Punkte, die in der anderen Richtung von <i>u</i> liegen, erhalten Sie folgende Formel:
+		<img class="math" src="assets/200103_16.png" width="238" height="90" alt="Taylor-Reihe"></p>
+		<p>Wenn Sie die letzen beiden Gleichungen addieren, erhalten Sie das vielver&shy;sprechende Ergebnis:
+		<img class="math" src="assets/200103_17.png" width="297" height="36" alt="Ergbnis">
+		welche nach <i>F(u)</i> aufgelöst:
+		<img class="math" src="assets/200103_18.png" width="297" height="55" alt="nach F(u) aufgelöst">
+		ergibt.</p>
+		<p>Dabei halten Sie das Ziel im Auge, eine Bézier-Kurve in der Mitte zu unterteilen. So erhalten Sie die benötigte Menge an Stützpunkten entlang der Bézier-Kurve. Der Parameter <i>u</i> läuft von <i>0</i> bis <i>1</i>, die Mitte der Kurve ist bei <i>du = 0.5</i>.
+		<img class="math" src="assets/200103_19.png" width="260" height="72" alt="Mitte der Kurve">
+		Die eingesetzten Werte sind für den ersten Unterteilungs&shy;schritt.</p>
+		<p><i>F(0)</i> und <i>F(1)</i> sind zwei Eckpunkte des Kontrollnetzes. Sie benötigen die zweite Ableitung in der Mitte einer Bézier-Kurve. Die von <i>F(u)</i> hergeleitete Formel hilft Ihnen weiter, wenn Sie darin <i>F(u)</i> durch <i>F’’(u)</i> ersetzen:
+		<img class="math" src="assets/200103_20.png" width="261" height="112" alt="Zweite Ableitung"></p>
+		<figure class="floatright">
+			<img src="assets/200103_2.png" width="450" height="422" alt="EINE DOPPELTE ANWENDUNG des de-Casteljau-Algorithmus führt zum gewünschten Punkt.">
+			<figcaption><span>EINE DOPPELTE ANWENDUNG</span> des de-Casteljau-Algorithmus führt zum gewünschten Punkt.</figcaption>
+		</figure>
+		<p>Den letzen Term können Sie vernach&shy;lässigen, da die vierte Ableitung immer gleich Null ist. In unserem Beispiel erhalten Sie:
+		<img class="math" src="assets/200103_21.png" width="171" height="52" alt="Zweite Ableitung"></p>
+		<p>Die zweiten Ableitungen an den Stellen <i>u=0</i> und <i>u=1</i> können Sie direkt berechnen. Dazu schreiben Sie die Summenform der Bézier-Kurve aus und leiten diese ab. Damit erhalten Sie folgende Resultate:
+		<img class="math" src="assets/200103_22.png" width="247" height="207" alt="Summenform"></p>
+		<p>Nun haben Sie alle Berechnungen erledigt, mit denen Sie eine Bézier-Kurve sukzessiv unterteilen. Alle vorkommenden Werte (<i>F(0), F(1)....)</i> ersetzen Sie in den weiteren Rechen&shy;schritten durch die entsprechenden Zwischen&shy;ergebnisse: Wenn Sie eine Kurve unterteilt haben, erhalten Sie zwei neue, deren einer End- oder Startpunkt das Resultat der obigen Berechnung ist.</p>
+		<p>Doch woher bekommen Sie die zweite Ableitung, wenn Sie nicht mehr entlang einer Randkurve, sondern über die Fläche unterteilen? Das entspricht der Unterteilung einer Kurve im anderen Parameter. Dabei hilft Ihnen folgende schon bekannte Gleichung:
+		<img class="math" src="assets/200103_23.png" width="292" height="108" alt="Unterteilung der Kurve"></p>
+		<p>Sie können also die zweite partielle Ableitung in <i>v</i>-Richtung auf einer <i>u</i>-Randkurve berechnen, wenn Sie den Wert <i>F<sub>uuvv</sub></i> kennen. <i>F<sub>uuvv</sub></i> bedeutet die zweite Ableitung der Fläche in <i>u-</i> und <i>v</i>-Richtung. Auch diese erhalten Sie durch Mittelung zweier Werte an den Kurven Start- oder Endpunkten, welche die folgende Formel ausweist:
+		<img class="math" src="assets/200103_24.png" width="241" height="86" alt="Mittelung"></p>
+		<p>Es genügt also, den Wert an den Eckpunkten zu kennen, um den ersten Berechnungs&shy;schritt zu starten. Diese Werte müssen Sie direkt ausrechnen:
+		<img class="math" src="assets/200103_25.png" width="260" height="118" alt="Eckpunkte"></p>
+		<p>In die untere Gleichung setzen Sie die Ableitungen der Bernstein-Polynome ein:
+		<img class="math" src="assets/200103_26.png" width="144" height="131" alt="Bernstein-Polynome"></p>
+		<p>Die Initialisierung einer Unterteilung berechet folgende drei Werte:
+		<img class="math" src="assets/200103_27.png" width="261" height="166" alt="Unterteilung"></p>
+		<p>Sie unterteilen diese mit jedem Rechenschritt folgendermaßen
+		<img class="math" src="assets/200103_28.png" width="298" height="326" alt="Unterteilung"></p>
+		<figure class="floatright">
+			<img src="assets/200103_3.png" width="703" height="239" alt="ZUERST UNTERTEILEN SIE die Randkurven, anschließend über die Fläche hinweg.">
+			<figcaption><span>ZUERST UNTERTEILEN SIE</span> die Randkurven, anschließend über die Fläche hinweg.</figcaption>
+		</figure>
+		<p>Alles zusammen&shy;genommen, können Sie im Vergleich zum de-Casteljau-Algorithmus die Anzahl der nötigen Additionen und Multi&shy;plikationen mehr als halbieren, was den Aufwand in einer zeitkritischen Anwendung rechtfertigt. Einen Vergleich und eine genaue Auswertung des de-Casteljau-Algorithmus und des <i>Central Differencing</i> können Sie im Artikel <i><a href="https://www.gamasutra.com/features/19991027/deloura_01.htm" rel="external nofollow noreferrer">An In-Depth Look at Bicubic Bézier Surfaces</a></i> von Mark A. DeLoura abrufen.</p>
+		<p>Auch für 4 x 4-TP-Bézier-Flächen bietet das Internet Informationen. Haim Barad beschreibt im Artikel <i><a href="https://www.gamasutra.com/features/20000317/barad_01.htm" rel="external nofollow noreferrer">Tessellation of 4x4 Bézier Patches for the Intel Pentium III Processor</a></i> wie Sie solche Bézier-Patches mit Pentium-3-Befehlen effizient tessellieren können.</p>
+	</section>
+
+	<section>
+		<h2>Andere Tensor-Produkt-Flächen</h2>
+		<figure class="floatright">
+			<img src="assets/200103_4.png" width="684" height="330" alt="LINKS SEHEN SIE EINE herkömmliche Spline-Fläche, rechts eine hierarchische mit aufgesetztem lokalen Detail.">
+			<figcaption><span>LINKS SEHEN SIE EINE</span> herkömmliche Spline-Fläche, rechts eine hierarchische mit aufgesetztem lokalen Detail.</figcaption>
+		</figure>
+		<p>Mit jeder Basisfunktion können Sie Tensor-Produkt-Flächen erzeugen (vgl. PC Underground 1/01, ab S. 258). Genauso wie bei den Bézier-Flächen können Sie alle Eigenschaften, bis auf Variation Diminishing, von den Kurven auf die Flächen übertragen. Wenn Sie in einem kleinen Teil einer Spline-Fläche mehr Details modellieren wollen, benötigen Sie in jeder Randkurve mehrere Stützpunkte.</p>
+		<p>Angenehmer wäre eine Lösung wie rechts im Bild, bei der nur der Bereich mit lokalem Detail auch mehr Stützpunkte enthält. Ein Lösungsansatz dazu sind die hierarchischen Spline-Flächen:</p>
+		<p><i>F1(u,v)</i> ist die grobe Fläche, <i>F2(u,v)</i> die kleine, detailreiche auf <i>F1</i> aufgesetzte Fläche.</p>
+	</section>
+
+	<section>
+		<h2>Parametrische Flächen trimmen</h2>
+		<figure class="floatright">
+			<img src="assets/200103_5.png" width="470" height="233" alt="NEBEN DER MATHEMATISCHEN Darstellung des Parameter&shy;gebiets sehen Sie in Blau die getrimmte Fläche.">
+			<figcaption><span>NEBEN DER MATHEMATISCHEN</span> Darstellung des Parameter&shy;gebiets sehen Sie in Blau die getrimmte Fläche.</figcaption>
+		</figure>
+		<p>Nicht immer wollen Sie, dass das ganze Parameter&shy;gebiet verwendet wird, sondern Sie wollen Ihre parametrische Fläche zurecht&shy;schneiden. Dabei spricht man vom Trimmen der Fläche. Bei der Tessellierung lässt sich das nicht direkt umsetzen, aber zur direkten Berechnung können Sie das nachfolgende Verfahren nutzen. Um eine Fläche zu trimmen, verwenden Sie im Parameter&shy;gebiet eine geschlossene Kurve und ein Flächenschema. Ermitteln Sie für jedes Koordinaten&shy;paar <i>(u,v)</i>, ob es innerhalb oder außerhalb des getrimmten Bereiches liegt. Die geschlossenen Kurven markieren den getrimmten Bereich. Dazu bedienen Sie sich des so genannten <i>Odd-Even</i>-Tests: Vom Punkt <i>(u,v)</i> im Parameter&shy;gebiet ausgehend verfolgen Sie eine Halbgerade in eine beliebige Richtung. Nun zählen Sie die Anzahl der Schnittpunkte der Halbgerade mit den gegebenen Kurven. Bei einer ungeraden Anzahl von Schnittpunkten liegt <i>(u,v)</i> im getrimmten Bereich, sonst außerhalb.</p>
+		<figure class="large">
+			<img src="assets/200103_6.png" width="585" height="329" alt="DER ODD-EVEN-TEST verrät Ihnen, wo sich der Punkt befindet.">
+			<figcaption><span>DER ODD-EVEN-TEST</span> verrät Ihnen, wo sich der Punkt befindet.</figcaption>
+		</figure>
+		<p>Einen interessanten Artikel über NURBS (Non-Uniformal Rational B-Splines, eine Variante von Splines) finden Sie bei <a href="https://developer.intel.com/software/idap/games/nurbs/index.htm" rel="external nofollow noreferrer">Intel</a>.</p>
+	</section>
+
+	<section>
+		<h2>Patches rendern</h2>
+		<p>Die besten Algorithmen, um Flächen zu berechnen, nutzen Ihnen nichts, wenn Sie diese nicht darstellen können. Mit OpenGL bringen Sie mit relativ wenigen Befehlen die Patches auf den Bildschirm. Einen einfachen Start, mit dem Sie OpenGL im Fenster- und im Vollbild-Modus in beliebiger Auflösung und Farbtiefe verwenden können, finden Sie im Quellcode auf der Heft-CD im Verzeichnis unter <i>PC Underground</i>.</p>
+		<p>Um die parametrischen Flächen zu rendern, positionieren Sie zuerst den Betrachter. Diese Information speichert OpenGL in der Projektions&shy;matrix:</p>
+		<pre><code>
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+gluPerspective(45.0f, aspectratio, 1.01f, 1000.0f);
+glTranslatef(0.0f,0.0f,-120.0f);
+		</code></pre>
+		<p>Die Transformationen der Polygon-Daten speichern Sie in der <i>Modelview</i>-Matrix:</p>
+		<pre><code>
+glMatrixMode(GL_MODELVIEW);
+glLoadIdentity();
+		</code></pre>
+		<p>Hierbei verfügen Sie über folgende Befehle, um Polygone im Raum um eine Achse zu drehen, zu verschieben (Translation) oder in der Größe zu verändern (Skalierung):</p>
+		<pre><code>
+void glRotatef(GLfloat winkel, GLfloat x,GLfloat y,GLfloat z);
+void glTranslatef(GLfloat x, GLfloat y, GLfloat z);
+void glScalef(GLfloat x, GLfloat y, GLfloat z);
+		</code></pre>
+		<p>Nachdem Sie diese Befehle mit angepassten Parametern ausgeführt haben – eine Implementation können Sie unserem Beispiel&shy;programm entnehmen – können Sie die Polygone zeichnen. Zunächst bestimmen Sie die Zeichenfarbe:</p>
+		<pre><code>
+glColor3f(GLfloat rot, GLfloat green, GLfloat blue);
+		</code></pre>
+		<p>So können Sie Dreiecke, die Sie durch das Tessellieren erhalten haben, auf verschiede Arten ausgeben. Geben Sie einzelne Dreiecke aus, indem Sie deren Eckpunkte angeben:</p>
+		<pre><code>
+glBegin(GL_TRIANGLES);
+for(alle Dreiecke)
+{
+	glVertex3f(x1, y1, z1);
+	glVertex3f(x2, y2, z2);
+	glVertex3f(x3, y3, z3);
+}
+glEnd();
+		</code></pre>
+		<figure class="floatright">
+			<img src="assets/200103_8.png" width="393" height="171" alt="POLYGONE KÖNNEN SIE mit OpenGL auf verschiedene Arten ausgeben.">
+			<figcaption><span>POLYGONE KÖNNEN SIE</span> mit OpenGL auf verschiedene Arten ausgeben.</figcaption>
+		</figure>
+		<p>Alternativ können Sie Triangle Strips zeichnen. Dabei nutzen Sie, dass Sie einen Streifen von Dreiecken rendern, bei dem sich zwei aufeinander folgende Dreiecke eine Kante teilen. Mit dieser Variante erreichen Sie eine deutlich höhere Performance, weil weniger Daten an OpenGL übertragen werden und OpenGL weniger Aufwand betreiben muss.</p>
+		<p>Die Anzahl der Dreiecke, die Sie bei der Tessellierung erzeugen, ist nicht nur für die Frame-Rate beim Rendern interessant. Je näher eine Fläche am Betrachter ist, desto feiner müssen Sie tessellieren, damit sie glatt wirkt. Flächen, die nur klein am Bildschirm zu sehen sind, lassen sich nur grob tessellieren. Wie Sie sehen. Besteht ein 3D-Modell aus parametrischen Flächen, benötigen Sie – anders als bei polygonalen Modellen – nur eine Repräsentation, um verschiedene Detailstufen zu berechnen.</p>
+	</section>
+
+	<section>
+		<h2>Parametrische Flächen texturieren</h2>
+		<figure class="floatright">
+			<img src="assets/200103_7.png" width="640" height="399" alt="EINE TEXTUR WIRD auf ein Dreieck gespannt.">
+			<figcaption><span>EINE TEXTUR WIRD</span> auf ein Dreieck gespannt.</figcaption>
+		</figure>
+		<p>Eine Textur ist ein zwei&shy;dimensionales Muster, das Sie auf 3D-Objekte oder Flächen kleben. Nutzen Sie die beiden Parameter <i>u</i> und <i>v</i> aus Ihrem zwei&shy;dimensionalen Parameter&shy;gebiet, um parametrische Flächen zu texturieren. Die Textur&shy;koordinaten in OpenGL geben Sie für jeden Vertex an:</p>
+		<pre><code>
+glTexCoord2d(u, v);
+glVertex3f(x, y, z);
+		</code></pre>
+		<p>Vorher laden Sie eine entsprechende Textur und übergeben sie an OpenGL. Verwenden Sie die Funktionen aus der <i>glaux</i>-Library (Datei: <i>glaux.h</i>). Mit wenigen Codezeilen können Sie eine Textur laden und für OpenGL verwenden, wobei Sie zuerst eine <i>bmp</i>-Datei in den Speicher laden:</p>
+		<pre><code>
+AUX_RGBImageRec *texture;
+texture = auxDIBImageLoad("texture.bmp");
+		</code></pre>
+		<p>Lassen Sie sich von OpenGL eine ID geben, mit der Sie Ihre Textur bezeichnen wollen:</p>
+		<pre><code>
+GLint textureID;
+glGenTextures(1, &amp;textureID);
+		</code></pre>
+		<p>Schalten Sie OpenGL ein:</p>
+		<pre><code>
+glBindTexture(GL_TEXTURE_2D, textureID);
+		</code></pre>
+		<p>Stellen Sie die Texturfilter ein: wie die Textur gerendert werden soll, wenn sie gedehnt oder gestaucht wird:</p>
+		<pre><code>
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D,
+	GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		</code></pre>
+		<p>Im nächsten Arbeitsschritt übergeben Sie OpenGL die Texturdaten:</p>
+		<pre><code>
+glTexImage2D(GL_TEXTURE_2D, 0, 3,
+	texture-&gt;sizeX,
+	texture-&gt;sizeY,
+	0, GL_RGB, GL_UNSIGNED_BYTE,
+	texture-&gt;data);
+		</code></pre>
+		<p>und können den jetzt nicht mehr benötigten Speicher wieder freigeben:</p>
+		<pre><code>
+free(texture-&gt;data);
+free(texture);
+		</code></pre>
+		<p>Mit folgenden Befehlen schalten Sie das Texturieren an oder aus:</p>
+		<pre><code>
+glEnable(GL_TEXTURE_2D);
+glDisable(GL_TEXTURE_2D);
+		</code></pre>
+		<p>Bei Texturen können Sie zu jedem Texel (ein Bildpunkt der Textur) nicht nur die Farbe, sondern auch einen Alphawert angeben. Der Alphawert steht für die <i>Opakheit</i> (Sichtbarkeit als Gegensatz zur Transparenz) eines Texels: Der Wert <i>(1.0)</i> steht für nicht transparent, <i>0.0</i> für durchsichtig. Sie können eine Fläche mit einer Textur vollständig überziehen und auf dieser die unsichtbaren Teile mit dem entsprechenden Alphawert markieren. Weisen Sie OpenGL an, diese Teile der Fläche nicht zu zeichnen. Dabei hilft Ihnen der Alpha-Test, den Sie wie folgt aktivieren und verwenden:</p>
+		<pre><code>
+glEnable(GL_ALPHA_TEST);
+glAlphaFunc(GL_GREATER);
+		</code></pre>
+		<p>Damit verfügen Sie über eine Reihe von Methoden, um parametrische Flächen zu berechnen und einzusetzen. In Computer&shy;spielen können Sie den Einsatz dieser Verfahren beobachten.</p>
+	</section>
+
+	<footer>
+		<p>Erhard Thomas</p>
+		<p>© 2001 WEKA Computerzeitschriften Verlag</p>
+		<p class="footnote"><b>Literatur:</b></p>
+		<p class="footnote">Gerald Farin, Curvers and Surfaces for Computer Aided Geometric Design, Academic Press, ISBN 0-12-249054-1</p>
+		<p class="footnote">Brian Sharp, Implementing Curved Surface Geometry und Optimizing Curved Surface Geometry, Game Developer Magazine</p>
+		<p class="footnote">Alan und Mark Watt, Advanced Animation and Rendering Techniques: Theory and Practice, New York: ACM Press, 1992</p>
+		<p class="footnote">J.H. Clark, A Fast Scan-Line Algorithm for Rendering Parametric Surfaces, Computer Graphics Vol. 13 No.2: pp. 289-99.</p>
+	</footer>
+	</article>
+
+	<nav class="pagenav">
+		<a rel="prev" href="200102.html">2/2001</a>
+		<a href="index.html">Inhalt</a>
+		<a rel="next" href="200104.html">4/2001</a>
+	</nav>
+</body>
