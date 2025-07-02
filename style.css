@@ -68,6 +68,17 @@ body {
 	font-weight: bold;
 }
 
+.license {
+	margin: 1em;
+	padding: 1em;
+	border-top: solid 1px #808080;
+	font-size: 80%;
+}
+
+.license > p {
+	line-height: 200%;
+}
+
 a {
 	font-family: sans-serif;
 }
