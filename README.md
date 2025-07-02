@@ -2,6 +2,8 @@
 
 (Fast) alle *PC Underground*-Artikel, die von 1998 bis 2004 in der Zeitschrift *PC Magazin* des damaligen WEKA Computerzeitschriftenverlags veröffentlicht wurden.
 
+[Online lesbare Version mit Downloads der Quelltexte](https://pcunderground.github.io/pcu/)
+
 Die Artikel befassen sich hauptsächlich mit der Grafik- und Sound-Programmierung in C++ für [Demos](https://de.wikipedia.org/wiki/Demoszene) und Computerspiele unter Windows, aber auch mit Themen wie Datenkomprimierung oder Wegfindung. Autor der Artikel war Carsten Dachsbacher, mit Nils Pipenbrinck und Oliver Käferstein als gelegentliche Co-Autoren.
 
 Die Texte wurden aus PDF-Dateien extrahiert und in HTML-Dokumente umgewandelt. Die Formatierung wurde zugunsten der Lesbarkeit im Browser angepasst, und die Inhalte in ein einspaltiges Layout überführt. Längere Quelltexte, die über kurze Schnipsel im Fließtext hinausgehen, sind als Download verfügbar und nicht mehr in die Artikel integriert.
