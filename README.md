@@ -38,7 +38,7 @@ Diese werden nach Möglichkeit später noch hinzugefügt.
 
 ## Danksagung
 
-Die Artikelinhalte und Quelltexte der Programme werden mit Genehmigung und Unterstützung der [WEKA Media Publishing GmbH](https://wekanet.de) und Dr. Carsten Dachsbacher zur Verfügung gestellt.
+Die Artikelinhalte und Quelltexte der Programme werden mit Genehmigung und Unterstützung der [WEKA Media Publishing GmbH](https://www.weka-media-publishing.de) und Dr. Carsten Dachsbacher zur Verfügung gestellt.
 
 Vielen Dank an WEKA und Carsten für die freundliche Unterstützung und die Mitwirkung an diesem Projekt.
 
