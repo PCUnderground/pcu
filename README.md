@@ -27,7 +27,7 @@ Es fehlen derzeit außerdem die Quelltexte der Beispielprogramme von 15 der insg
 * 2/2000: Jenseits aller Standards
 * 3/2000: Sternenhagel unter der Lupe
 * 4/2000: Digitaler Schraubstock
-* 5/2000: Gewinnbringender Verluse
+* 5/2000: Gewinnbringender Verlust
 * 11/2000: Poppige Polygone
 * 12/2001: Alles fließt
 * 1/2002: Wasser-Spiegel
